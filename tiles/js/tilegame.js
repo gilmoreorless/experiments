@@ -102,7 +102,9 @@
 	Tproto.setSrc = function (src) {
 		var self = this;
 		function drawSource() {
-			self.source.context.drawImage(src, 0, 0);
+			if (!self.source.isCanvas) {
+				self.source.context.drawImage(src, 0, 0);
+			}
 			self.render();
 		}
 
@@ -115,6 +117,10 @@
 				src = img;
 				drawn = true;
 			}
+		} else if (src instanceof HTMLCanvasElement) {
+			self.source.canvas = src;
+			self.source.context = src.getContext('2d');
+			self.source.isCanvas = true;
 		}
 		if (!drawn) {
 			drawSource();
