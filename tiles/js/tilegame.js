@@ -1,4 +1,4 @@
-;(function (window) {
+;(function (window, undefined) {
 
 	/*** Utilities ***/
 
@@ -17,6 +17,24 @@
 		return array;
 	}
 
+	function extend(dest /*, src...*/) {
+		var len = arguments.length;
+		if (len < 2) {
+			return dest;
+		}
+		for (var i = 1; i < len; i++) {
+			var src = arguments[i];
+			if (src !== undefined) {
+				for (var key in src) {
+					if (src.hasOwnProperty(key)) {
+						dest[key] = src[key];
+					}
+				}
+			}
+		}
+		return dest;
+	}
+
 
 	/*** Main game ***/
 
@@ -31,16 +49,17 @@
 			canvas: canvas,
 			context: canvas.getContext('2d')
 		};
-		this.options = options || {};
-		canvas.width  = options.width || 320;
-		canvas.height = options.height || 240;
-
 		var sourceCanvas = document.createElement('canvas');
 		this.source = {
 			canvas: sourceCanvas,
 			context: sourceCanvas.getContext('2d'),
 			image: null
 		};
+
+		// Setup default options and canvas dimensions
+		this.options = extend({}, Tiler.defaultOptions, options);
+		canvas.width  = options.width;
+		canvas.height = options.height;
 		sourceCanvas.width = canvas.width;
 		sourceCanvas.height = canvas.height;
 
@@ -48,18 +67,32 @@
 		document.body.appendChild(sourceCanvas);
 
 		// Register click handler
-		canvas.addEventListener('click', this.clickHandler.bind(this), false);
+		var handler = this.clickHandler.bind(this);
+		canvas.addEventListener('click', handler, false);
+		if (this.options.move === 'dblclick') {
+			canvas.addEventListener('dblclick', handler, false);
+		}
 
 		// Work out pieces
 		this.setup();
+	};
+
+	Tiler.defaultOptions = {
+		width: 320,
+		height: 240,
+		rows: 3,
+		cols: 3,
+		move: 'click',
+		flip: false,
+		rotate: false
 	};
 
 	var Tproto = Tiler.prototype;
 
 	Tproto.setup = function () {
 		var opts = this.options;
-		var rows = opts.rows = opts.rows || 3;
-		var cols = opts.cols = opts.cols || 3;
+		var rows = opts.rows;
+		var cols = opts.cols;
 		var length = rows * cols;
 		var colWidth = opts.colWidth = opts.width / cols;
 		var rowHeight = opts.rowHeight = opts.height / rows;
@@ -69,7 +102,8 @@
 			valid: false,
 			finished: false,
 			moves: 0,
-			emptyIndex: -1
+			emptyIndex: -1,
+			selectedIndex: -1
 		};
 
 		// Build the list of pieces to move
@@ -119,7 +153,7 @@
 			}
 		} else if (src instanceof HTMLCanvasElement) {
 			self.source.canvas = src;
-			self.source.context = src.getContext('2d');
+			self.source.context = null;
 			self.source.isCanvas = true;
 		}
 		if (!drawn) {
@@ -164,16 +198,44 @@
 				}
 			}
 		}
+
+		// Selection border
+		var sel = this.state.selectedIndex;
+		if (sel > -1) {
+			r = ~~(sel / opts.cols);
+			c = sel % opts.cols;
+			ctx.save();
+			ctx.strokeStyle = 'rgba(0, 220, 220, 0.7)';
+			ctx.lineWidth = 4;
+			ctx.lineJoin = 'round';
+			ctx.strokeRect(
+				c * width - 2, r * height - 2,
+				width + 4, height + 4
+			);
+			ctx.restore();
+		}
 	};
 
 	Tproto.clickHandler = function (e) {
+		if (this.state.finished) {
+			return;
+		}
 		var x = e.offsetX;
 		var y = e.offsetY;
 		var col = ~~(x / this.options.colWidth);
 		var row = ~~(y / this.options.rowHeight);
-		var index = row * this.options.rows + col;
-		if (!this.state.finished) {
+		var index = row * this.options.cols + col;
+		var actionMove = true;
+		var actionSelect = false;
+		var isDblClick = e.type === 'dblclick';
+		if (this.options.move === 'dblclick' && !isDblClick) {
+			actionMove = false;
+			actionSelect = true;
+		}
+		if (actionMove) {
 			this.moveTile(index);
+		} else if (actionSelect) {
+			this.selectTile(index);
 		}
 	};
 
@@ -194,10 +256,16 @@
 			pieces[index] = pieces[empty];
 			pieces[empty] = temp;
 			state.emptyIndex = index;
+			state.selectedIndex = -1;
 			state.moves++;
 			this.render();
 			this.checkFinished();
 		}
+	};
+
+	Tproto.selectTile = function (index) {
+		this.state.selectedIndex = index;
+		this.render();
 	};
 
 	Tproto.checkFinished = function () {

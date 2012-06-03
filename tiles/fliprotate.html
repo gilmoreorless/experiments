@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Image tiles / Flip+Rotate</title>
+</head>
+<body>
+	<canvas id="game"></canvas>
+	<script src="js/tilegame.js"></script>
+	<script>
+		var tiler = new Tiler('game', {
+			width: 640,
+			height: 480,
+			rows: 2,
+			cols: 3,
+			move: 'dblclick',
+			flip: true,
+			rotate: true
+		});
+		tiler.setSrc('img/catimov.jpg');
+	</script>
+</body>
+</html>
