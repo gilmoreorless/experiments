@@ -10,18 +10,34 @@
 		<button id="flipvert">Flip Vertical</button>
 	</div>
 	<canvas id="game"></canvas>
+	<video id="webcam" autoplay></video>
+	<canvas id="source" width="640" height="480"></canvas>
 	<script src="js/tilegame.js"></script>
 	<script>
 		var tiler = new Tiler('game', {
 			width: 640,
 			height: 480,
-			rows: 3,
-			cols: 3,
+			rows: 4,
+			cols: 4,
 			move: 'dblclick',
 			flip: true,
 			rotate: true
 		});
-		tiler.setSrc('img/catimov.jpg');
+		var video = document.getElementById('webcam');
+		var source = document.getElementById('source');
+		var ctx = source.getContext('2d');
+		// Only works in Opera Labs right now
+		navigator.getUserMedia({video: true}, function (stream) {
+			video.src = stream;
+			ctx.translate(640, 0);
+			ctx.scale(-1, 1);
+			setInterval(function () {
+				ctx.drawImage(video, 0, 0);
+				tiler.setSrc(source);
+			}, 1000 / 24);
+		}, function () {
+			console.error('Oh noes!');
+		});
 
 		var clickit = function (id, handler) {
 			var elem = document.getElementById(id);

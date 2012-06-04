@@ -35,6 +35,11 @@
 		return dest;
 	}
 
+	function randChoice(chanceOfTrue) {
+		var r = Math.random();
+		return r < chanceOfTrue;
+	}
+
 
 	/*** Main game ***/
 
@@ -106,20 +111,38 @@
 			selectedIndex: -1
 		};
 
+		// Work out the chance of flipping or rotating a piece
+		var chanceFlip = 0.5;
+		var chanceRotate = 0.5;
+		if (opts.flip && opts.rotate) {
+			chanceFlip = chanceRotate = 0.33;
+		}
+
 		// Build the list of pieces to move
 		this.pieces = new Array(length);
-		var i = length,
-			r = rows,
-			c;
+		var i = length;
+		var r = rows;
+		var c, piece;
 		while (r--) {
 			c = cols;
 			while (c--) {
 				--i;
-				this.pieces[i] = {
+				piece = this.pieces[i] = {
 					index: i,
 					row: r,
 					col: c
 				};
+				if (opts.flip && randChoice(chanceFlip)) {
+					piece.flip = randChoice(0.5) ? 'h' : 'v'; // Flip horizontally or vertically
+				}
+				if (opts.rotate && randChoice(chanceRotate)) {
+					piece.rotate = Math.PI; // Radians
+				}
+				// Quick optimisation
+				if (piece.flip && piece.rotate) {
+					piece.rotate = 0;
+					piece.flip = piece.flip === 'h' ? 'v' : 'h';
+				}
 			}
 		}
 		// Make the last piece the empty space
@@ -188,6 +211,19 @@
 				if (!piece.empty) {
 					ctx.save();
 					ctx.translate(c * width, r * height);
+					if (piece.flip) {
+						if (piece.flip === 'h') {
+							ctx.translate(width, 0);
+							ctx.scale(-1, 1);
+						} else if (piece.flip === 'v') {
+							ctx.translate(0, height);
+							ctx.scale(1, -1);
+						}
+					}
+					if (piece.rotate) {
+						ctx.translate(width, height);
+						ctx.rotate(Math.PI);
+					}
 					ctx.drawImage(
 						src,
 						piece.col * width, piece.row * height,
@@ -268,15 +304,83 @@
 		this.render();
 	};
 
+	Tproto.flipTile = function (index, direction) {
+		var piece = this.pieces[index];
+		var flip = piece.flip;
+		/*
+		dir=h
+		none -> h
+		h -> false
+		v -> false+r
+		r -> v
+		*/
+		if (flip) {
+			piece.flip = false;
+			if (flip !== direction) {
+				piece.rotate = Math.PI;
+			}
+		} else {
+			if (piece.rotate) {
+				piece.flip = direction === 'h' ? 'v' : 'h';
+			} else {
+				piece.flip = direction;
+			}
+			piece.rotate = 0;
+		}
+		this.render();
+	};
+
+	Tproto.flipSelectedTile = function (direction) {
+		var index = this.state.selectedIndex;
+		if (index > -1) {
+			this.flipTile(index, direction);
+		}
+	};
+
+	Tproto.rotateTile = function (index, rotation) {
+		var piece = this.pieces[index];
+		/*
+		rot=PI
+		none -> r
+		r -> none
+		h -> v
+		v -> h
+		*/
+		piece.rotate = piece.rotate || piece.flip ? 0 : rotation;
+		if (piece.flip) {
+			piece.flip = piece.flip === 'h' ? 'v' : 'h';
+		}
+		this.render();
+	};
+
+	Tproto.rotateSelectedTile = function (rotation) {
+		var index = this.state.selectedIndex;
+		if (index > -1) {
+			this.rotateTile(index, rotation);
+		}
+	};
+
 	Tproto.checkFinished = function () {
 		if (this.state.finished) {
 			return true;
 		}
+		// Check that all pieces are in the right place
+		var manipulated = false;
 		var i = this.pieces.length;
+		var piece;
 		while (i--) {
-			if (this.pieces[i].index !== i) {
+			piece = this.pieces[i];
+			if (piece.index !== i) {
 				return false;
 			}
+			if (piece.flip || piece.rotate) {
+				manipulated = true;
+			}
+		}
+		// Pieces are in place, but are they correct?
+		if (manipulated) {
+			alert('Close, but not quite there...');
+			return false;
 		}
 		// Game just finished
 		alert('Finished in ' + this.state.moves + ' moves!');
