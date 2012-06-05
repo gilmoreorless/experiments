@@ -3,7 +3,7 @@
 	/*** Utilities ***/
 
 	// Fisher-Yates in-place shuffle from http://bost.ocks.org/mike/shuffle/
-	function shuffle(array) {
+	function shuffleArray(array) {
 		var m = array.length, t, i;
 		// While there remain elements to shuffle...
 		while (m) {
@@ -15,6 +15,54 @@
 			array[i] = t;
 		}
 		return array;
+	}
+
+	// Shuffle puzzle pieces using only valid moves, to guarantee a playable puzzle
+	// e is the initial index of the empty piece
+	function shufflePuzzle(pieces, rows, cols, e) {
+		var moves = pieces.length;
+		var cache = {};
+		var touched = 0;
+		var i, t, dir, check;
+		var swaps = 0;
+		while (touched < moves - 2) {
+			dir = randChoice(0.5); // true = horizontal, false = vertical
+			if (dir) {
+				check = e % cols;
+				if (check === 0 || check === cols - 1) {
+					// Only one move available
+					dir = !!check;
+				} else {
+					dir = randChoice(0.5); // true = left, false = right
+				}
+				i = dir ? e - 1 : e + 1;
+			} else {
+				check = ~~(e / cols);
+				if (check === 0 || check === rows - 1) {
+					// Only one move available
+					dir = !!check;
+				} else {
+					dir = randChoice(0.5); // true = up, false = down
+				}
+				i = dir ? e - cols : e + cols;
+			}
+			t = pieces[e];
+			pieces[e] = pieces[i];
+			pieces[i] = t;
+			e = i;
+			// TEMP
+			// this.render();
+
+			// Make sure we've moved all pieces at least once
+			if (!(e in cache)) {
+				cache[e] = true;
+				touched++;
+			}
+			swaps++;
+		}
+		console.log('pieces:', pieces, 'swaps:', swaps);
+
+		return pieces;
 	}
 
 	function extend(dest /*, src...*/) {
@@ -133,10 +181,10 @@
 					col: c
 				};
 				if (opts.flip && randChoice(chanceFlip)) {
-					piece.flip = randChoice(0.5) ? 'h' : 'v'; // Flip horizontally or vertically
+					// piece.flip = randChoice(0.5) ? 'h' : 'v'; // Flip horizontally or vertically
 				}
 				if (opts.rotate && randChoice(chanceRotate)) {
-					piece.rotate = Math.PI; // Radians
+					// piece.rotate = Math.PI; // Radians
 				}
 				// Quick optimisation
 				if (piece.flip && piece.rotate) {
@@ -146,14 +194,19 @@
 			}
 		}
 		// Make the last piece the empty space
-		var last = this.pieces.pop();
+		var last = this.pieces[length - 1];
 		last.empty = true;
 
 		// Shuffle the pieces (minus the empty one)
-		shuffle(this.pieces);
-		// Restore the empty piece
-		this.pieces.push(last);
-		this.state.emptyIndex = length - 1;
+		shufflePuzzle(this.pieces, rows, cols, length - 1);
+		// Work out the index of the empty piece after shuffling
+		i = length;
+		while (i--) {
+			if (this.pieces[i].empty) {
+				this.state.emptyIndex = i;
+				break;
+			}
+		}
 	};
 
 	Tproto.setSrc = function (src) {
