@@ -181,10 +181,10 @@
 					col: c
 				};
 				if (opts.flip && randChoice(chanceFlip)) {
-					// piece.flip = randChoice(0.5) ? 'h' : 'v'; // Flip horizontally or vertically
+					piece.flip = randChoice(0.5) ? 'h' : 'v'; // Flip horizontally or vertically
 				}
 				if (opts.rotate && randChoice(chanceRotate)) {
-					// piece.rotate = Math.PI; // Radians
+					piece.rotate = Math.PI; // Radians
 				}
 				// Quick optimisation
 				if (piece.flip && piece.rotate) {
