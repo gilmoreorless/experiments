@@ -21,7 +21,7 @@
 		var ctx = source.getContext('2d');
 		// Only works in Opera Labs right now
 		navigator.getUserMedia({video: true}, function (stream) {
-			video.src = stream;
+			video.src = getStreamSrc(stream);
 			ctx.translate(640, 0);
 			ctx.scale(-1, 1);
 			setInterval(function () {
