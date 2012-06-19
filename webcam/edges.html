@@ -5,7 +5,7 @@
 	<style>
 	.container {border:1px dashed #999; /*overflow:hidden;*/}
 	.container > div {/*float:left;*/ margin:10px;}
-	#edgeGradMag {position:absolute; top:25px; left:0; width:100%; height:100%;}
+	/*#edgeGradMag {position:absolute; top:25px; left:0; width:100%; height:100%;}*/
 	</style>
 </head>
 <body>
@@ -15,29 +15,29 @@
 	Normalise Diff: <input type="checkbox" id="normaliseDiff" /><br />
 	Show Diff: <input type="checkbox" id="showDiff" /><br />
 	-->
-	<!-- <div class="container"> -->
-		<!-- <div> -->
+	<div class="container">
+		<div>
 			Convolution:<br />
 			<canvas id="edgeConv"></canvas>
-		<!-- </div> -->
-		<!-- <div> -->
+		</div>
+		<div>
 			Gradient (X):<br />
 			<canvas id="edgeGradX"></canvas>
-		<!-- </div> -->
-		<!-- <div> -->
+		</div>
+		<div>
 			Gradient (Y):<br />
 			<canvas id="edgeGradY"></canvas>
-		<!-- </div> -->
-		<!-- <div> -->
+		</div>
+		<div>
 			Gradient (Magnitude):<br />
 			<canvas id="edgeGradMag"></canvas>
-		<!-- </div> -->
-	<!-- </div> -->
+		</div>
+	</div>
 	Source:<br />
 	<canvas id="source"></canvas><br />
 	Video stream:<br />
-	<video id="webcam" autoplay width="480" height="360"></video>
-	<script src="../_common/gumShield.js"></script>
+	<video id="webcam" autoplay width="320" height="240"></video>
+	<script src="../common/gumShield.js"></script>
 	<script src="hog-processing.js"></script>
 	<script>
 		/*** Boilerplate ***/
@@ -147,7 +147,7 @@
 		}
 
 		function detectGradients(srcData) {
-			console.time('detectGradients');
+			// console.time('detectGradients');
 			var w = srcData.width;
 			var h = srcData.height;
 			var srcpx = srcData.data;
@@ -159,22 +159,22 @@
 			var dm = dataMag.data;
 
 			var intensities = processing.intensities(srcData)
-			var gradients = processing._gradients(intensities);
-			// var vectors = processing._gradientVectors(intensities);
-			var gradsX = gradients.x;
-			var gradsY = gradients.y;
-			var y = gradsX.length;
-			var xx = gradsX[0].length;
-			// var y = h;
-			// var xx = w;
+			// var gradients = processing._gradients(intensities);
+			var vectors = processing._gradientVectors(intensities);
+			// var gradsX = gradients.x;
+			// var gradsY = gradients.y;
+			// var y = gradsX.length;
+			// var xx = gradsX[0].length;
+			var y = h;
+			var xx = w;
 			while (y--) {
 				var x = xx;
 				while (x--) {
 					var i = (y * 4) * w + x * 4;
-					var gradX = Math.abs(gradsX[y][x]) * 255    ;
-					var gradY = Math.abs(gradsY[y][x]) * 255    ;
-					// var mag = Math.abs(vectors[y][x].mag) * 255 * 2;
-					var mag = gradX + gradY;
+					// var gradX = Math.abs(gradsX[y][x]) * 255    ;
+					// var gradY = Math.abs(gradsY[y][x]) * 255    ;
+					var mag = Math.abs(vectors[y][x].mag) * 255 ;
+					// var mag = gradX + gradY;
 
 					// dx[i] = gradX;
 					// dx[i + 1] = gradX;
@@ -194,7 +194,7 @@
 			// gradXCtx.putImageData(dataGX, 0, 0);
 			// gradYCtx.putImageData(dataGY, 0, 0);
 			magCtx.putImageData(dataMag, 0, 0);
-			console.timeEnd('detectGradients');
+			// console.timeEnd('detectGradients');
 		}
 
 		function doStuff() {

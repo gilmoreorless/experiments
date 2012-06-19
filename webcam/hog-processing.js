@@ -77,7 +77,7 @@ var processing = {
 
     var vectors = new Array(height);
 
-    console.time('_gradientVectors');
+    // console.time('_gradientVectors');
     for (var y = 0; y < height; y++) {
       vectors[y] = new Array(width);
 
@@ -97,7 +97,7 @@ var processing = {
         }
       }
     }
-    console.timeEnd('_gradientVectors');
+    // console.timeEnd('_gradientVectors');
     return vectors;
   },
 
