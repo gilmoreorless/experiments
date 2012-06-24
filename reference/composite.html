@@ -37,11 +37,20 @@
 	comp.height = 750;
 
 	var parts = 10;
-	var width = 5;
+	var width = 6;
 
-	ctx.strokeStyle = '#FFF';
+	ctx.strokeStyle = 'rgba(255, 0, 255, 0.33)';
+	// ctx.strokeStyle = '#555';
 	ctx.lineWidth = width;
 	ctx.strokeRect(10, 10, 300, 300);
+	// ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+	// ctx.strokeStyle = '#AAA';
+	ctx.lineWidth = width - 2;
+	ctx.strokeRect(10, 10, 300, 300);
+	// ctx.strokeStyle = '#FFF';
+	ctx.lineWidth = width - 4;
+	ctx.strokeRect(10, 10, 300, 300);
+
 	var imageData = ctx.getImageData(5, 5, 310, 310);
 	var tmp = document.createElement('canvas');
 	var tmpCtx = tmp.getContext('2d');
