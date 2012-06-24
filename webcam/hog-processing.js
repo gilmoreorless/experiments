@@ -78,6 +78,7 @@ var processing = {
     var vectors = new Array(height);
 
     // console.time('_gradientVectors');
+    var start = +new Date();
     for (var y = 0; y < height; y++) {
       vectors[y] = new Array(width);
 
@@ -93,11 +94,13 @@ var processing = {
 
         vectors[y][x] = {
           mag: Math.sqrt(gradX * gradX + gradY * gradY),
-          orient: Math.atan2(gradY, gradX)
+          orient: 0//Math.atan2(gradY, gradX)
         }
       }
     }
     // console.timeEnd('_gradientVectors');
+    var end = +new Date();
+    timings.push(end - start);
     return vectors;
   },
 
