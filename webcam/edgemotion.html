@@ -13,8 +13,8 @@
 	Source:<br />
 	<canvas id="source"></canvas><br />
 	Video stream:<br />
-	<video id="webcam" autoplay width="320" height="240"></video>
-	<!-- <video id="webcam" autoplay width="640" height="480"></video> -->
+	<!-- <video id="webcam" autoplay width="320" height="240"></video> -->
+	<video id="webcam" autoplay width="640" height="480"></video>
 	<script src="../common/gumShield.js"></script>
 	<script src="hog-processing.js"></script>
 	<script>
@@ -120,17 +120,23 @@
 		};
 
 		/* Config */
-		var MODE = 'sketchLayers'
+		// var MODE = 'sketch';
+		// var MODE = 'sketchLayers';
+		var MODE = 'colourTrails';
+		var isNegative = false;
 		var fps = 20;
-		var stackSize = 3;
-		var framesPerStack = 10;
+		var stackSize = 10;
+		var framesPerStack = 5;
 		var hueStep = 17;
 		/* End Config */
 
 		var hue = 0;
 		var stack = [];
 		var stackFrames = 0;
+		var alphaTotal = framesPerStack * stackSize;
 		var curMode = MODES[MODE] || 0;
+		var bgColour = isNegative ? 0 : 255;
+		var fgColour = 255 - bgColour;
 
 		function detectGradients(srcData) {
 			// console.time('detectGradients');
@@ -150,41 +156,40 @@
 					var i = (y * 4) * w + x * 4;
 					var mag = Math.abs(vectors[y][x].mag) * 255;
 					// var mag = Math.abs(vectors.y[y][x]) * 255 + Math.abs(vectors.x[y][x]) * 255;
-					// dm[i] = mag;
-					// dm[i + 1] = mag;
-					// dm[i + 2] = mag;
-					// dm[i + 3] = 255;
 
-					// dm[i]     = 255;
-					// dm[i + 1] = 255;
-					// dm[i + 2] = 255;
-					dm[i]     = 0;
-					dm[i + 1] = 0;
-					dm[i + 2] = 0;
+					dm[i]     = fgColour;
+					dm[i + 1] = fgColour;
+					dm[i + 2] = fgColour;
 					dm[i + 3] = mag >= tolerance ? mag : 0;
 				}
 			}
 
-			// magCtx.putImageData(dataMag, 0, 0);
 			// console.timeEnd('detectGradients');
 			return dataMag;
 		}
 
-		function pushStack(srcData) {
+		function pushStack(imgData) {
 			hue = (hue + hueStep) % 360;
-			var frameData = detectGradients(srcData);
 			var canvas = document.createElement('canvas');
 			canvas.width = width;
 			canvas.height = height;
 			var canCtx = canvas.getContext('2d');
-			canCtx.putImageData(frameData, 0, 0);
+			canCtx.putImageData(imgData, 0, 0);
 			canCtx.globalCompositeOperation = 'source-atop';
-			canCtx.fillStyle = hsl2rgb(hue / 360, .7, .4);
-			canCtx.fillRect(0, 0, frameData.width, frameData.height);
+			canCtx.fillStyle = hsl2rgb(hue / 360, .7, .3);
+			canCtx.fillRect(0, 0, imgData.width, imgData.height);
 
 			stack.push(canvas);
 			if (stack.length > stackSize) {
 				stack.shift();
+			}
+		}
+
+		function addFrame(imgData) {
+			stackFrames++;
+			if (stackFrames == framesPerStack) {
+				stackFrames = 0;
+				pushStack(imgData);
 			}
 		}
 
@@ -193,16 +198,24 @@
 			var edgeData = detectGradients(srcData);
 			convCtx.putImageData(edgeData, 0, 0);
 
-
-			// pushStack(srcData);
-			// magCtx.clearRect(0, 0, width, height);
-			// for (var i = 0, ii = stack.length; i < ii; i++) {
-			// 	magCtx.globalAlpha = (i + 1) / ii;
-			// 	magCtx.drawImage(stack[i], 0, 0);
-			// }
-			if (curMode !== MODES.sketchLayers) {
-				magCtx.clearRect(0, 0, width, height);
+			if (curMode === MODES.colourTrails) {
+				addFrame(edgeData);
 			}
+			if (curMode !== MODES.sketchLayers) {
+				if (isNegative) {
+					magCtx.fillStyle = '#000';
+					magCtx.fillRect(0, 0, width, height);
+				} else {
+					magCtx.clearRect(0, 0, width, height);
+				}
+			}
+			if (curMode === MODES.colourTrails) {
+				for (var i = 0, ii = stack.length; i < ii; i++) {
+					magCtx.globalAlpha = (i * framesPerStack + (framesPerStack - stackFrames)) / alphaTotal;
+					magCtx.drawImage(stack[i], 0, 0);
+				}
+			}
+			magCtx.globalAlpha = 1;
 			magCtx.drawImage(convert, 0, 0);
 		}
 
