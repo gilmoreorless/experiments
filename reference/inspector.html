@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="UTF-8">
+	<title>References - Inspector / Magnifier</title>
+</head>
+<body>
+	<canvas id="orig"></canvas>
+	<canvas id="mag"></canvas>
+	<script src="../webcam/hog-processing.js"></script>
+	<script>
+		/* Config */
+		var width = 128;
+		var height = 96;
+		var imgSrc = '../tiles/img/catimov.jpg';
+		var magPower = 4;
+		/* End Config */
+
+		var timings = [];
+		var orig = document.getElementById('orig');
+		var mag = document.getElementById('mag');
+		var origCtx = orig.getContext('2d');
+		var magCtx = mag.getContext('2d');
+		magCtx.mozImageSmoothingEnabled = false;
+		magCtx.webkitImageSmoothingEnabled = false;
+
+		function setup() {
+			orig.width  = mag.width  = width;
+			orig.height = mag.height = height;
+			orig.addEventListener('click', magnifyPoint, false);
+			loadSrc();
+		}
+
+		function loadSrc() {
+			var img = new Image();
+			img.onload = function () {
+				origCtx.drawImage(img, 0, 0, width, height);
+				drawOrig();
+			}
+			img.src = imgSrc;
+		}
+
+		function drawOrig() {
+			var origData = origCtx.getImageData(0, 0, width, height);
+			// var newData = convertToGrayscale(origData);
+			// origCtx.putImageData(newData, 0, 0);
+			drawEdges();
+		}
+
+		function convertToGrayscale(origData) {
+			var pixels = origData.data;
+			var i = pixels.length;
+			while (i) {
+				i -= 4;
+				pixels[i] = pixels[i + 1] = pixels[i + 2] = (pixels[i] * 299/1000 + pixels[i + 1] * 587/1000 + pixels[i + 2] * 114/1000);
+			}
+			return origData;
+		}
+
+		function drawEdges() {
+			// processing.drawGradient(orig, 'x');
+			// processing.drawGradient(orig, 'y');
+			processing.drawMagnitude(orig);
+		}
+
+		var origOffsetX = orig.offsetLeft;
+		var origOffsetY = orig.offsetTop;
+		function magnifyPoint(e) {
+			console.log(e);
+			var x, y;
+			if ('offsetX' in e) {
+				x = e.offsetX;
+				y = e.offsetY;
+			} else {
+				x = e.clientX - origOffsetX;
+				y = e.clientY - origOffsetY;
+			}
+			var pow = 2 ^ magPower;
+			var magW = width / pow;
+			var magH = height / pow;
+			magCtx.drawImage(
+				orig,
+				x - magW / 2, y - magH / 2, magW, magH,
+				0, 0, width, height
+			);
+			magCtx.strokeStyle = '#F00';
+			magCtx.strokeRect(width / 2 - pow, height / 2 - pow * 2, pow, pow);
+
+			inspectPoint(x, y);
+		}
+
+		function inspectPoint(x, y) {
+
+		}
+
+		setup();
+	</script>
+</body>
+</html>

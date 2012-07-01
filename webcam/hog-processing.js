@@ -94,7 +94,7 @@ var processing = {
 
         vectors[y][x] = {
           mag: Math.sqrt(gradX * gradX + gradY * gradY),
-          orient: 0//Math.atan2(gradY, gradX)
+          orient: Math.atan2(gradY, gradX)
         }
       }
     }
