@@ -7,11 +7,12 @@
 <body>
 	<canvas id="orig"></canvas>
 	<canvas id="mag"></canvas>
+	<div id="output"></div>
 	<script src="../webcam/hog-processing.js"></script>
 	<script>
 		/* Config */
-		var width = 128;
-		var height = 96;
+		var width = 160;
+		var height = 120;
 		var imgSrc = '../tiles/img/catimov.jpg';
 		var magPower = 4;
 		/* End Config */
@@ -23,6 +24,9 @@
 		var magCtx = mag.getContext('2d');
 		magCtx.mozImageSmoothingEnabled = false;
 		magCtx.webkitImageSmoothingEnabled = false;
+
+		var output = document.getElementById('output');
+		var origData, vectors;
 
 		function setup() {
 			orig.width  = mag.width  = width;
@@ -41,18 +45,24 @@
 		}
 
 		function drawOrig() {
-			var origData = origCtx.getImageData(0, 0, width, height);
-			// var newData = convertToGrayscale(origData);
-			// origCtx.putImageData(newData, 0, 0);
+			origData = origCtx.getImageData(0, 0, width, height);
 			drawEdges();
+			var newData = convertToGreyscale(origData);
+			origCtx.putImageData(newData, 0, 0);
+			origData = origCtx.getImageData(0, 0, width, height);
 		}
 
-		function convertToGrayscale(origData) {
+		function convertToGreyscale(origData, tolerance) {
 			var pixels = origData.data;
 			var i = pixels.length;
+			var luma;
 			while (i) {
 				i -= 4;
-				pixels[i] = pixels[i + 1] = pixels[i + 2] = (pixels[i] * 299/1000 + pixels[i + 1] * 587/1000 + pixels[i + 2] * 114/1000);
+				luma = pixels[i] * 299/1000 + pixels[i + 1] * 587/1000 + pixels[i + 2] * 114/1000;
+				if (tolerance && luma < tolerance) {
+					luma = 0;
+				}
+				pixels[i] = pixels[i + 1] = pixels[i + 2] = luma;
 			}
 			return origData;
 		}
@@ -60,13 +70,15 @@
 		function drawEdges() {
 			// processing.drawGradient(orig, 'x');
 			// processing.drawGradient(orig, 'y');
-			processing.drawMagnitude(orig);
+			// vectors = processing.drawMagnitude(orig);
+			vectors = processing.gradientVectors(orig);
+			// var newData = convertToGreyscale(origCtx.getImageData(0, 0, width, height), 85);
+			// origCtx.putImageData(newData, 0, 0);
 		}
 
 		var origOffsetX = orig.offsetLeft;
 		var origOffsetY = orig.offsetTop;
 		function magnifyPoint(e) {
-			console.log(e);
 			var x, y;
 			if ('offsetX' in e) {
 				x = e.offsetX;
@@ -75,7 +87,8 @@
 				x = e.clientX - origOffsetX;
 				y = e.clientY - origOffsetY;
 			}
-			var pow = 2 ^ magPower;
+			console.log(e, x, y);
+			var pow = Math.pow(2, magPower);
 			var magW = width / pow;
 			var magH = height / pow;
 			magCtx.drawImage(
@@ -84,13 +97,34 @@
 				0, 0, width, height
 			);
 			magCtx.strokeStyle = '#F00';
-			magCtx.strokeRect(width / 2 - pow, height / 2 - pow * 2, pow, pow);
+			magCtx.strokeRect(width / 2, height / 2, pow, pow);
 
 			inspectPoint(x, y);
 		}
 
-		function inspectPoint(x, y) {
+		function pixelPercentage(val) {
+			return val + ' (' + (Math.round(val / 255 * 100) / 100) + '%)';
+		}
 
+		function inspectPoint(x, y) {
+			var html = [
+				'X: ' + x,
+				'Y: ' + y
+			];
+			var i = (y * width + x) * 4;
+			var pixels = origData.data;
+			var vector = vectors[y][x];
+
+			html.push(
+				'R: ' + pixelPercentage(pixels[i]),
+				'G: ' + pixelPercentage(pixels[i + 1]),
+				'B: ' + pixelPercentage(pixels[i + 2]),
+				'A: ' + pixelPercentage(pixels[i + 3]),
+				'Mag: ' + vector.mag,
+				'Orient: ' + vector.orient
+			);
+
+			output.innerHTML = html.join('<br>');
 		}
 
 		setup();
