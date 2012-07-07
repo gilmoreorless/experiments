@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="UTF-8">
+	<title>References - Gradient Analyser</title>
+	<style>
+		#orig {float:left;}
+	</style>
+</head>
+<body>
+	<div>
+		<canvas id="orig"></canvas>
+		<ul id="switcher">
+			<li><label><input type="radio" name="imgType" value="visualArrows"> Visual: Arrows for magnitude/orientation</label></li>
+			<li><label><input type="radio" name="imgType" value="visualBackground"> Visual: Arrows for orientation, bg for magnitude</label></li>
+			<li><label><input type="radio" name="imgType" value="textMagnitude"> Text: Magnitude (percentage)</label></li>
+			<li><label><input type="radio" name="imgType" value="textOrient"> Text: Orientation (degrees)</label></li>
+		</ul>
+	</div>
+	<canvas id="mag"></canvas>
+	<div id="output"></div>
+	<script src="../webcam/hog-processing.js"></script>
+	<script>
+		/* Config */
+		var width = 128;
+		var height = 96;
+		var imgSrc = '../tiles/img/catimov.jpg';
+		var magPower = 4; // Power, not multiplier (e.g. 4 => pow(2, 4) => 16)
+		var fontSizePx = 8;
+		/* End Config */
+
+		var timings = [];
+		var orig = document.getElementById('orig');
+		var mag = document.getElementById('mag');
+		var origCtx = orig.getContext('2d');
+		var magCtx = mag.getContext('2d');
+		magCtx.mozImageSmoothingEnabled = false;
+		magCtx.webkitImageSmoothingEnabled = false;
+
+		var pow = Math.pow(2, magPower);
+		var origData, vectors;
+
+		function setup() {
+			orig.width  = width;
+			orig.height = height;
+			mag.width  = width  * pow;
+			mag.height = height * pow;
+			magCtx.font = fontSizePx + 'px sans-serif';
+			magCtx.textAlign = 'center';
+			document.getElementById('switcher').addEventListener('click', radioClick, false);
+			loadSrc();
+		}
+
+		function radioClick(e) {
+			var input = e.target;
+			if (input.nodeName == 'INPUT') {
+				var method = input.value;
+				setTimeout(function () {
+					drawGradients(method);
+				});
+			}
+		}
+
+		function loadSrc() {
+			var img = new Image();
+			img.onload = function () {
+				origCtx.drawImage(img, 0, 0, width, height);
+				drawOrig();
+			}
+			img.src = imgSrc;
+		}
+
+		function drawOrig() {
+			origData = origCtx.getImageData(0, 0, width, height);
+			origData = convertToGreyscale(origData);
+			origCtx.putImageData(origData, 0, 0);
+			getVectors();
+			drawGradients();
+			// drawGradients('visualArrows');
+			// drawGradients('visualBackground');
+			// drawGradients('textMagnitude');
+			// drawGradients('textOrient');
+		}
+
+		function convertToGreyscale(origData, tolerance) {
+			var pixels = origData.data;
+			var i = pixels.length;
+			var luma;
+			while (i) {
+				i -= 4;
+				luma = pixels[i] * 299/1000 + pixels[i + 1] * 587/1000 + pixels[i + 2] * 114/1000;
+				if (tolerance && luma < tolerance) {
+					luma = 0;
+				}
+				pixels[i] = pixels[i + 1] = pixels[i + 2] = luma;
+			}
+			return origData;
+		}
+
+		function getVectors() {
+			vectors = processing.gradientVectors(origData);
+		}
+
+		function drawArrow(ctx, pixel) {
+			var p2 = pow / 2;
+			var p3 = pow / 3;
+			ctx.translate(p2, p2);
+			ctx.rotate(pixel.orient);
+			ctx.translate(-p2, -p2);
+			ctx.beginPath();
+			ctx.moveTo(0, p3);
+			ctx.lineTo(pow - p2, p3);
+			ctx.lineTo(pow - p2, 0);
+			ctx.lineTo(pow, p2);
+			ctx.lineTo(pow - p2, pow);
+			ctx.lineTo(pow - p2, pow - p3);
+			ctx.lineTo(0, pow - p3);
+			ctx.closePath();
+			ctx.fill();
+		}
+
+		var drawPixelMethods = {
+			enlarge: function (ctx, x, y) {
+				ctx.fillStyle = getOrigRGB(x, y);
+				ctx.fillRect(x * pow, y * pow, pow, pow);
+			},
+			visualArrows: function (ctx, x, y) {
+				var pixel = vectors[y][x];
+				ctx.fillStyle = getMagRGB(pixel.mag);
+				ctx.save();
+				ctx.translate(x * pow, y * pow);
+				drawArrow(ctx, pixel);
+				ctx.restore();
+			},
+			visualBackground: function (ctx, x, y) {
+				var pixel = vectors[y][x];
+				ctx.fillStyle = getMagRGB(pixel.mag);
+				ctx.fillRect(x * pow, y * pow, pow, pow);
+				ctx.fillStyle = 'rgba(255,0,0,0.5)';
+				ctx.save();
+				ctx.translate(x * pow, y * pow);
+				drawArrow(ctx, pixel);
+				ctx.restore();
+			},
+			textMagnitude: function (ctx, x, y) {
+				var pixel = vectors[y][x];
+				ctx.fillStyle = getOrigRGB(x, y);
+				ctx.fillRect(x * pow, y * pow, pow, pow);
+				ctx.strokeStyle = 'rgba(255,0,0,0.8)';
+				ctx.strokeText(getPercentage(pixel.mag), (x + 0.5) * pow, (y + 0.75) * pow);
+			},
+			textOrient: function (ctx, x, y) {
+				var pixel = vectors[y][x];
+				ctx.fillStyle = getOrigRGB(x, y);
+				ctx.fillRect(x * pow, y * pow, pow, pow);
+				ctx.strokeStyle = 'rgba(255,0,0,0.8)';
+				ctx.strokeText(getDegrees(pixel.orient), (x + 0.5) * pow, (y + 0.5) * pow);
+			}
+		};
+
+		/**
+		 * Valid methods:
+		 *  'enlarge'          => Direct image copy
+		 *  'visualArrows'     => Plain background, arrows showing orientation/magnitude
+		 *  'visualBackground' => Background showing magnitude, arrows showing orientation
+		 *  'textMagnitude'    => Background showing greyscale, text for magnitude (percentage)
+		 *  'textOrient'       => Background showing greyscale, text for orientation (degrees)
+		 *
+		 * Tolerance is 0 to 1, any pixel less than tolerance magnitude has no display
+		 */
+		function drawGradients(method, tolerance) {
+			method || (method = 'enlarge');
+			tolerance = +tolerance || 0;
+
+			magCtx.clearRect(0, 0, width * pow, height * pow);
+			var y = height;
+			var x;
+			while (y--) {
+				x = width;
+				while (x--) {
+					drawPixelMethods[method](magCtx, x, y);
+				}
+			}
+		}
+
+		function getMagRGB(magnitude) {
+			magnitude = 1 - magnitude; // Invert
+			var rgbMag = (256 + Math.round(magnitude * 255)).toString(16).substr(1);
+			return '#' + rgbMag + rgbMag + rgbMag;
+		}
+
+		function getOrigRGB(x, y) {
+			// var rgb = (256 + origData.data[(y * width + x) * 4]).toString(16).substr(1);
+			// return '#' + rgb + rgb + rgb;
+			var rgb = origData.data[(y * width + x) * 4];
+			return 'rgba(' + [rgb, rgb, rgb].join(',') + ', 1)';
+		}
+
+		function getPercentage(num) {
+			return Math.round(num * 100)// + '%';
+		}
+
+		function getDegrees(rad) {
+			var deg = Math.round(rad * 180 / Math.PI % 360);
+			return deg// + '°';
+		}
+
+		setup();
+	</script>
+</body>
+</html>
