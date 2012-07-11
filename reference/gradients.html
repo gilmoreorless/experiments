@@ -21,6 +21,7 @@
 				<li><label><input type="radio" name="imgType" value="textMagnitude"> Text: Magnitude (percentage)</label></li>
 				<li><label><input type="radio" name="imgType" value="textOrient"> Text: Orientation (degrees)</label></li>
 				<li><label><input type="checkbox" name="findPoints"> Only show highest magnitude points</label></li>
+				<li><label><input type="checkbox" name="wireframes"> Calculate wireframes</label></li>
 				<li><input type="range" id="tolerance" value="0" min="0" max="50"> Tolerance <span id="tolVal"></span></li>
 			</ul>
 		</div>
@@ -49,6 +50,7 @@
 		var pow = Math.pow(2, magPower);
 		var options = {
 			findPoints: false,
+			wireframes: false,
 			tolerance: 0
 		};
 		var currentMethod = '';
@@ -232,9 +234,78 @@
 			ctx.fill();
 		}
 
+		function drawWireframeArrow(ctx, x1, y1, x2, y2) {
+			// if (x1 > 10 || y1 > 10) return;
+			var p2 = pow / 2;
+			var p4 = pow / 3;
+			var p6 = pow / 6;
+			var angle = Math.atan2(y2 - y1, x2 - x1);
+			var tx = x1 * pow + p2;
+			var ty = y1 * pow + p2;
+			ctx.translate(tx, ty);
+			ctx.rotate(angle);
+			ctx.beginPath();
+			ctx.moveTo(0, 0);
+			ctx.lineTo(pow, 0);
+			ctx.lineTo(pow - p4, -p6);
+			ctx.lineTo(pow, 0);
+			ctx.lineTo(pow - p4, p6);
+			ctx.stroke();
+		}
+
+		function drawWireframes() {
+			if (!options.wireframes) {
+				return;
+			}
+			var x, y, x1, x2, y1, y2, xx, yy, mx, my;
+			y = height;
+			while (y--) {
+				y1 = y - 1;
+				y2 = y < (height - 1) ? y + 1 : -1;
+				x = width;
+				while (x--) {
+					if (vectors[y][x].mag === 0) {
+						continue;
+					}
+					x1 = x - 1;
+					x2 = x < (width - 1) ? x + 1 : -1;
+					var maxSurround = Math.max(
+						vectors[y1][x1].mag,
+						vectors[y1][x].mag,
+						vectors[y1][x2].mag,
+						vectors[y][x1].mag,
+						vectors[y][x2].mag,
+						vectors[y2][x1].mag,
+						vectors[y2][x].mag,
+						vectors[y2][x2].mag
+					);
+					if (maxSurround > 0) {
+						mx = x2 > -1 ? x2 : x;
+						my = y2 > -1 ? y2 : y;
+						for (xx = x1; xx <= mx; xx++) {
+							for (yy = y1; yy <= my; yy++) {
+								if ((xx != x || yy != y) && vectors[yy][xx].mag == maxSurround) {
+									magCtx.save();
+									magCtx.strokeStyle = 'rgba(0,200,0,0.7)';
+									magCtx.lineWidth = 2;
+									drawWireframeArrow(magCtx, x, y, xx, yy);
+									magCtx.restore();
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+
 		var drawPixelOptions = {
 			findPoints: function () {
 				getVectors();
+			},
+			wireframes: function (enable) {
+				if (enable) {
+					drawWireframes();
+				}
 			}
 		};
 
@@ -300,6 +371,8 @@
 					drawPixelMethods[method](magCtx, x, y);
 				}
 			}
+
+			drawWireframes();
 		}
 
 		function getMagRGB(magnitude) {
