@@ -4,18 +4,26 @@
 	<meta charset="UTF-8">
 	<title>References - Gradient Analyser</title>
 	<style>
-		#orig {float:left;}
+		.row {display: table-row;}
+		.cell {display: table-cell; vertical-align: top;}
+		#switcher {list-style: none; margin: 0;}
 	</style>
 </head>
 <body>
-	<div>
-		<canvas id="orig"></canvas>
-		<ul id="switcher">
-			<li><label><input type="radio" name="imgType" value="visualArrows"> Visual: Arrows for magnitude/orientation</label></li>
-			<li><label><input type="radio" name="imgType" value="visualBackground"> Visual: Arrows for orientation, bg for magnitude</label></li>
-			<li><label><input type="radio" name="imgType" value="textMagnitude"> Text: Magnitude (percentage)</label></li>
-			<li><label><input type="radio" name="imgType" value="textOrient"> Text: Orientation (degrees)</label></li>
-		</ul>
+	<div class="row">
+		<div class="cell">
+			<canvas id="orig"></canvas>
+		</div>
+		<div class="cell">
+			<ul id="switcher">
+				<li><label><input type="radio" name="imgType" value="visualArrows"> Visual: Arrows for magnitude/orientation</label></li>
+				<li><label><input type="radio" name="imgType" value="visualBackground"> Visual: Arrows for orientation, bg for magnitude</label></li>
+				<li><label><input type="radio" name="imgType" value="textMagnitude"> Text: Magnitude (percentage)</label></li>
+				<li><label><input type="radio" name="imgType" value="textOrient"> Text: Orientation (degrees)</label></li>
+				<li><label><input type="checkbox" name="findPoints"> Only show highest magnitude points</label></li>
+				<li><input type="range" id="tolerance" value="0" min="0" max="50"> Tolerance <span id="tolVal"></span></li>
+			</ul>
+		</div>
 	</div>
 	<canvas id="mag"></canvas>
 	<div id="output"></div>
@@ -25,6 +33,7 @@
 		var width = 128;
 		var height = 96;
 		var imgSrc = '../tiles/img/catimov.jpg';
+		// var imgSrc = '../common/handy.jpg';
 		var magPower = 4; // Power, not multiplier (e.g. 4 => pow(2, 4) => 16)
 		var fontSizePx = 8;
 		/* End Config */
@@ -38,7 +47,15 @@
 		magCtx.webkitImageSmoothingEnabled = false;
 
 		var pow = Math.pow(2, magPower);
-		var origData, vectors;
+		var options = {
+			findPoints: false,
+			tolerance: 0
+		};
+		var currentMethod = '';
+		var origData, intensities, vectors;
+
+		var tolIn  = document.getElementById('tolerance');
+		var tolVal = document.getElementById('tolVal');
 
 		function setup() {
 			orig.width  = width;
@@ -47,19 +64,48 @@
 			mag.height = height * pow;
 			magCtx.font = fontSizePx + 'px sans-serif';
 			magCtx.textAlign = 'center';
-			document.getElementById('switcher').addEventListener('click', radioClick, false);
+			document.getElementById('switcher').addEventListener('click', inputClick, false);
+			tolIn.addEventListener('change', toleranceChange, false);
 			loadSrc();
 		}
 
-		function radioClick(e) {
+		function inputClick(e) {
 			var input = e.target;
 			if (input.nodeName == 'INPUT') {
-				var method = input.value;
-				setTimeout(function () {
-					drawGradients(method);
-				});
+				var name = input.name;
+				if (name == 'imgType') {
+					var method = input.value;
+					setTimeout(function () {
+						currentMethod = method;
+						drawGradients(method);
+					});
+				} else if (input.type == 'checkbox') {
+					options[name] = input.checked;
+					setTimeout(function () {
+						drawPixelOptions[name](input.checked);
+						drawGradients(currentMethod);
+					});
+				}
 			}
 		}
+
+		function checkboxClick(e) {
+			var name = e.target.name;
+		}
+
+		var tolTimer;
+		function toleranceChange() {
+			options.tolerance = tolIn.value / 100;
+			tolVal.innerText = '(' + tolIn.value + ')';
+			if (tolTimer) {
+				clearTimeout(tolTimer);
+			}
+			tolTimer = setTimeout(function () {
+				getVectors();
+				drawGradients(currentMethod);
+			}, 500);
+		}
+		toleranceChange();
 
 		function loadSrc() {
 			var img = new Image();
@@ -76,10 +122,6 @@
 			origCtx.putImageData(origData, 0, 0);
 			getVectors();
 			drawGradients();
-			// drawGradients('visualArrows');
-			// drawGradients('visualBackground');
-			// drawGradients('textMagnitude');
-			// drawGradients('textOrient');
 		}
 
 		function convertToGreyscale(origData, tolerance) {
@@ -98,7 +140,78 @@
 		}
 
 		function getVectors() {
-			vectors = processing.gradientVectors(origData);
+			if (!intensities) {
+				intensities = processing.intensities(origData);
+			}
+			// Inline replacement of processing.gradientVectors()
+			var x, y;
+			y = height;
+			vectors = new Array(height);
+			while (y--) {
+				vectors[y] = new Array(width);
+				x = width;
+				while (x--) {
+					var prevX = x == 0 ? 0 : intensities[y][x - 1];
+					var nextX = x == width - 1 ? 0 : intensities[y][x + 1];
+					var prevY = y == 0 ? 0 : intensities[y - 1][x];
+					var nextY = y == height - 1 ? 0 : intensities[y + 1][x];
+
+					// kernel [-1, 0, 1]
+					var gradX = -prevX + nextX;
+					var gradY = -prevY + nextY;
+
+					var mag = Math.sqrt(gradX * gradX + gradY * gradY);
+					if (mag < options.tolerance) {
+						mag = 0;
+					}
+					vectors[y][x] = {
+						mag: mag,
+						orient: Math.atan2(gradY, gradX)
+					}
+				}
+			}
+
+			// Find only relatively strongest pixels
+			if (options.findPoints) {
+				var newVec = new Array(height);
+				y = height;
+				var x1, x2, y1, y2, vec;
+				while (y--) {
+					newVec[y] = new Array(width);
+					x = width;
+					y1 = y && y - 1;
+					y2 = y < (height - 1) ? y + 1 : y;
+					while (x--) {
+						x1 = x && x - 1;
+						x2 = x < (width - 1) ? x + 1 : x;
+						var maxSurround = Math.max(
+							vectors[y1][x1].mag,
+							vectors[y1][x].mag,
+							vectors[y1][x2].mag,
+							vectors[y][x1].mag,
+							vectors[y][x2].mag,
+							vectors[y2][x1].mag,
+							vectors[y2][x].mag,
+							vectors[y2][x2].mag
+						);
+						vec = vectors[y][x];
+						newVec[y][x] = {
+							orient: vec.orient,
+							mag: vec.mag >= maxSurround ? vec.mag : 0
+						};
+					}
+				}
+				vectors = newVec;
+			}
+			vectors[-1] = new Array(width);
+			y = height;
+			while (y >= 0) {
+				vectors[--y][-1] = {mag: 0, orient: 0};
+			}
+			x = width;
+			while (x--) {
+				vectors[-1][x] = {mag: 0, orient: 0};
+			}
 		}
 
 		function drawArrow(ctx, pixel) {
@@ -118,6 +231,12 @@
 			ctx.closePath();
 			ctx.fill();
 		}
+
+		var drawPixelOptions = {
+			findPoints: function () {
+				getVectors();
+			}
+		};
 
 		var drawPixelMethods = {
 			enlarge: function (ctx, x, y) {
