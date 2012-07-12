@@ -22,7 +22,8 @@
 				<li><label><input type="radio" name="imgType" value="textOrient"> Text: Orientation (degrees)</label></li>
 				<li><label><input type="checkbox" name="findPoints"> Only show highest magnitude points</label></li>
 				<li><label><input type="checkbox" name="wireframes"> Calculate wireframes</label></li>
-				<li><input type="range" name="tolMag" value="0" min="0" max="50"> Tolerance: Pixel gradient magnitude % <span id="tolMag-val"></span></li>
+				<li><input type="range" name="tolMagnitude" value="0" min="0" max="50"> Tolerance: Pixel gradient magnitude % <span id="tolMagnitude-val"></span></li>
+				<li><input type="range" name="tolWireframe" value="0" min="0" max="50"> Tolerance: Wireframe neighbour-match magnitude % <span id="tolWireframe-val"></span></li>
 			</ul>
 		</div>
 	</div>
@@ -52,7 +53,8 @@
 			findPoints: false,
 			wireframes: false,
 			tolerance: {
-				tolMag: 0
+				tolMagnitude: 0,
+				tolWireframe: 0
 			}
 		};
 		var currentMethod = '';
@@ -102,8 +104,8 @@
 				return;
 			}
 			var name = input.name;
-			var output = document.getElementById(name + '-val');
 			options.tolerance[name] = input.value / 100;
+			var output = document.getElementById(name + '-val');
 			if (output) {
 				output.innerText = '(' + input.value + ')';
 			}
@@ -170,7 +172,7 @@
 					var gradY = -prevY + nextY;
 
 					var mag = Math.sqrt(gradX * gradX + gradY * gradY);
-					if (mag < options.tolerance.tolMag) {
+					if (mag < options.tolerance.tolMagnitude) {
 						mag = 0;
 					}
 					vectors[y][x] = {
@@ -266,6 +268,7 @@
 			wfCache = new Array(height);
 			var x, y, x1, x2, y1, y2, xx, yy, mx, my;
 			var cache1, cache2;
+			var tolerance = options.tolerance.tolWireframe;
 			y = height;
 			while (y--) {
 				wfCache[y] = new Array(width);
@@ -294,7 +297,11 @@
 						my = y2 > -1 ? y2 : y;
 						for (xx = x1; xx <= mx; xx++) {
 							for (yy = y1; yy <= my; yy++) {
-								if ((xx != x || yy != y) && vectors[yy][xx].mag == maxSurround) {
+								if (
+									(xx != x || yy != y) &&
+									vectors[yy][xx].mag > 0 &&
+									vectors[yy][xx].mag >= maxSurround - tolerance
+								) {
 									cache1 = [y, x].join('/');
 									cache2 = [yy, xx].join('/');
 									wfCache[y][x][cache2] = true;
