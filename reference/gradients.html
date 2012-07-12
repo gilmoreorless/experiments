@@ -22,7 +22,7 @@
 				<li><label><input type="radio" name="imgType" value="textOrient"> Text: Orientation (degrees)</label></li>
 				<li><label><input type="checkbox" name="findPoints"> Only show highest magnitude points</label></li>
 				<li><label><input type="checkbox" name="wireframes"> Calculate wireframes</label></li>
-				<li><input type="range" id="tolerance" value="0" min="0" max="50"> Tolerance <span id="tolVal"></span></li>
+				<li><input type="range" name="tolMag" value="0" min="0" max="50"> Tolerance: Pixel gradient magnitude % <span id="tolMag-val"></span></li>
 			</ul>
 		</div>
 	</div>
@@ -51,13 +51,12 @@
 		var options = {
 			findPoints: false,
 			wireframes: false,
-			tolerance: 0
+			tolerance: {
+				tolMag: 0
+			}
 		};
 		var currentMethod = '';
 		var origData, intensities, vectors, wfCache;
-
-		var tolIn  = document.getElementById('tolerance');
-		var tolVal = document.getElementById('tolVal');
 
 		function setup() {
 			orig.width  = width;
@@ -66,8 +65,9 @@
 			mag.height = height * pow;
 			magCtx.font = fontSizePx + 'px sans-serif';
 			magCtx.textAlign = 'center';
-			document.getElementById('switcher').addEventListener('click', inputClick, false);
-			tolIn.addEventListener('change', toleranceChange, false);
+			var switcher = document.getElementById('switcher');
+			switcher.addEventListener('click', inputClick, false);
+			switcher.addEventListener('change', toleranceChange, false);
 			loadSrc();
 		}
 
@@ -96,9 +96,17 @@
 		}
 
 		var tolTimer;
-		function toleranceChange() {
-			options.tolerance = tolIn.value / 100;
-			tolVal.innerText = '(' + tolIn.value + ')';
+		function toleranceChange(e) {
+			var input = e.target;
+			if (input.type !== 'range') {
+				return;
+			}
+			var name = input.name;
+			var output = document.getElementById(name + '-val');
+			options.tolerance[name] = input.value / 100;
+			if (output) {
+				output.innerText = '(' + input.value + ')';
+			}
 			if (tolTimer) {
 				clearTimeout(tolTimer);
 			}
@@ -107,7 +115,6 @@
 				drawGradients(currentMethod);
 			}, 500);
 		}
-		toleranceChange();
 
 		function loadSrc() {
 			var img = new Image();
@@ -163,7 +170,7 @@
 					var gradY = -prevY + nextY;
 
 					var mag = Math.sqrt(gradX * gradX + gradY * gradY);
-					if (mag < options.tolerance) {
+					if (mag < options.tolerance.tolMag) {
 						mag = 0;
 					}
 					vectors[y][x] = {
