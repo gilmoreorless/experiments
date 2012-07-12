@@ -54,7 +54,7 @@
 			tolerance: 0
 		};
 		var currentMethod = '';
-		var origData, intensities, vectors;
+		var origData, intensities, vectors, wfCache;
 
 		var tolIn  = document.getElementById('tolerance');
 		var tolVal = document.getElementById('tolVal');
@@ -235,7 +235,6 @@
 		}
 
 		function drawWireframeArrow(ctx, x1, y1, x2, y2) {
-			// if (x1 > 10 || y1 > 10) return;
 			var p2 = pow / 2;
 			var p4 = pow / 3;
 			var p6 = pow / 6;
@@ -257,9 +256,12 @@
 			if (!options.wireframes) {
 				return;
 			}
+			wfCache = new Array(height);
 			var x, y, x1, x2, y1, y2, xx, yy, mx, my;
+			var cache1, cache2;
 			y = height;
 			while (y--) {
+				wfCache[y] = new Array(width);
 				y1 = y - 1;
 				y2 = y < (height - 1) ? y + 1 : -1;
 				x = width;
@@ -279,15 +281,24 @@
 						vectors[y2][x].mag,
 						vectors[y2][x2].mag
 					);
+					wfCache[y][x] = {length: 0};
 					if (maxSurround > 0) {
 						mx = x2 > -1 ? x2 : x;
 						my = y2 > -1 ? y2 : y;
 						for (xx = x1; xx <= mx; xx++) {
 							for (yy = y1; yy <= my; yy++) {
 								if ((xx != x || yy != y) && vectors[yy][xx].mag == maxSurround) {
+									cache1 = [y, x].join('/');
+									cache2 = [yy, xx].join('/');
+									wfCache[y][x][cache2] = true;
+									wfCache[y][x].length++;
 									magCtx.save();
 									magCtx.strokeStyle = 'rgba(0,200,0,0.7)';
 									magCtx.lineWidth = 2;
+									if (wfCache[yy] && wfCache[yy][xx] && (cache1 in wfCache[yy][xx])) {
+										magCtx.strokeStyle = 'rgba(0,200,200,0.9)';
+										magCtx.lineWidth = 4;
+									}
 									drawWireframeArrow(magCtx, x, y, xx, yy);
 									magCtx.restore();
 								}
