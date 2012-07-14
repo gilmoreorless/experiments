@@ -21,7 +21,8 @@
 				<li><label><input type="radio" name="imgType" value="textMagnitude"> Text: Magnitude (percentage)</label></li>
 				<li><label><input type="radio" name="imgType" value="textOrient"> Text: Orientation (degrees)</label></li>
 				<li><label><input type="checkbox" name="findPoints"> Only show highest magnitude points</label></li>
-				<li><label><input type="checkbox" name="wireframes"> Calculate wireframes</label></li>
+				<li><label><input type="checkbox" name="wireframeArrows"> Calculate wireframes (debug arrows)</label></li>
+				<li><label><input type="checkbox" name="wireframeLines"> Calculate wireframes (single lines - overrides arrows)</label></li>
 				<li><input type="range" name="tolMagnitude" value="0" min="0" max="50"> Tolerance: Pixel gradient magnitude % <span id="tolMagnitude-val"></span></li>
 				<li><input type="range" name="tolWireframe" value="0" min="0" max="50"> Tolerance: Wireframe neighbour-match magnitude % <span id="tolWireframe-val"></span></li>
 			</ul>
@@ -34,8 +35,8 @@
 		/* Config */
 		var width = 128;
 		var height = 96;
-		var imgSrc = '../tiles/img/catimov.jpg';
-		// var imgSrc = '../common/handy.jpg';
+		// var imgSrc = '../tiles/img/catimov.jpg';
+		var imgSrc = '../common/handy.jpg';
 		var magPower = 4; // Power, not multiplier (e.g. 4 => pow(2, 4) => 16)
 		var fontSizePx = 8;
 		/* End Config */
@@ -51,7 +52,8 @@
 		var pow = Math.pow(2, magPower);
 		var options = {
 			findPoints: false,
-			wireframes: false,
+			wireframeArrows: false,
+			wireframeLines: false,
 			tolerance: {
 				tolMagnitude: 0,
 				tolWireframe: 0
@@ -262,13 +264,20 @@
 		}
 
 		function drawWireframes() {
-			if (!options.wireframes) {
+			if (!options.wireframeArrows || options.wireframeLines) {
 				return;
 			}
 			wfCache = new Array(height);
 			var x, y, x1, x2, y1, y2, xx, yy, mx, my;
 			var cache1, cache2;
 			var tolerance = options.tolerance.tolWireframe;
+
+			// Wireframe lines
+			if (options.wireframeLines) {
+				// Do stuff here
+
+			// Wireframe arrows
+			} else {
 			y = height;
 			while (y--) {
 				wfCache[y] = new Array(width);
@@ -276,7 +285,7 @@
 				y2 = y < (height - 1) ? y + 1 : -1;
 				x = width;
 				while (x--) {
-					if (vectors[y][x].mag === 0) {
+					if (vectors[y][x].mag <= tolerance) {
 						continue;
 					}
 					x1 = x - 1;
@@ -321,16 +330,18 @@
 					}
 				}
 			}
+			}
 		}
 
 		var drawPixelOptions = {
 			findPoints: function () {
 				getVectors();
 			},
-			wireframes: function (enable) {
-				if (enable) {
-					drawWireframes();
-				}
+			wireframeArrows: function () {
+				drawWireframes();
+			},
+			wireframeLines: function () {
+				drawWireframes();
 			}
 		};
 
