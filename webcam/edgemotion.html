@@ -1,224 +1,224 @@
 <!DOCTYPE html>
 <html>
 <head>
-	<title>Webcam Experiments - Edge Detection + Motion</title>
-	<style>
-	/*#edgeGradMag {position:absolute; top:25px; left:0; width:100%; height:100%;}*/
-	</style>
+    <title>Webcam Experiments - Edge Detection + Motion</title>
+    <style>
+    /*#edgeGradMag {position:absolute; top:25px; left:0; width:100%; height:100%;}*/
+    </style>
 </head>
 <body>
-	<button id="btnStart">Start</button> <button id="btnStop">Stop</button><br />
-	Tolerance: <input type="range" id="tolerance" value="15" min="0" max="50" /> <span id="tolVal"></span><br />
-	<canvas id="edgeGradMag"></canvas>
-	Source:<br />
-	<canvas id="source"></canvas><br />
-	Video stream:<br />
-	<!-- <video id="webcam" autoplay width="320" height="240"></video> -->
-	<video id="webcam" autoplay width="640" height="480"></video>
-	<script src="../common/gumShield.js"></script>
-	<script src="hog-processing.js"></script>
-	<script>
-		/*** Boilerplate ***/
+    <button id="btnStart">Start</button> <button id="btnStop">Stop</button><br />
+    Tolerance: <input type="range" id="tolerance" value="15" min="0" max="50" /> <span id="tolVal"></span><br />
+    <canvas id="edgeGradMag"></canvas>
+    Source:<br />
+    <canvas id="source"></canvas><br />
+    Video stream:<br />
+    <!-- <video id="webcam" autoplay width="320" height="240"></video> -->
+    <video id="webcam" autoplay width="640" height="480"></video>
+    <script src="../common/gumShield.js"></script>
+    <script src="hog-processing.js"></script>
+    <script>
+        /*** Boilerplate ***/
 
-		var timings = [];
+        var timings = [];
 
-		var video = document.getElementById('webcam');
-		var source = document.getElementById('source');
-		var edgeGradMag = document.getElementById('edgeGradMag');
-		var convert = document.createElement('canvas');
-		var srcCtx = source.getContext('2d');
-		var magCtx = edgeGradMag.getContext('2d');
-		var convCtx = convert.getContext('2d');
-		var width, height, timer;
+        var video = document.getElementById('webcam');
+        var source = document.getElementById('source');
+        var edgeGradMag = document.getElementById('edgeGradMag');
+        var convert = document.createElement('canvas');
+        var srcCtx = source.getContext('2d');
+        var magCtx = edgeGradMag.getContext('2d');
+        var convCtx = convert.getContext('2d');
+        var width, height, timer;
 
-		function drawVideo() {
-			srcCtx.drawImage(video, 0, 0, width, height);
-			doStuff();
-			timer = setTimeout(drawVideo, 1000 / fps);
-		}
+        function drawVideo() {
+            srcCtx.drawImage(video, 0, 0, width, height);
+            doStuff();
+            timer = setTimeout(drawVideo, 1000 / fps);
+        }
 
-		function startInput() {
-			// Only works in Opera Labs and Chrome (with a flag) right now
-			navigator.getUserMedia({video: true}, function (stream) {
-				video.src = getStreamSrc(stream);
+        function startInput() {
+            // Only works in Opera Labs and Chrome (with a flag) right now
+            navigator.getUserMedia({video: true}, function (stream) {
+                video.src = getStreamSrc(stream);
 
-				width  = source.width  = edgeGradMag.width  = convert.width  = video.width;
-				height = source.height = edgeGradMag.height = convert.height = video.height;
-				srcCtx.translate(width, 0);
-				srcCtx.scale(-1, 1);
-				drawVideo();
-			}, function () {
-				console.error('Oh noes!');
-			});
-		}
+                width  = source.width  = edgeGradMag.width  = convert.width  = video.width;
+                height = source.height = edgeGradMag.height = convert.height = video.height;
+                srcCtx.translate(width, 0);
+                srcCtx.scale(-1, 1);
+                drawVideo();
+            }, function () {
+                console.error('Oh noes!');
+            });
+        }
 
-		function stopInput() {
-			video.src = '';
-			if (timer) {
-				clearTimeout(timer);
-			}
-			outputTimings();
-		}
+        function stopInput() {
+            video.src = '';
+            if (timer) {
+                clearTimeout(timer);
+            }
+            outputTimings();
+        }
 
-		function outputTimings() {
-			if (timings.length) {
-				var sum = 0, min = Infinity, max = -Infinity;
-				timings.forEach(function (v) {
-					sum += v;
-					v < min && (min = v);
-					v > max && (max = v);
-				});
-				console.log('timings, avg = %f; min = %f; max = %f', sum / timings.length, min, max);
-			}
-		}
+        function outputTimings() {
+            if (timings.length) {
+                var sum = 0, min = Infinity, max = -Infinity;
+                timings.forEach(function (v) {
+                    sum += v;
+                    v < min && (min = v);
+                    v > max && (max = v);
+                });
+                console.log('timings, avg = %f; min = %f; max = %f', sum / timings.length, min, max);
+            }
+        }
 
-		document.getElementById('btnStart').addEventListener('click', startInput, false);
-		document.getElementById('btnStop').addEventListener('click', stopInput, false);
-		// startInput();
+        document.getElementById('btnStart').addEventListener('click', startInput, false);
+        document.getElementById('btnStop').addEventListener('click', stopInput, false);
+        // startInput();
 
-		/*** Actual experiment ***/
+        /*** Actual experiment ***/
 
-		// From Raphael
-		var hsl2rgb = function (h, s, l) {
-			if (h > 1 || s > 1 || l > 1) {
-				h /= 360;
-				s /= 100;
-				l /= 100;
-			}
-			h *= 360;
-			var R, G, B, X, C;
-			h = (h % 360) / 60;
-			C = 2 * s * (l < .5 ? l : 1 - l);
-			X = C * (1 - Math.abs(h % 2 - 1));
-			R = G = B = l - C / 2;
+        // From Raphael
+        var hsl2rgb = function (h, s, l) {
+            if (h > 1 || s > 1 || l > 1) {
+                h /= 360;
+                s /= 100;
+                l /= 100;
+            }
+            h *= 360;
+            var R, G, B, X, C;
+            h = (h % 360) / 60;
+            C = 2 * s * (l < .5 ? l : 1 - l);
+            X = C * (1 - Math.abs(h % 2 - 1));
+            R = G = B = l - C / 2;
 
-			h = ~~h;
-			R += [C, X, 0, 0, X, C][h];
-			G += [X, C, C, X, 0, 0][h];
-			B += [0, 0, X, C, C, X][h];
-			R = Math.round(R * 255);
-			G = Math.round(G * 255);
-			B = Math.round(B * 255);
-			// return [R, G, B]
-			return '#' + ((1 << 24) + (R << 16) + (G << 8) + B).toString(16).substr(1);
-		};
+            h = ~~h;
+            R += [C, X, 0, 0, X, C][h];
+            G += [X, C, C, X, 0, 0][h];
+            B += [0, 0, X, C, C, X][h];
+            R = Math.round(R * 255);
+            G = Math.round(G * 255);
+            B = Math.round(B * 255);
+            // return [R, G, B]
+            return '#' + ((1 << 24) + (R << 16) + (G << 8) + B).toString(16).substr(1);
+        };
 
-		var tolerance;
-		var tolIn  = document.getElementById('tolerance');
-		var tolVal = document.getElementById('tolVal');
-		function updateTol() {
-			tolerance = +tolIn.value;
-			tolVal.innerText = '(' + tolerance + ')';
-		}
-		updateTol();
-		tolIn.addEventListener('change', updateTol, false);
+        var tolerance;
+        var tolIn  = document.getElementById('tolerance');
+        var tolVal = document.getElementById('tolVal');
+        function updateTol() {
+            tolerance = +tolIn.value;
+            tolVal.innerText = '(' + tolerance + ')';
+        }
+        updateTol();
+        tolIn.addEventListener('change', updateTol, false);
 
-		var MODES = {
-			'sketch': 1,
-			'sketchLayers': 2,
-			'colourTrails': 3
-		};
+        var MODES = {
+            'sketch': 1,
+            'sketchLayers': 2,
+            'colourTrails': 3
+        };
 
-		/* Config */
-		// var MODE = 'sketch';
-		// var MODE = 'sketchLayers';
-		var MODE = 'colourTrails';
-		var isNegative = false;
-		var fps = 20;
-		var stackSize = 10;
-		var framesPerStack = 5;
-		var hueStep = 17;
-		/* End Config */
+        /* Config */
+        // var MODE = 'sketch';
+        // var MODE = 'sketchLayers';
+        var MODE = 'colourTrails';
+        var isNegative = false;
+        var fps = 20;
+        var stackSize = 10;
+        var framesPerStack = 5;
+        var hueStep = 17;
+        /* End Config */
 
-		var hue = 0;
-		var stack = [];
-		var stackFrames = 0;
-		var alphaTotal = framesPerStack * stackSize;
-		var curMode = MODES[MODE] || 0;
-		var bgColour = isNegative ? 0 : 255;
-		var fgColour = 255 - bgColour;
+        var hue = 0;
+        var stack = [];
+        var stackFrames = 0;
+        var alphaTotal = framesPerStack * stackSize;
+        var curMode = MODES[MODE] || 0;
+        var bgColour = isNegative ? 0 : 255;
+        var fgColour = 255 - bgColour;
 
-		function detectGradients(srcData) {
-			// console.time('detectGradients');
-			var w = srcData.width;
-			var h = srcData.height;
-			var srcpx = srcData.data;
-			var dataMag = magCtx.createImageData(w, h);
-			var dm = dataMag.data;
+        function detectGradients(srcData) {
+            // console.time('detectGradients');
+            var w = srcData.width;
+            var h = srcData.height;
+            var srcpx = srcData.data;
+            var dataMag = magCtx.createImageData(w, h);
+            var dm = dataMag.data;
 
-			var intensities = processing.intensities(srcData)
-			var vectors = processing._gradientVectors(intensities);
-			// var vectors = processing._gradients(intensities);
-			var y = h;
-			while (y--) {
-				var x = w;
-				while (x--) {
-					var i = (y * 4) * w + x * 4;
-					var mag = Math.abs(vectors[y][x].mag) * 255;
-					// var mag = Math.abs(vectors.y[y][x]) * 255 + Math.abs(vectors.x[y][x]) * 255;
+            var intensities = processing.intensities(srcData)
+            var vectors = processing._gradientVectors(intensities);
+            // var vectors = processing._gradients(intensities);
+            var y = h;
+            while (y--) {
+                var x = w;
+                while (x--) {
+                    var i = (y * 4) * w + x * 4;
+                    var mag = Math.abs(vectors[y][x].mag) * 255;
+                    // var mag = Math.abs(vectors.y[y][x]) * 255 + Math.abs(vectors.x[y][x]) * 255;
 
-					dm[i]     = fgColour;
-					dm[i + 1] = fgColour;
-					dm[i + 2] = fgColour;
-					dm[i + 3] = mag >= tolerance ? mag : 0;
-				}
-			}
+                    dm[i]     = fgColour;
+                    dm[i + 1] = fgColour;
+                    dm[i + 2] = fgColour;
+                    dm[i + 3] = mag >= tolerance ? mag : 0;
+                }
+            }
 
-			// console.timeEnd('detectGradients');
-			return dataMag;
-		}
+            // console.timeEnd('detectGradients');
+            return dataMag;
+        }
 
-		function pushStack(imgData) {
-			hue = (hue + hueStep) % 360;
-			var canvas = document.createElement('canvas');
-			canvas.width = width;
-			canvas.height = height;
-			var canCtx = canvas.getContext('2d');
-			canCtx.putImageData(imgData, 0, 0);
-			canCtx.globalCompositeOperation = 'source-atop';
-			canCtx.fillStyle = hsl2rgb(hue / 360, .7, .3);
-			canCtx.fillRect(0, 0, imgData.width, imgData.height);
+        function pushStack(imgData) {
+            hue = (hue + hueStep) % 360;
+            var canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
+            var canCtx = canvas.getContext('2d');
+            canCtx.putImageData(imgData, 0, 0);
+            canCtx.globalCompositeOperation = 'source-atop';
+            canCtx.fillStyle = hsl2rgb(hue / 360, .7, .3);
+            canCtx.fillRect(0, 0, imgData.width, imgData.height);
 
-			stack.push(canvas);
-			if (stack.length > stackSize) {
-				stack.shift();
-			}
-		}
+            stack.push(canvas);
+            if (stack.length > stackSize) {
+                stack.shift();
+            }
+        }
 
-		function addFrame(imgData) {
-			stackFrames++;
-			if (stackFrames == framesPerStack) {
-				stackFrames = 0;
-				pushStack(imgData);
-			}
-		}
+        function addFrame(imgData) {
+            stackFrames++;
+            if (stackFrames == framesPerStack) {
+                stackFrames = 0;
+                pushStack(imgData);
+            }
+        }
 
-		function doStuff() {
-			var srcData = srcCtx.getImageData(0, 0, width, height);
-			var edgeData = detectGradients(srcData);
-			convCtx.putImageData(edgeData, 0, 0);
+        function doStuff() {
+            var srcData = srcCtx.getImageData(0, 0, width, height);
+            var edgeData = detectGradients(srcData);
+            convCtx.putImageData(edgeData, 0, 0);
 
-			if (curMode === MODES.colourTrails) {
-				addFrame(edgeData);
-			}
-			if (curMode !== MODES.sketchLayers) {
-				if (isNegative) {
-					magCtx.fillStyle = '#000';
-					magCtx.fillRect(0, 0, width, height);
-				} else {
-					magCtx.clearRect(0, 0, width, height);
-				}
-			}
-			if (curMode === MODES.colourTrails) {
-				for (var i = 0, ii = stack.length; i < ii; i++) {
-					magCtx.globalAlpha = (i * framesPerStack + (framesPerStack - stackFrames)) / alphaTotal;
-					magCtx.drawImage(stack[i], 0, 0);
-				}
-			}
-			magCtx.globalAlpha = 1;
-			magCtx.drawImage(convert, 0, 0);
-		}
+            if (curMode === MODES.colourTrails) {
+                addFrame(edgeData);
+            }
+            if (curMode !== MODES.sketchLayers) {
+                if (isNegative) {
+                    magCtx.fillStyle = '#000';
+                    magCtx.fillRect(0, 0, width, height);
+                } else {
+                    magCtx.clearRect(0, 0, width, height);
+                }
+            }
+            if (curMode === MODES.colourTrails) {
+                for (var i = 0, ii = stack.length; i < ii; i++) {
+                    magCtx.globalAlpha = (i * framesPerStack + (framesPerStack - stackFrames)) / alphaTotal;
+                    magCtx.drawImage(stack[i], 0, 0);
+                }
+            }
+            magCtx.globalAlpha = 1;
+            magCtx.drawImage(convert, 0, 0);
+        }
 
-	</script>
+    </script>
 </body>
 </html>

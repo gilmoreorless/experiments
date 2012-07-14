@@ -1,146 +1,146 @@
 <!DOCTYPE html>
 <html>
 <head>
-	<title>Webcam Experiments - Motion-only video</title>
-	<style>
-	#controls {position:absolute; z-index:2;}
-	#output {position:absolute; top:0; left:0; width:100%; height:100%;}
-	</style>
+    <title>Webcam Experiments - Motion-only video</title>
+    <style>
+    #controls {position:absolute; z-index:2;}
+    #output {position:absolute; top:0; left:0; width:100%; height:100%;}
+    </style>
 </head>
 <body>
-	<div id="controls">
-		<button id="btnStart">Start</button> <button id="btnStop">Stop</button><br />
-		Tolerance: <input type="range" id="tolerance" value="15" min="0" max="50" /> <span id="tolVal"></span><br />
-		Normalise Diff: <input type="checkbox" id="normaliseDiff" /><br />
-		Show Diff: <input type="checkbox" id="showDiff" /><br />
-	</div>
-	Result:<br />
-	<canvas id="output"></canvas><br />
-	Source:<br />
-	<canvas id="source"></canvas><br />
-	Video stream:<br />
-	<video id="webcam" autoplay width="640" height="480"></video>
-	<script src="../common/gumShield.js"></script>
-	<script>
-		/*** Boilerplate ***/
+    <div id="controls">
+        <button id="btnStart">Start</button> <button id="btnStop">Stop</button><br />
+        Tolerance: <input type="range" id="tolerance" value="15" min="0" max="50" /> <span id="tolVal"></span><br />
+        Normalise Diff: <input type="checkbox" id="normaliseDiff" /><br />
+        Show Diff: <input type="checkbox" id="showDiff" /><br />
+    </div>
+    Result:<br />
+    <canvas id="output"></canvas><br />
+    Source:<br />
+    <canvas id="source"></canvas><br />
+    Video stream:<br />
+    <video id="webcam" autoplay width="640" height="480"></video>
+    <script src="../common/gumShield.js"></script>
+    <script>
+        /*** Boilerplate ***/
 
-		var fps = 30;
-		var video = document.getElementById('webcam');
-		var source = document.getElementById('source');
-		var output = document.getElementById('output');
-		var srcCtx = source.getContext('2d');
-		var outCtx = output.getContext('2d');
-		var width, height;
+        var fps = 30;
+        var video = document.getElementById('webcam');
+        var source = document.getElementById('source');
+        var output = document.getElementById('output');
+        var srcCtx = source.getContext('2d');
+        var outCtx = output.getContext('2d');
+        var width, height;
 
-		function drawVideo() {
-			srcCtx.drawImage(video, 0, 0, width, height);
-			doStuff();
-			timer = setTimeout(drawVideo, 1000 / fps);
-		}
+        function drawVideo() {
+            srcCtx.drawImage(video, 0, 0, width, height);
+            doStuff();
+            timer = setTimeout(drawVideo, 1000 / fps);
+        }
 
-		function startInput() {
-			// Only works in Opera Labs and Chrome (with a flag) right now
-			navigator.getUserMedia({video: true}, function (stream) {
-				video.src = getStreamSrc(stream);
+        function startInput() {
+            // Only works in Opera Labs and Chrome (with a flag) right now
+            navigator.getUserMedia({video: true}, function (stream) {
+                video.src = getStreamSrc(stream);
 
-				width  = source.width  = output.width  = video.width;
-				height = source.height = output.height = video.height;
-				srcCtx.translate(width, 0);
-				srcCtx.scale(-1, 1);
-				drawVideo();
-			}, function () {
-				console.error('Oh noes!');
-			});
-		}
+                width  = source.width  = output.width  = video.width;
+                height = source.height = output.height = video.height;
+                srcCtx.translate(width, 0);
+                srcCtx.scale(-1, 1);
+                drawVideo();
+            }, function () {
+                console.error('Oh noes!');
+            });
+        }
 
-		function stopInput() {
-			video.src = '';
-			if (timer) {
-				clearTimeout(timer);
-			}
-		}
+        function stopInput() {
+            video.src = '';
+            if (timer) {
+                clearTimeout(timer);
+            }
+        }
 
-		document.getElementById('btnStart').addEventListener('click', startInput, false);
-		document.getElementById('btnStop').addEventListener('click', stopInput, false);
+        document.getElementById('btnStart').addEventListener('click', startInput, false);
+        document.getElementById('btnStop').addEventListener('click', stopInput, false);
 
-		/*** Actual experiment ***/
+        /*** Actual experiment ***/
 
-		var showDiff = false;
-		var normaliseDiff = false;
-		var diffCheck = document.getElementById('showDiff');
-		var diffNormalise = document.getElementById('normaliseDiff');
-		function checkShowDiff() {
-			showDiff = diffCheck.checked;
-			normaliseDiff = diffNormalise.checked;
-		}
-		checkShowDiff();
-		diffCheck.addEventListener('change', checkShowDiff, false);
-		diffNormalise.addEventListener('change', checkShowDiff, false);
+        var showDiff = false;
+        var normaliseDiff = false;
+        var diffCheck = document.getElementById('showDiff');
+        var diffNormalise = document.getElementById('normaliseDiff');
+        function checkShowDiff() {
+            showDiff = diffCheck.checked;
+            normaliseDiff = diffNormalise.checked;
+        }
+        checkShowDiff();
+        diffCheck.addEventListener('change', checkShowDiff, false);
+        diffNormalise.addEventListener('change', checkShowDiff, false);
 
-		var tolerance;
-		var tolIn  = document.getElementById('tolerance');
-		var tolVal = document.getElementById('tolVal');
-		function updateTol() {
-			tolerance = +tolIn.value;
-			tolVal.innerText = '(' + tolerance + ')';
-		}
-		updateTol();
-		tolIn.addEventListener('change', updateTol, false);
+        var tolerance;
+        var tolIn  = document.getElementById('tolerance');
+        var tolVal = document.getElementById('tolVal');
+        function updateTol() {
+            tolerance = +tolIn.value;
+            tolVal.innerText = '(' + tolerance + ')';
+        }
+        updateTol();
+        tolIn.addEventListener('change', updateTol, false);
 
-		// Taken from Adobe demo
-		function fastAbs(value) {
-			// funky bitwise, equal Math.abs
-			return (value ^ (value >> 31)) - (value >> 31);
-		}
+        // Taken from Adobe demo
+        function fastAbs(value) {
+            // funky bitwise, equal Math.abs
+            return (value ^ (value >> 31)) - (value >> 31);
+        }
 
-		function difference(target, data1, data2) {
-			// blend mode difference
-			if (data1.length != data2.length) return null;
-			var i = 0,
-				len = data1.length / 4,
-				r, g, b, a, avg1, avg2;
-			while (i < len) {
-				// Diff colour, shows strength of motion
-				if (showDiff && !normaliseDiff) {
-					// White
-					// target[4*i]   = fastAbs(data1[4*i] - data2[4*i]);
-					// target[4*i+1] = fastAbs(data1[4*i+1] - data2[4*i+1]);
-					// target[4*i+2] = fastAbs(data1[4*i+2] - data2[4*i+2]);
-					// target[4*i+3] = 255;
+        function difference(target, data1, data2) {
+            // blend mode difference
+            if (data1.length != data2.length) return null;
+            var i = 0,
+                len = data1.length / 4,
+                r, g, b, a, avg1, avg2;
+            while (i < len) {
+                // Diff colour, shows strength of motion
+                if (showDiff && !normaliseDiff) {
+                    // White
+                    // target[4*i]   = fastAbs(data1[4*i] - data2[4*i]);
+                    // target[4*i+1] = fastAbs(data1[4*i+1] - data2[4*i+1]);
+                    // target[4*i+2] = fastAbs(data1[4*i+2] - data2[4*i+2]);
+                    // target[4*i+3] = 255;
 
-					// Black
-					target[4*i]   = fastAbs(data2[4*i] - data1[4*i]);
-					target[4*i+1] = fastAbs(data2[4*i+1] - data1[4*i+1]);
-					target[4*i+2] = fastAbs(data2[4*i+2] - data1[4*i+2]);
-					target[4*i+3] = 255;
-				} else {
-					// Full colour, motion only
-					avg1 = (data1[4*i] + data1[4*i+1] + data1[4*i+2]) / 3;
-					avg2 = (data2[4*i] + data2[4*i+1] + data2[4*i+2]) / 3;
-					a = (fastAbs(avg1 - avg2) > tolerance);
+                    // Black
+                    target[4*i]   = fastAbs(data2[4*i] - data1[4*i]);
+                    target[4*i+1] = fastAbs(data2[4*i+1] - data1[4*i+1]);
+                    target[4*i+2] = fastAbs(data2[4*i+2] - data1[4*i+2]);
+                    target[4*i+3] = 255;
+                } else {
+                    // Full colour, motion only
+                    avg1 = (data1[4*i] + data1[4*i+1] + data1[4*i+2]) / 3;
+                    avg2 = (data2[4*i] + data2[4*i+1] + data2[4*i+2]) / 3;
+                    a = (fastAbs(avg1 - avg2) > tolerance);
 
-					target[4*i]   = a && !normaliseDiff ? data1[4*i] : 0;
-					target[4*i+1] = a && !normaliseDiff ? data1[4*i+1] : 0;
-					target[4*i+2] = a && !normaliseDiff ? data1[4*i+2] : 0;
-					target[4*i+3] = a ? 255 : 0;
-				}
+                    target[4*i]   = a && !normaliseDiff ? data1[4*i] : 0;
+                    target[4*i+1] = a && !normaliseDiff ? data1[4*i+1] : 0;
+                    target[4*i+2] = a && !normaliseDiff ? data1[4*i+2] : 0;
+                    target[4*i+3] = a ? 255 : 0;
+                }
 
-				++i;
-			}
-		}
+                ++i;
+            }
+        }
 
-		var lastData;
-		function doStuff() {
-			var srcData = srcCtx.getImageData(0, 0, width, height);
-			if (!lastData) {
-				lastData = srcData;
-				return;
-			}
-			var outData = outCtx.createImageData(width, height);
-			difference(outData.data, srcData.data, lastData.data);
-			outCtx.putImageData(outData, 0, 0);
-			lastData = srcData;
-		}
-	</script>
+        var lastData;
+        function doStuff() {
+            var srcData = srcCtx.getImageData(0, 0, width, height);
+            if (!lastData) {
+                lastData = srcData;
+                return;
+            }
+            var outData = outCtx.createImageData(width, height);
+            difference(outData.data, srcData.data, lastData.data);
+            outCtx.putImageData(outData, 0, 0);
+            lastData = srcData;
+        }
+    </script>
 </body>
 </html>

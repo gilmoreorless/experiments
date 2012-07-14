@@ -1,208 +1,208 @@
 <!DOCTYPE html>
 <html>
 <head>
-	<title>Webcam Experiments - Edge Detection</title>
-	<style>
-	.container {border:1px dashed #999; /*overflow:hidden;*/}
-	.container > div {/*float:left;*/ margin:10px;}
-	/*#edgeGradMag {position:absolute; top:25px; left:0; width:100%; height:100%;}*/
-	</style>
+    <title>Webcam Experiments - Edge Detection</title>
+    <style>
+    .container {border:1px dashed #999; /*overflow:hidden;*/}
+    .container > div {/*float:left;*/ margin:10px;}
+    /*#edgeGradMag {position:absolute; top:25px; left:0; width:100%; height:100%;}*/
+    </style>
 </head>
 <body>
-	<button id="btnStart">Start</button> <button id="btnStop">Stop</button><br />
-	<!--
-	Tolerance: <input type="range" id="tolerance" value="15" min="0" max="50" /> <span id="tolVal"></span><br />
-	Normalise Diff: <input type="checkbox" id="normaliseDiff" /><br />
-	Show Diff: <input type="checkbox" id="showDiff" /><br />
-	-->
-	<div class="container">
-		<div>
-			Convolution:<br />
-			<canvas id="edgeConv"></canvas>
-		</div>
-		<div>
-			Gradient (X):<br />
-			<canvas id="edgeGradX"></canvas>
-		</div>
-		<div>
-			Gradient (Y):<br />
-			<canvas id="edgeGradY"></canvas>
-		</div>
-		<div>
-			Gradient (Magnitude):<br />
-			<canvas id="edgeGradMag"></canvas>
-		</div>
-	</div>
-	Source:<br />
-	<canvas id="source"></canvas><br />
-	Video stream:<br />
-	<video id="webcam" autoplay width="320" height="240"></video>
-	<script src="../common/gumShield.js"></script>
-	<script src="hog-processing.js"></script>
-	<script>
-		/*** Boilerplate ***/
-		var timings = [];
+    <button id="btnStart">Start</button> <button id="btnStop">Stop</button><br />
+    <!--
+    Tolerance: <input type="range" id="tolerance" value="15" min="0" max="50" /> <span id="tolVal"></span><br />
+    Normalise Diff: <input type="checkbox" id="normaliseDiff" /><br />
+    Show Diff: <input type="checkbox" id="showDiff" /><br />
+    -->
+    <div class="container">
+        <div>
+            Convolution:<br />
+            <canvas id="edgeConv"></canvas>
+        </div>
+        <div>
+            Gradient (X):<br />
+            <canvas id="edgeGradX"></canvas>
+        </div>
+        <div>
+            Gradient (Y):<br />
+            <canvas id="edgeGradY"></canvas>
+        </div>
+        <div>
+            Gradient (Magnitude):<br />
+            <canvas id="edgeGradMag"></canvas>
+        </div>
+    </div>
+    Source:<br />
+    <canvas id="source"></canvas><br />
+    Video stream:<br />
+    <video id="webcam" autoplay width="320" height="240"></video>
+    <script src="../common/gumShield.js"></script>
+    <script src="hog-processing.js"></script>
+    <script>
+        /*** Boilerplate ***/
+        var timings = [];
 
-		var fps = 30;
-		var video = document.getElementById('webcam');
-		var source = document.getElementById('source');
-		var edgeConv = document.getElementById('edgeConv');
-		var edgeGradX = document.getElementById('edgeGradX');
-		var edgeGradY = document.getElementById('edgeGradY');
-		var edgeGradMag = document.getElementById('edgeGradMag');
-		var srcCtx = source.getContext('2d');
-		var convCtx = edgeConv.getContext('2d');
-		var gradXCtx = edgeGradX.getContext('2d');
-		var gradYCtx = edgeGradY.getContext('2d');
-		var magCtx = edgeGradMag.getContext('2d');
-		var width, height, timer;
+        var fps = 30;
+        var video = document.getElementById('webcam');
+        var source = document.getElementById('source');
+        var edgeConv = document.getElementById('edgeConv');
+        var edgeGradX = document.getElementById('edgeGradX');
+        var edgeGradY = document.getElementById('edgeGradY');
+        var edgeGradMag = document.getElementById('edgeGradMag');
+        var srcCtx = source.getContext('2d');
+        var convCtx = edgeConv.getContext('2d');
+        var gradXCtx = edgeGradX.getContext('2d');
+        var gradYCtx = edgeGradY.getContext('2d');
+        var magCtx = edgeGradMag.getContext('2d');
+        var width, height, timer;
 
-		function drawVideo() {
-			srcCtx.drawImage(video, 0, 0, width, height);
-			doStuff();
-			timer = setTimeout(drawVideo, 1000 / fps);
-		}
+        function drawVideo() {
+            srcCtx.drawImage(video, 0, 0, width, height);
+            doStuff();
+            timer = setTimeout(drawVideo, 1000 / fps);
+        }
 
-		function startInput() {
-			// Only works in Opera Labs and Chrome (with a flag) right now
-			navigator.getUserMedia({video: true}, function (stream) {
-				video.src = getStreamSrc(stream);
+        function startInput() {
+            // Only works in Opera Labs and Chrome (with a flag) right now
+            navigator.getUserMedia({video: true}, function (stream) {
+                video.src = getStreamSrc(stream);
 
-				width  = source.width  = edgeConv.width  = edgeGradX.width  = edgeGradY.width  = edgeGradMag.width  = video.width;
-				height = source.height = edgeConv.height = edgeGradX.height = edgeGradY.height = edgeGradMag.height = video.height;
-				srcCtx.translate(width, 0);
-				srcCtx.scale(-1, 1);
-				drawVideo();
-			}, function () {
-				console.error('Oh noes!');
-			});
-		}
+                width  = source.width  = edgeConv.width  = edgeGradX.width  = edgeGradY.width  = edgeGradMag.width  = video.width;
+                height = source.height = edgeConv.height = edgeGradX.height = edgeGradY.height = edgeGradMag.height = video.height;
+                srcCtx.translate(width, 0);
+                srcCtx.scale(-1, 1);
+                drawVideo();
+            }, function () {
+                console.error('Oh noes!');
+            });
+        }
 
-		function stopInput() {
-			video.src = '';
-			if (timer) {
-				clearTimeout(timer);
-			}
-		}
+        function stopInput() {
+            video.src = '';
+            if (timer) {
+                clearTimeout(timer);
+            }
+        }
 
-		document.getElementById('btnStart').addEventListener('click', startInput, false);
-		document.getElementById('btnStop').addEventListener('click', stopInput, false);
-		// startInput();
+        document.getElementById('btnStart').addEventListener('click', startInput, false);
+        document.getElementById('btnStop').addEventListener('click', stopInput, false);
+        // startInput();
 
-		/*** Actual experiment ***/
+        /*** Actual experiment ***/
 
-		// var tolerance;
-		// var tolIn  = document.getElementById('tolerance');
-		// var tolVal = document.getElementById('tolVal');
-		// function updateTol() {
-		// 	tolerance = +tolIn.value;
-		// 	tolVal.innerText = '(' + tolerance + ')';
-		// }
-		// updateTol();
-		// tolIn.addEventListener('change', updateTol, false);
+        // var tolerance;
+        // var tolIn  = document.getElementById('tolerance');
+        // var tolVal = document.getElementById('tolVal');
+        // function updateTol() {
+        //  tolerance = +tolIn.value;
+        //  tolVal.innerText = '(' + tolerance + ')';
+        // }
+        // updateTol();
+        // tolIn.addEventListener('change', updateTol, false);
 
-		// Taken from Adobe demo
-		function fastAbs(value) {
-			return (value ^ (value >> 31)) - (value >> 31);
-		}
+        // Taken from Adobe demo
+        function fastAbs(value) {
+            return (value ^ (value >> 31)) - (value >> 31);
+        }
 
-		// Partly copied from http://www.phpied.com/files/canvas/matrix.html
-		function detectConvolution(ctx, srcData) {
-			console.time('detectConvolution');
-			var w = srcData.width, w4 = w * 4;
-			var inpx = srcData.data;
-			var outData = ctx.createImageData(w, srcData.height);
-			var outpx = outData.data;
-			var i = outpx.length;
-			var pr, nr, cells, cell, c, res;
-			cells = [
-				[-w4 - 4, -5],
-				// [-w4,     0 ],
-				// [-w4 + 4, 0 ],
-				// [-4,      0 ],
-				// [0,       0 ],
-				// [4,       0 ],
-				// [w4 - 4,  0 ],
-				// [w4,      0 ],
-				[w4 + 4,  5 ]
-			];
-			while (i--) {
-				if (i % 4 === 3) {
-					outpx[i] = inpx[i];
-					continue;
-				}
-				// outpx[i] = inpx[i];
-				// pr = i - w * 4;
-				// nr = i + w * 4;
-				c = cells.length;
-				res = 0;
-				while (c--) {
-					cell = cells[c];
-					// res += (inpx[cell[0]] === undefined ? inpx[i] : inpx[cell[0]]) * cell[1];
-					res += (inpx[i + cell[0]] || inpx[i]) * cell[1];
-				}
-				outpx[i] = res;
-			};
-			ctx.putImageData(outData, 0, 0);
-			console.timeEnd('detectConvolution');
-		}
+        // Partly copied from http://www.phpied.com/files/canvas/matrix.html
+        function detectConvolution(ctx, srcData) {
+            console.time('detectConvolution');
+            var w = srcData.width, w4 = w * 4;
+            var inpx = srcData.data;
+            var outData = ctx.createImageData(w, srcData.height);
+            var outpx = outData.data;
+            var i = outpx.length;
+            var pr, nr, cells, cell, c, res;
+            cells = [
+                [-w4 - 4, -5],
+                // [-w4,     0 ],
+                // [-w4 + 4, 0 ],
+                // [-4,      0 ],
+                // [0,       0 ],
+                // [4,       0 ],
+                // [w4 - 4,  0 ],
+                // [w4,      0 ],
+                [w4 + 4,  5 ]
+            ];
+            while (i--) {
+                if (i % 4 === 3) {
+                    outpx[i] = inpx[i];
+                    continue;
+                }
+                // outpx[i] = inpx[i];
+                // pr = i - w * 4;
+                // nr = i + w * 4;
+                c = cells.length;
+                res = 0;
+                while (c--) {
+                    cell = cells[c];
+                    // res += (inpx[cell[0]] === undefined ? inpx[i] : inpx[cell[0]]) * cell[1];
+                    res += (inpx[i + cell[0]] || inpx[i]) * cell[1];
+                }
+                outpx[i] = res;
+            };
+            ctx.putImageData(outData, 0, 0);
+            console.timeEnd('detectConvolution');
+        }
 
-		function detectGradients(srcData) {
-			// console.time('detectGradients');
-			var w = srcData.width;
-			var h = srcData.height;
-			var srcpx = srcData.data;
-			// var dataGX = gradXCtx.createImageData(w, h);
-			// var dataGY = gradYCtx.createImageData(w, h);
-			var dataMag = magCtx.createImageData(w, h);
-			// var dx = dataGX.data;
-			// var dy = dataGY.data;
-			var dm = dataMag.data;
+        function detectGradients(srcData) {
+            // console.time('detectGradients');
+            var w = srcData.width;
+            var h = srcData.height;
+            var srcpx = srcData.data;
+            // var dataGX = gradXCtx.createImageData(w, h);
+            // var dataGY = gradYCtx.createImageData(w, h);
+            var dataMag = magCtx.createImageData(w, h);
+            // var dx = dataGX.data;
+            // var dy = dataGY.data;
+            var dm = dataMag.data;
 
-			var intensities = processing.intensities(srcData)
-			// var gradients = processing._gradients(intensities);
-			var vectors = processing._gradientVectors(intensities);
-			// var gradsX = gradients.x;
-			// var gradsY = gradients.y;
-			// var y = gradsX.length;
-			// var xx = gradsX[0].length;
-			var y = h;
-			var xx = w;
-			while (y--) {
-				var x = xx;
-				while (x--) {
-					var i = (y * 4) * w + x * 4;
-					// var gradX = Math.abs(gradsX[y][x]) * 255    ;
-					// var gradY = Math.abs(gradsY[y][x]) * 255    ;
-					var mag = Math.abs(vectors[y][x].mag) * 255 ;
-					// var mag = gradX + gradY;
+            var intensities = processing.intensities(srcData)
+            // var gradients = processing._gradients(intensities);
+            var vectors = processing._gradientVectors(intensities);
+            // var gradsX = gradients.x;
+            // var gradsY = gradients.y;
+            // var y = gradsX.length;
+            // var xx = gradsX[0].length;
+            var y = h;
+            var xx = w;
+            while (y--) {
+                var x = xx;
+                while (x--) {
+                    var i = (y * 4) * w + x * 4;
+                    // var gradX = Math.abs(gradsX[y][x]) * 255    ;
+                    // var gradY = Math.abs(gradsY[y][x]) * 255    ;
+                    var mag = Math.abs(vectors[y][x].mag) * 255 ;
+                    // var mag = gradX + gradY;
 
-					// dx[i] = gradX;
-					// dx[i + 1] = gradX;
-					// dx[i + 2] = gradX;
-					// dx[i + 3] = 255;
-					// dy[i] = gradY;
-					// dy[i + 1] = gradY;
-					// dy[i + 2] = gradY;
-					// dy[i + 3] = 255;
-					dm[i] = mag;
-					dm[i + 1] = mag;
-					dm[i + 2] = mag;
-					dm[i + 3] = 255;
-				}
-			}
+                    // dx[i] = gradX;
+                    // dx[i + 1] = gradX;
+                    // dx[i + 2] = gradX;
+                    // dx[i + 3] = 255;
+                    // dy[i] = gradY;
+                    // dy[i + 1] = gradY;
+                    // dy[i + 2] = gradY;
+                    // dy[i + 3] = 255;
+                    dm[i] = mag;
+                    dm[i + 1] = mag;
+                    dm[i + 2] = mag;
+                    dm[i + 3] = 255;
+                }
+            }
 
-			// gradXCtx.putImageData(dataGX, 0, 0);
-			// gradYCtx.putImageData(dataGY, 0, 0);
-			magCtx.putImageData(dataMag, 0, 0);
-			// console.timeEnd('detectGradients');
-		}
+            // gradXCtx.putImageData(dataGX, 0, 0);
+            // gradYCtx.putImageData(dataGY, 0, 0);
+            magCtx.putImageData(dataMag, 0, 0);
+            // console.timeEnd('detectGradients');
+        }
 
-		function doStuff() {
-			var srcData = srcCtx.getImageData(0, 0, width, height);
-			// detectConvolution(convCtx, srcData);
-			detectGradients(srcData);
-		}
-	</script>
+        function doStuff() {
+            var srcData = srcCtx.getImageData(0, 0, width, height);
+            // detectConvolution(convCtx, srcData);
+            detectGradients(srcData);
+        }
+    </script>
 </body>
 </html>

@@ -1,12 +1,12 @@
 <!DOCTYPE html>
 <html>
 <head>
-	<meta charset="UTF-8">
-	<title>References - Composite + putImageData</title>
+    <meta charset="UTF-8">
+    <title>References - Composite + putImageData</title>
 </head>
 <body>
-	<canvas id="comp"></canvas>
-	<script>
+    <canvas id="comp"></canvas>
+    <script>
     var hsl2rgb = function (h, s, l) {
         if (h > 1 || s > 1 || l > 1) {
             h /= 360;
@@ -31,63 +31,63 @@
         return ((1 << 24) + (R << 16) + (G << 8) + B).toString(16).substr(1);
     };
 
-	var comp = document.getElementById('comp');
-	var ctx = comp.getContext('2d');
-	comp.width = 1000;
-	comp.height = 750;
+    var comp = document.getElementById('comp');
+    var ctx = comp.getContext('2d');
+    comp.width = 1000;
+    comp.height = 750;
 
-	var parts = 10;
-	var width = 6;
+    var parts = 10;
+    var width = 6;
 
-	ctx.strokeStyle = 'rgba(255, 0, 255, 0.33)';
-	// ctx.strokeStyle = '#555';
-	ctx.lineWidth = width;
-	ctx.strokeRect(10, 10, 300, 300);
-	// ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
-	// ctx.strokeStyle = '#AAA';
-	ctx.lineWidth = width - 2;
-	ctx.strokeRect(10, 10, 300, 300);
-	// ctx.strokeStyle = '#FFF';
-	ctx.lineWidth = width - 4;
-	ctx.strokeRect(10, 10, 300, 300);
+    ctx.strokeStyle = 'rgba(255, 0, 255, 0.33)';
+    // ctx.strokeStyle = '#555';
+    ctx.lineWidth = width;
+    ctx.strokeRect(10, 10, 300, 300);
+    // ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+    // ctx.strokeStyle = '#AAA';
+    ctx.lineWidth = width - 2;
+    ctx.strokeRect(10, 10, 300, 300);
+    // ctx.strokeStyle = '#FFF';
+    ctx.lineWidth = width - 4;
+    ctx.strokeRect(10, 10, 300, 300);
 
-	var imageData = ctx.getImageData(5, 5, 310, 310);
-	var tmp = document.createElement('canvas');
-	var tmpCtx = tmp.getContext('2d');
-	tmp.width = imageData.width;
-	tmp.height = imageData.height;
+    var imageData = ctx.getImageData(5, 5, 310, 310);
+    var tmp = document.createElement('canvas');
+    var tmpCtx = tmp.getContext('2d');
+    tmp.width = imageData.width;
+    tmp.height = imageData.height;
 
-	// ctx.fillStyle = '#CCC';
-	// ctx.fillRect(320, 10, 420, 420);
-	var perc, rgb;
-	for (var i = 1; i <= parts; i++) {
-		perc = i / parts;
-		// ctx.globalAlpha = 1 - perc;
-		// ctx.globalCompositeOperation = 'lighter';
-		rgb = '#' + hsl2rgb(perc, .7, .4);
-		// ctx.strokeStyle = '#' + rgb;
-		// ctx.strokeRect(320 + i * width, 10 + i * width, 300, 300);
+    // ctx.fillStyle = '#CCC';
+    // ctx.fillRect(320, 10, 420, 420);
+    var perc, rgb;
+    for (var i = 1; i <= parts; i++) {
+        perc = i / parts;
+        // ctx.globalAlpha = 1 - perc;
+        // ctx.globalCompositeOperation = 'lighter';
+        rgb = '#' + hsl2rgb(perc, .7, .4);
+        // ctx.strokeStyle = '#' + rgb;
+        // ctx.strokeRect(320 + i * width, 10 + i * width, 300, 300);
 
-		// ctx.putImageData(imageData, 320 + i * width * 2, 10 + i * width * 2)//, 400, 200, 300, 300);
+        // ctx.putImageData(imageData, 320 + i * width * 2, 10 + i * width * 2)//, 400, 200, 300, 300);
 
-		var x = 320 + i * width * 2;
-		var y = 10 + i * width * 2;
-		// ctx.drawImage(tmp, x, y);
-		// ctx.save();
-		// ctx.globalAlpha = perc;
-		// ctx.globalCompositeOperation = 'source-atop';
-		// // ctx.globalCompositeOperation = 'lighter';
-		// ctx.fillStyle = rgb;
-		// ctx.fillRect(x, y, 320, 320);
-		// ctx.restore();
+        var x = 320 + i * width * 2;
+        var y = 10 + i * width * 2;
+        // ctx.drawImage(tmp, x, y);
+        // ctx.save();
+        // ctx.globalAlpha = perc;
+        // ctx.globalCompositeOperation = 'source-atop';
+        // // ctx.globalCompositeOperation = 'lighter';
+        // ctx.fillStyle = rgb;
+        // ctx.fillRect(x, y, 320, 320);
+        // ctx.restore();
 
-		tmpCtx.putImageData(imageData, 0, 0);
-		tmpCtx.globalCompositeOperation = 'source-atop';
-		tmpCtx.fillStyle = rgb;
-		tmpCtx.fillRect(0, 0, tmp.width, tmp.height);
-		ctx.globalAlpha = perc;
-		ctx.drawImage(tmp, x, y);
-	}
-	</script>
+        tmpCtx.putImageData(imageData, 0, 0);
+        tmpCtx.globalCompositeOperation = 'source-atop';
+        tmpCtx.fillStyle = rgb;
+        tmpCtx.fillRect(0, 0, tmp.width, tmp.height);
+        ctx.globalAlpha = perc;
+        ctx.drawImage(tmp, x, y);
+    }
+    </script>
 </body>
 </html>

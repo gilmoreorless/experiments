@@ -1,133 +1,134 @@
 <!DOCTYPE html>
 <html>
 <head>
-	<meta charset="UTF-8">
-	<title>References - Inspector / Magnifier</title>
+    <meta charset="UTF-8">
+    <title>References - Inspector / Magnifier</title>
 </head>
 <body>
-	<canvas id="orig"></canvas>
-	<canvas id="mag"></canvas>
-	<div id="output"></div>
-	<script src="../webcam/hog-processing.js"></script>
-	<script>
-		/* Config */
-		var width = 160;
-		var height = 120;
-		var imgSrc = '../tiles/img/catimov.jpg';
-		var magPower = 4;
-		/* End Config */
+    <canvas id="orig"></canvas>
+    <canvas id="mag"></canvas>
+    <div id="output"></div>
+    <script src="../webcam/hog-processing.js"></script>
+    <script>
+        /* Config */
+        var width = 128;
+        var height = 96;
+        // var imgSrc = '../tiles/img/catimov.jpg';
+        var imgSrc = '../common/handy.jpg';
+        var magPower = 4;
+        /* End Config */
 
-		var timings = [];
-		var orig = document.getElementById('orig');
-		var mag = document.getElementById('mag');
-		var origCtx = orig.getContext('2d');
-		var magCtx = mag.getContext('2d');
-		magCtx.mozImageSmoothingEnabled = false;
-		magCtx.webkitImageSmoothingEnabled = false;
+        var timings = [];
+        var orig = document.getElementById('orig');
+        var mag = document.getElementById('mag');
+        var origCtx = orig.getContext('2d');
+        var magCtx = mag.getContext('2d');
+        magCtx.mozImageSmoothingEnabled = false;
+        magCtx.webkitImageSmoothingEnabled = false;
 
-		var output = document.getElementById('output');
-		var origData, vectors;
+        var output = document.getElementById('output');
+        var origData, vectors;
 
-		function setup() {
-			orig.width  = mag.width  = width;
-			orig.height = mag.height = height;
-			orig.addEventListener('click', magnifyPoint, false);
-			loadSrc();
-		}
+        function setup() {
+            orig.width  = mag.width  = width;
+            orig.height = mag.height = height;
+            orig.addEventListener('click', magnifyPoint, false);
+            loadSrc();
+        }
 
-		function loadSrc() {
-			var img = new Image();
-			img.onload = function () {
-				origCtx.drawImage(img, 0, 0, width, height);
-				drawOrig();
-			}
-			img.src = imgSrc;
-		}
+        function loadSrc() {
+            var img = new Image();
+            img.onload = function () {
+                origCtx.drawImage(img, 0, 0, width, height);
+                drawOrig();
+            }
+            img.src = imgSrc;
+        }
 
-		function drawOrig() {
-			origData = origCtx.getImageData(0, 0, width, height);
-			drawEdges();
-			var newData = convertToGreyscale(origData);
-			origCtx.putImageData(newData, 0, 0);
-			origData = origCtx.getImageData(0, 0, width, height);
-		}
+        function drawOrig() {
+            origData = origCtx.getImageData(0, 0, width, height);
+            drawEdges();
+            var newData = convertToGreyscale(origData);
+            origCtx.putImageData(newData, 0, 0);
+            origData = origCtx.getImageData(0, 0, width, height);
+        }
 
-		function convertToGreyscale(origData, tolerance) {
-			var pixels = origData.data;
-			var i = pixels.length;
-			var luma;
-			while (i) {
-				i -= 4;
-				luma = pixels[i] * 299/1000 + pixels[i + 1] * 587/1000 + pixels[i + 2] * 114/1000;
-				if (tolerance && luma < tolerance) {
-					luma = 0;
-				}
-				pixels[i] = pixels[i + 1] = pixels[i + 2] = luma;
-			}
-			return origData;
-		}
+        function convertToGreyscale(origData, tolerance) {
+            var pixels = origData.data;
+            var i = pixels.length;
+            var luma;
+            while (i) {
+                i -= 4;
+                luma = pixels[i] * 299/1000 + pixels[i + 1] * 587/1000 + pixels[i + 2] * 114/1000;
+                if (tolerance && luma < tolerance) {
+                    luma = 0;
+                }
+                pixels[i] = pixels[i + 1] = pixels[i + 2] = luma;
+            }
+            return origData;
+        }
 
-		function drawEdges() {
-			// processing.drawGradient(orig, 'x');
-			// processing.drawGradient(orig, 'y');
-			// vectors = processing.drawMagnitude(orig);
-			vectors = processing.gradientVectors(orig);
-			// var newData = convertToGreyscale(origCtx.getImageData(0, 0, width, height), 85);
-			// origCtx.putImageData(newData, 0, 0);
-		}
+        function drawEdges() {
+            // processing.drawGradient(orig, 'x');
+            // processing.drawGradient(orig, 'y');
+            // vectors = processing.drawMagnitude(orig);
+            vectors = processing.gradientVectors(orig);
+            // var newData = convertToGreyscale(origCtx.getImageData(0, 0, width, height), 85);
+            // origCtx.putImageData(newData, 0, 0);
+        }
 
-		var origOffsetX = orig.offsetLeft;
-		var origOffsetY = orig.offsetTop;
-		function magnifyPoint(e) {
-			var x, y;
-			if ('offsetX' in e) {
-				x = e.offsetX;
-				y = e.offsetY;
-			} else {
-				x = e.clientX - origOffsetX;
-				y = e.clientY - origOffsetY;
-			}
-			console.log(e, x, y);
-			var pow = Math.pow(2, magPower);
-			var magW = width / pow;
-			var magH = height / pow;
-			magCtx.drawImage(
-				orig,
-				x - magW / 2, y - magH / 2, magW, magH,
-				0, 0, width, height
-			);
-			magCtx.strokeStyle = '#F00';
-			magCtx.strokeRect(width / 2, height / 2, pow, pow);
+        var origOffsetX = orig.offsetLeft;
+        var origOffsetY = orig.offsetTop;
+        function magnifyPoint(e) {
+            var x, y;
+            if ('offsetX' in e) {
+                x = e.offsetX;
+                y = e.offsetY;
+            } else {
+                x = e.clientX - origOffsetX;
+                y = e.clientY - origOffsetY;
+            }
+            console.log(e, x, y);
+            var pow = Math.pow(2, magPower);
+            var magW = width / pow;
+            var magH = height / pow;
+            magCtx.drawImage(
+                orig,
+                x - magW / 2, y - magH / 2, magW, magH,
+                0, 0, width, height
+            );
+            magCtx.strokeStyle = '#F00';
+            magCtx.strokeRect(width / 2, height / 2, pow, pow);
 
-			inspectPoint(x, y);
-		}
+            inspectPoint(x, y);
+        }
 
-		function pixelPercentage(val) {
-			return val + ' (' + (Math.round(val / 255 * 100) / 100) + '%)';
-		}
+        function pixelPercentage(val) {
+            return val + ' (' + (Math.round(val / 255 * 100) / 100) + '%)';
+        }
 
-		function inspectPoint(x, y) {
-			var html = [
-				'X: ' + x,
-				'Y: ' + y
-			];
-			var i = (y * width + x) * 4;
-			var pixels = origData.data;
-			var vector = vectors[y][x];
+        function inspectPoint(x, y) {
+            var html = [
+                'X: ' + x,
+                'Y: ' + y
+            ];
+            var i = (y * width + x) * 4;
+            var pixels = origData.data;
+            var vector = vectors[y][x];
 
-			html.push(
-				'R: ' + pixelPercentage(pixels[i]),
-				'G: ' + pixelPercentage(pixels[i + 1]),
-				'B: ' + pixelPercentage(pixels[i + 2]),
-				'A: ' + pixelPercentage(pixels[i + 3]),
-				'Mag: ' + vector.mag,
-				'Orient: ' + vector.orient
-			);
+            html.push(
+                'R: ' + pixelPercentage(pixels[i]),
+                'G: ' + pixelPercentage(pixels[i + 1]),
+                'B: ' + pixelPercentage(pixels[i + 2]),
+                'A: ' + pixelPercentage(pixels[i + 3]),
+                'Mag: ' + vector.mag,
+                'Orient: ' + vector.orient
+            );
 
-			output.innerHTML = html.join('<br>');
-		}
+            output.innerHTML = html.join('<br>');
+        }
 
-		setup();
-	</script>
+        setup();
+    </script>
 </body>
 </html>

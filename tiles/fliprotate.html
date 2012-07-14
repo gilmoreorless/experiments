@@ -1,41 +1,41 @@
 <!DOCTYPE html>
 <html>
 <head>
-	<title>Image tiles / Flip+Rotate</title>
+    <title>Image tiles / Flip+Rotate</title>
 </head>
 <body>
-	<div id="buttons">
-		<button id="rotate">Rotate</button>
-		<button id="fliphoriz">Flip Horizontal</button>
-		<button id="flipvert">Flip Vertical</button>
-	</div>
-	<canvas id="game"></canvas>
-	<script src="js/tilegame.js"></script>
-	<script>
-		var tiler = new Tiler('game', {
-			width: 640,
-			height: 480,
-			rows: 3,
-			cols: 3,
-			move: 'dblclick',
-			flip: true,
-			rotate: true
-		});
-		tiler.setSrc('img/catimov.jpg');
+    <div id="buttons">
+        <button id="rotate">Rotate</button>
+        <button id="fliphoriz">Flip Horizontal</button>
+        <button id="flipvert">Flip Vertical</button>
+    </div>
+    <canvas id="game"></canvas>
+    <script src="js/tilegame.js"></script>
+    <script>
+        var tiler = new Tiler('game', {
+            width: 640,
+            height: 480,
+            rows: 3,
+            cols: 3,
+            move: 'dblclick',
+            flip: true,
+            rotate: true
+        });
+        tiler.setSrc('img/catimov.jpg');
 
-		var clickit = function (id, handler) {
-			var elem = document.getElementById(id);
-			elem.addEventListener('click', handler, false);
-		};
-		clickit('rotate', function () {
-			tiler.rotateSelectedTile(Math.PI);
-		});
-		clickit('fliphoriz', function () {
-			tiler.flipSelectedTile('h');
-		});
-		clickit('flipvert', function () {
-			tiler.flipSelectedTile('v');
-		});
-	</script>
+        var clickit = function (id, handler) {
+            var elem = document.getElementById(id);
+            elem.addEventListener('click', handler, false);
+        };
+        clickit('rotate', function () {
+            tiler.rotateSelectedTile(Math.PI);
+        });
+        clickit('fliphoriz', function () {
+            tiler.flipSelectedTile('h');
+        });
+        clickit('flipvert', function () {
+            tiler.flipSelectedTile('v');
+        });
+    </script>
 </body>
 </html>

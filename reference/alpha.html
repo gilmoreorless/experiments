@@ -1,12 +1,12 @@
 <!DOCTYPE html>
 <html>
 <head>
-	<meta charset="UTF-8">
-	<title>References - Global Alpha</title>
+    <meta charset="UTF-8">
+    <title>References - Global Alpha</title>
 </head>
 <body>
-	<canvas id="alpha"></canvas>
-	<script>
+    <canvas id="alpha"></canvas>
+    <script>
     var hsl2rgb = function (h, s, l) {
         if (h > 1 || s > 1 || l > 1) {
             h /= 360;
@@ -31,29 +31,29 @@
         return ((1 << 24) + (R << 16) + (G << 8) + B).toString(16).substr(1);
     };
 
-	var alpha = document.getElementById('alpha');
-	var ctx = alpha.getContext('2d');
-	alpha.width = 1000;
-	alpha.height = 750;
+    var alpha = document.getElementById('alpha');
+    var ctx = alpha.getContext('2d');
+    alpha.width = 1000;
+    alpha.height = 750;
 
-	var parts = 20;
-	var width = 5;
+    var parts = 20;
+    var width = 5;
 
-	ctx.strokeStyle = '#F00';
-	ctx.lineWidth = width;
-	ctx.strokeRect(10, 10, 300, 300);
-	var imageData = ctx.getImageData(5, 5, 310, 310);
+    ctx.strokeStyle = '#F00';
+    ctx.lineWidth = width;
+    ctx.strokeRect(10, 10, 300, 300);
+    var imageData = ctx.getImageData(5, 5, 310, 310);
 
-	var perc, rgb;
-	for (var i = 1; i <= parts; i++) {
-		perc = i / parts;
-		ctx.globalAlpha = 1 - perc;
-		ctx.globalCompositeOperation = 'lighter';
-		rgb = hsl2rgb(perc, .7, .4);
-		ctx.strokeStyle = '#' + rgb;
-		ctx.strokeRect(320 + i * width, 10 + i * width, 300, 300);
-		// ctx.putImageData(imageData, 320 + i * width, 10 + i * width);
-	}
-	</script>
+    var perc, rgb;
+    for (var i = 1; i <= parts; i++) {
+        perc = i / parts;
+        ctx.globalAlpha = 1 - perc;
+        ctx.globalCompositeOperation = 'lighter';
+        rgb = hsl2rgb(perc, .7, .4);
+        ctx.strokeStyle = '#' + rgb;
+        ctx.strokeRect(320 + i * width, 10 + i * width, 300, 300);
+        // ctx.putImageData(imageData, 320 + i * width, 10 + i * width);
+    }
+    </script>
 </body>
 </html>
