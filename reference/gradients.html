@@ -95,10 +95,6 @@
             }
         }
 
-        function checkboxClick(e) {
-            var name = e.target.name;
-        }
-
         var tolTimer;
         function toleranceChange(e) {
             var input = e.target;
@@ -131,7 +127,7 @@
 
         function drawOrig() {
             origData = origCtx.getImageData(0, 0, width, height);
-            origData = convertToGreyscale(origData);
+            // origData = convertToGreyscale(origData);
             origCtx.putImageData(origData, 0, 0);
             getVectors();
             drawGradients();
@@ -263,18 +259,141 @@
             ctx.stroke();
         }
 
+        /***
+         _________________
+        |     |     |     |
+        | 40% | 50% | 40% |
+        |_____|_____|_____|
+        |     |     |     |
+        |  7% | CEN |  7% |
+        |_____|_____|_____|
+        |     |  ^  |     |
+        |  3% |  |  |  3% |
+        |_____|_____|_____|
+
+        ***/
+
         function drawWireframes() {
-            if (!options.wireframeArrows || options.wireframeLines) {
+            if (!options.wireframeArrows && !options.wireframeLines) {
                 return;
             }
             wfCache = new Array(height);
-            var x, y, x1, x2, y1, y2, xx, yy, mx, my;
-            var cache1, cache2;
+            var x, y, x1, x2, y1, y2, xx, yy, mx, my, px, py;
+            var cacheId1, cacheId2, maxSurround;
             var tolerance = options.tolerance.tolWireframe;
 
             // Wireframe lines
             if (options.wireframeLines) {
-                // Do stuff here
+                var ix = -1;
+                var iy = 0;
+                var total = width * height;
+                var checkedCount = 0;
+                var unfinished = true;
+                var finding = false;
+                var lines = [];
+                var curLine, nextFound;
+                while (unfinished) {
+                    if (!finding) {
+                        ix++;
+                        if (ix >= width) {
+                            ix = 0;
+                            iy++;
+                            if (iy >= height) {
+                                unfinished = false;
+                                continue;
+                            }
+                        }
+                        x = ix;
+                        y = iy;
+                    }
+
+                    if (!wfCache[y]) {
+                        wfCache[y] = new Array(width);
+                    }
+                    if (!wfCache[y][x]) {
+                        wfCache[y][x] = true;
+                        checkedCount++;
+                        if (vectors[y][x].mag > tolerance) {
+                            if (!finding) {
+                                finding = true;
+                                curLine = [{x: x, y: y}];
+                                lines.push(curLine);
+                            }
+                            y1 = y - 1;
+                            y2 = y < (height - 1) ? y + 1 : -1;
+                            x1 = x - 1;
+                            x2 = x < (width - 1) ? x + 1 : -1;
+                            // TODO: This keeps finding the previous pixel, which should be excluded
+                            maxSurround = Math.max(
+                                vectors[y1][x1].mag,
+                                vectors[y1][x].mag,
+                                vectors[y1][x2].mag,
+                                vectors[y][x1].mag,
+                                vectors[y][x2].mag,
+                                vectors[y2][x1].mag,
+                                vectors[y2][x].mag,
+                                vectors[y2][x2].mag
+                            );
+                            if (maxSurround > 0) {
+                                mx = x2 > -1 ? x2 : x;
+                                my = y2 > -1 ? y2 : y;
+                                // NOTE: Very naive at the moment, will find the first matching pixel and run with it
+                                // (ie. doesn't do joining lines)
+                                nextFound = false;
+                                for (xx = x1; xx <= mx; xx++) {
+                                    for (yy = y1; yy <= my; yy++) {
+                                        if (
+                                            (xx != x || yy != y) &&
+                                            (!wfCache[yy] || !wfCache[yy][xx]) &&
+                                            vectors[yy][xx].mag > 0 &&
+                                            vectors[yy][xx].mag >= maxSurround - tolerance
+                                        ) {
+                                            curLine.push({x: xx, y: yy});
+                                            x = xx;
+                                            y = yy;
+                                            xx = mx + 1; // Force breaking out of the loop
+                                            nextFound = true;
+                                            break;
+                                        }
+                                    }
+                                }
+                                if (!nextFound) {
+                                    finding = false;
+                                }
+                            }
+                        } else {
+                            finding = false;
+                        }
+                    } else {
+                        finding = false;
+                    }
+
+                    if (checkedCount == total) {
+                        unfinished = false;
+                    }
+                }
+
+                console.log('lines', lines);
+                var i = lines.length;
+                var p2 = pow / 2;
+                var j, jj, part;
+                magCtx.save();
+                magCtx.strokeStyle = 'rgba(0,200,0,0.7)';
+                magCtx.lineWidth = 3;
+                while (i--) {
+                    curLine = lines[i];
+                    if (curLine.length > 1) {
+                        part = curLine[0];
+                        magCtx.beginPath();
+                        magCtx.moveTo(part.x * pow + p2, part.y * pow + p2);
+                        for (j = 1, jj = curLine.length; j < jj; j++) {
+                            part = curLine[j];
+                            magCtx.lineTo(part.x * pow + p2, part.y * pow + p2);
+                        }
+                        magCtx.stroke();
+                    }
+                }
+                magCtx.restore();
 
             // Wireframe arrows
             } else {
@@ -290,7 +409,7 @@
                         }
                         x1 = x - 1;
                         x2 = x < (width - 1) ? x + 1 : -1;
-                        var maxSurround = Math.max(
+                        maxSurround = Math.max(
                             vectors[y1][x1].mag,
                             vectors[y1][x].mag,
                             vectors[y1][x2].mag,
@@ -311,14 +430,14 @@
                                         vectors[yy][xx].mag > 0 &&
                                         vectors[yy][xx].mag >= maxSurround - tolerance
                                     ) {
-                                        cache1 = [y, x].join('/');
-                                        cache2 = [yy, xx].join('/');
-                                        wfCache[y][x][cache2] = true;
+                                        cacheId1 = [y, x].join('/');
+                                        cacheId2 = [yy, xx].join('/');
+                                        wfCache[y][x][cacheId2] = true;
                                         wfCache[y][x].length++;
                                         magCtx.save();
                                         magCtx.strokeStyle = 'rgba(0,200,0,0.7)';
                                         magCtx.lineWidth = 2;
-                                        if (wfCache[yy] && wfCache[yy][xx] && (cache1 in wfCache[yy][xx])) {
+                                        if (wfCache[yy] && wfCache[yy][xx] && (cacheId1 in wfCache[yy][xx])) {
                                             magCtx.strokeStyle = 'rgba(0,200,200,0.9)';
                                             magCtx.lineWidth = 4;
                                         }
@@ -337,12 +456,8 @@
             findPoints: function () {
                 getVectors();
             },
-            wireframeArrows: function () {
-                drawWireframes();
-            },
-            wireframeLines: function () {
-                drawWireframes();
-            }
+            wireframeArrows: function () {},
+            wireframeLines: function () {}
         };
 
         var drawPixelMethods = {
