@@ -273,6 +273,51 @@
 
         ***/
 
+        function findNextEdgePixel(x, y, px, py) {
+            var nx, ny, i, ix, iy, x1, x2, y1, y2;
+            var max = 0;
+            var neighbours = [];
+            var neighbour;
+
+            // Build list of neighbours with magnitude
+            x1 = x > 0 ? x - 1: 0;
+            x2 = x < (width - 1) ? x + 1 : -1;
+            y1 = y > 0 ? y - 1: 0;
+            y2 = y < (height - 1) ? y + 1 : y;
+            for (iy = y1; iy <= y2; iy++) {
+                for (ix = x1; ix <= x2; ix++) {
+                    // Don't include the current pixel or the previous edge pixel
+                    if (!(ix === x && iy === y) && !(ix === px && iy === py)) {
+                        neighbours.push([ix, iy, vectors[iy][ix].mag]);
+                    }
+                }
+            }
+
+            // Orientation
+
+            // Position
+
+            // Find best match
+            i = neighbours.length;
+            while (i--) {
+                neighbour = neighbours[i];
+                if (neighbour[2] > max) {
+                    max = neighbour[2];
+                    nx = neighbour[0];
+                    ny = neighbour[1];
+                } else if (neighbour[2] === max && max > 0) {
+                    // TODO: What to do if there is more than one equal max?
+                    console.warn('Equal max neighbours', max, {x: x, y: y, px: px, py: py, neighbours: neighbours});
+                }
+            }
+
+            // Throw it back
+            if (max > 0) {
+                return {x: nx, y: ny};
+            }
+            return false;
+        }
+
         function drawWireframes() {
             if (!options.wireframeArrows && !options.wireframeLines) {
                 return;
@@ -317,8 +362,27 @@
                             if (!finding) {
                                 finding = true;
                                 curLine = [{x: x, y: y}];
+                                px = py = -1;
                                 lines.push(curLine);
                             }
+                            nextFound = findNextEdgePixel(x, y, px, py);
+                            if (!nextFound) {
+                                finding = false;
+                            } else {
+                                xx = nextFound.x;
+                                yy = nextFound.y;
+                                curLine.push({x: xx, y: yy});
+                                // If we've hit a pixel we've found before, stop finding this edge
+                                if (!wfCache[yy] || !wfCache[yy][xx]) {
+                                    px = x;
+                                    py = y;
+                                    x = xx;
+                                    y = yy;
+                                } else {
+                                    finding = false;
+                                }
+                            }
+                            /*
                             y1 = y - 1;
                             y2 = y < (height - 1) ? y + 1 : -1;
                             x1 = x - 1;
@@ -338,7 +402,7 @@
                                 mx = x2 > -1 ? x2 : x;
                                 my = y2 > -1 ? y2 : y;
                                 // NOTE: Very naive at the moment, will find the first matching pixel and run with it
-                                // (ie. doesn't do joining lines)
+                                // (ie. doesn't do joining lines very well)
                                 nextFound = false;
                                 for (xx = x1; xx <= mx; xx++) {
                                     for (yy = y1; yy <= my; yy++) {
@@ -349,6 +413,8 @@
                                             vectors[yy][xx].mag >= maxSurround - tolerance
                                         ) {
                                             curLine.push({x: xx, y: yy});
+                                            px = x;
+                                            py = y;
                                             x = xx;
                                             y = yy;
                                             xx = mx + 1; // Force breaking out of the loop
@@ -361,6 +427,7 @@
                                     finding = false;
                                 }
                             }
+                            */
                         } else {
                             finding = false;
                         }
