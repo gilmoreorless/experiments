@@ -24,8 +24,9 @@
                 <li><label><input type="checkbox" name="wireframeArrows"> Calculate wireframes (debug arrows)</label></li>
                 <li><label><input type="checkbox" name="wireframeLines"> Calculate wireframes (single lines - overrides arrows)</label></li>
                 <li><label><input type="checkbox" name="pixelTrace"> Trace pixel checking for wireframes</label></li>
-                <li><input type="range" name="tolMagnitude" value="0" min="0" max="50"> Tolerance: Pixel gradient magnitude % <span id="tolMagnitude-val"></span></li>
-                <li><input type="range" name="tolWireframe" value="0" min="0" max="50"> Tolerance: Wireframe neighbour-match magnitude % <span id="tolWireframe-val"></span></li>
+                <li><input type="range" name="tolMagnitude" value="0" min="0" max="50" data-tolType="percentage"> Tolerance: Pixel gradient magnitude % <span id="tolMagnitude-val"></span></li>
+                <li><input type="range" name="tolWireframeMag" value="0" min="0" max="50" data-tolType="percentage"> Tolerance: Wireframe neighbour-match magnitude % <span id="tolWireframeMag-val"></span></li>
+                <li><input type="range" name="tolWireframeLength" value="1" min="1" max="10"> Tolerance: Wireframe line length minimum <span id="tolWireframeLength-val">(1)</span></li>
             </ul>
         </div>
     </div>
@@ -58,7 +59,8 @@
             pixelTrace: false,
             tolerance: {
                 tolMagnitude: 0,
-                tolWireframe: 0
+                tolWireframeMag: 0,
+                tolWireframeLength: 1
             }
         };
         var currentMethod = '';
@@ -106,7 +108,12 @@
                 return;
             }
             var name = input.name;
-            options.tolerance[name] = input.value / 100;
+            var value = input.value;
+            var tolType = input.getAttribute('data-tolType');
+            if (tolType === 'percentage') {
+                value = value / 100;
+            }
+            options.tolerance[name] = value;
             var output = document.getElementById(name + '-val');
             if (output) {
                 output.innerText = '(' + input.value + ')';
@@ -358,7 +365,9 @@
                     //     pos = 3;
                     // }
                     pPerc = positionEnhancer[pos];
-                    neighbour[2] = (neighbour[2] + oPerc + pPerc) / 3;
+                    // neighbour[2] = (neighbour[2] + oPerc + pPerc) / 3;
+                    neighbour[2] = (neighbour[2] + pPerc) / 2;
+                    // neighbour[2] = Math.sqrt(neighbour[2] * neighbour[2] + pPerc * pPerc);
                 }
             }
 
@@ -390,7 +399,7 @@
             wfCache = new Array(height);
             var x, y, x1, x2, y1, y2, xx, yy, mx, my, px, py;
             var cacheId1, cacheId2, maxSurround;
-            var tolerance = options.tolerance.tolWireframe;
+            var tolerance = options.tolerance.tolWireframeMag;
             var checkedPoints = [];
 
             // Wireframe lines
@@ -402,6 +411,7 @@
                 var unfinished = true;
                 var finding = false;
                 var lines = [];
+                var minLength = options.tolerance.tolWireframeLength;
                 var curLine, nextFound;
                 while (unfinished) {
                     if (!finding) {
@@ -449,52 +459,6 @@
                                     finding = false;
                                 }
                             }
-                            /*
-                            y1 = y - 1;
-                            y2 = y < (height - 1) ? y + 1 : -1;
-                            x1 = x - 1;
-                            x2 = x < (width - 1) ? x + 1 : -1;
-                            // TODO: This keeps finding the previous pixel, which should be excluded
-                            maxSurround = Math.max(
-                                vectors[y1][x1].mag,
-                                vectors[y1][x].mag,
-                                vectors[y1][x2].mag,
-                                vectors[y][x1].mag,
-                                vectors[y][x2].mag,
-                                vectors[y2][x1].mag,
-                                vectors[y2][x].mag,
-                                vectors[y2][x2].mag
-                            );
-                            if (maxSurround > 0) {
-                                mx = x2 > -1 ? x2 : x;
-                                my = y2 > -1 ? y2 : y;
-                                // NOTE: Very naive at the moment, will find the first matching pixel and run with it
-                                // (ie. doesn't do joining lines very well)
-                                nextFound = false;
-                                for (xx = x1; xx <= mx; xx++) {
-                                    for (yy = y1; yy <= my; yy++) {
-                                        if (
-                                            (xx != x || yy != y) &&
-                                            (!wfCache[yy] || !wfCache[yy][xx]) &&
-                                            vectors[yy][xx].mag > 0 &&
-                                            vectors[yy][xx].mag >= maxSurround - tolerance
-                                        ) {
-                                            curLine.push({x: xx, y: yy});
-                                            px = x;
-                                            py = y;
-                                            x = xx;
-                                            y = yy;
-                                            xx = mx + 1; // Force breaking out of the loop
-                                            nextFound = true;
-                                            break;
-                                        }
-                                    }
-                                }
-                                if (!nextFound) {
-                                    finding = false;
-                                }
-                            }
-                            */
                         } else {
                             finding = false;
                         }
@@ -515,7 +479,7 @@
                 magCtx.lineWidth = 3;
                 while (i--) {
                     curLine = lines[i];
-                    if (curLine.length > 1) {
+                    if (curLine.length > minLength) {
                         drawLineSegments(curLine);
                     }
                 }
