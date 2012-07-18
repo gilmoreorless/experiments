@@ -272,12 +272,17 @@
         |_____|_____|_____|
 
         ***/
+        var positionEnhancer = [.5, .4, .07, .03];
+        var pi = Math.PI;
+        var pi2 = pi / 2;
 
         function findNextEdgePixel(x, y, px, py) {
-            var nx, ny, i, ix, iy, x1, x2, y1, y2;
+            var nx, ny, i, ix, iy, x1, x2, y1, y2, dx, dy, ex, ey, dex, dey;
             var max = 0;
+            var orient = vectors[y][x].orient;
             var neighbours = [];
-            var neighbour;
+            var neighbour, nOrient, oDiff, oPerc;
+            var pos, pPerc;
 
             // Build list of neighbours with magnitude
             x1 = x > 0 ? x - 1: 0;
@@ -293,9 +298,49 @@
                 }
             }
 
-            // Orientation
+            i = neighbours.length;
+            while (i--) {
+                neighbour = neighbours[i];
+                nx = neighbour[0];
+                ny = neighbour[1];
 
-            // Position
+                // Orientation
+                nOrient = vectors[ny][nx].orient;
+                oDiff = Math.abs((orient + pi) - (nOrient + pi));
+                if (orient < 0 && nOrient >= 0) {
+                    oDiff = Math.min(oDiff, (orient + pi * 2) - nOrient);
+                } else if (nOrient < 0 && orient >= 0) {
+                    oDiff = Math.min(oDiff, (nOrient + pi * 2) - orient);
+                }
+                oPerc = (pi2 - oDiff) / pi2;
+                // neighbour[2] = (neighbour[2] + oPerc) / 2;
+
+                // Position
+                if (px > -1 && py > -1) {
+                    dx = x - px;
+                    dy = y - py;
+                    ex = x + dx;
+                    ey = y + dy;
+                    dex = Math.abs(ex - nx);
+                    dey = Math.abs(ey - ny);
+                    pos = dex + dey;
+                    // // Straight line
+                    // if (nx === ex && ny === ey) {
+                    //     pos = 0;
+                    // // 45°
+                    // } else if ((nx === ex && dey === 1) || (ny === ey && dex === 1)) {
+                    //     pos = 1;
+                    // // 90°
+                    // } else if (dex === 1 && dey == 1) {
+                    //     pos = 2;
+                    // // 135°
+                    // } else {
+                    //     pos = 3;
+                    // }
+                    pPerc = positionEnhancer[pos];
+                    neighbour[2] = (neighbour[2] + oPerc + pPerc) / 3;
+                }
+            }
 
             // Find best match
             i = neighbours.length;
@@ -372,13 +417,13 @@
                                 xx = nextFound.x;
                                 yy = nextFound.y;
                                 curLine.push({x: xx, y: yy});
-                                // If we've hit a pixel we've found before, stop finding this edge
                                 if (!wfCache[yy] || !wfCache[yy][xx]) {
                                     px = x;
                                     py = y;
                                     x = xx;
                                     y = yy;
                                 } else {
+                                    // If we've hit a pixel we've found before, stop finding this edge
                                     finding = false;
                                 }
                             }
