@@ -23,6 +23,7 @@
                 <li><label><input type="checkbox" name="findPoints"> Only show highest magnitude points</label></li>
                 <li><label><input type="checkbox" name="wireframeArrows"> Calculate wireframes (debug arrows)</label></li>
                 <li><label><input type="checkbox" name="wireframeLines"> Calculate wireframes (single lines - overrides arrows)</label></li>
+                <li><label><input type="checkbox" name="pixelTrace"> Trace pixel checking for wireframes</label></li>
                 <li><input type="range" name="tolMagnitude" value="0" min="0" max="50"> Tolerance: Pixel gradient magnitude % <span id="tolMagnitude-val"></span></li>
                 <li><input type="range" name="tolWireframe" value="0" min="0" max="50"> Tolerance: Wireframe neighbour-match magnitude % <span id="tolWireframe-val"></span></li>
             </ul>
@@ -35,8 +36,8 @@
         /* Config */
         var width = 128;
         var height = 96;
-        // var imgSrc = '../common/img/catimov.jpg';
-        var imgSrc = '../common/img/handy.jpg';
+        var imgSrc = '../common/img/catimov.jpg';
+        // var imgSrc = '../common/img/handy.jpg';
         var magPower = 4; // Power, not multiplier (e.g. 4 => pow(2, 4) => 16)
         var fontSizePx = 8;
         /* End Config */
@@ -54,6 +55,7 @@
             findPoints: false,
             wireframeArrows: false,
             wireframeLines: false,
+            pixelTrace: false,
             tolerance: {
                 tolMagnitude: 0,
                 tolWireframe: 0
@@ -88,7 +90,9 @@
                 } else if (input.type == 'checkbox') {
                     options[name] = input.checked;
                     setTimeout(function () {
-                        drawPixelOptions[name](input.checked);
+                        if (drawPixelOptions[name]) {
+                            drawPixelOptions[name](input.checked);
+                        }
                         drawGradients(currentMethod);
                     });
                 }
@@ -221,6 +225,22 @@
             while (x--) {
                 vectors[-1][x] = {mag: 0, orient: 0};
             }
+        }
+
+        function drawLineSegments(line, xOffset, yOffset) {
+            xOffset = +xOffset || 0;
+            if (yOffset === undefined) {
+                yOffset = xOffset;
+            }
+            var p2 = pow / 2;
+            var part = line[0];
+            magCtx.beginPath();
+            magCtx.moveTo(part.x * pow + p2 + xOffset, part.y * pow + p2 + yOffset);
+            for (var i = 1, ii = line.length; i < ii; i++) {
+                part = line[i];
+                magCtx.lineTo(part.x * pow + p2 + xOffset, part.y * pow + p2 + yOffset);
+            }
+            magCtx.stroke();
         }
 
         function drawArrow(ctx, pixel) {
@@ -371,6 +391,7 @@
             var x, y, x1, x2, y1, y2, xx, yy, mx, my, px, py;
             var cacheId1, cacheId2, maxSurround;
             var tolerance = options.tolerance.tolWireframe;
+            var checkedPoints = [];
 
             // Wireframe lines
             if (options.wireframeLines) {
@@ -403,6 +424,7 @@
                     if (!wfCache[y][x]) {
                         wfCache[y][x] = true;
                         checkedCount++;
+                        checkedPoints.push({x: x, y: y});
                         if (vectors[y][x].mag > tolerance) {
                             if (!finding) {
                                 finding = true;
@@ -487,7 +509,6 @@
 
                 console.log('lines', lines);
                 var i = lines.length;
-                var p2 = pow / 2;
                 var j, jj, part;
                 magCtx.save();
                 magCtx.strokeStyle = 'rgba(0,200,0,0.7)';
@@ -495,17 +516,18 @@
                 while (i--) {
                     curLine = lines[i];
                     if (curLine.length > 1) {
-                        part = curLine[0];
-                        magCtx.beginPath();
-                        magCtx.moveTo(part.x * pow + p2, part.y * pow + p2);
-                        for (j = 1, jj = curLine.length; j < jj; j++) {
-                            part = curLine[j];
-                            magCtx.lineTo(part.x * pow + p2, part.y * pow + p2);
-                        }
-                        magCtx.stroke();
+                        drawLineSegments(curLine);
                     }
                 }
                 magCtx.restore();
+
+                if (options.pixelTrace) {
+                    magCtx.save();
+                    magCtx.strokeStyle = 'rgba(200,0,0,0.7)';
+                    magCtx.lineWidth = 2;
+                    drawLineSegments(checkedPoints, pow / 4);
+                    magCtx.restore();
+                }
 
             // Wireframe arrows
             } else {
@@ -567,9 +589,7 @@
         var drawPixelOptions = {
             findPoints: function () {
                 getVectors();
-            },
-            wireframeArrows: function () {},
-            wireframeLines: function () {}
+            }
         };
 
         var drawPixelMethods = {
