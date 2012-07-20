@@ -26,7 +26,7 @@
                 <li><label><input type="checkbox" name="pixelTrace"> Trace pixel checking for wireframes</label></li>
                 <li><input type="range" name="tolMagnitude" value="0" min="0" max="50" data-tolType="percentage"> Tolerance: Pixel gradient magnitude % <span id="tolMagnitude-val"></span></li>
                 <li><input type="range" name="tolWireframeMag" value="0" min="0" max="50" data-tolType="percentage"> Tolerance: Wireframe neighbour-match magnitude % <span id="tolWireframeMag-val"></span></li>
-                <li><input type="range" name="tolWireframeLength" value="1" min="1" max="10"> Tolerance: Wireframe line length minimum <span id="tolWireframeLength-val">(1)</span></li>
+                <li><input type="range" name="tolWireframeLength" value="1" min="1" max="20"> Tolerance: Wireframe line length minimum <span id="tolWireframeLength-val">(1)</span></li>
             </ul>
         </div>
     </div>
@@ -35,8 +35,10 @@
     <script src="../common/js/hog-processing.js"></script>
     <script>
         /* Config */
-        var width = 128;
-        var height = 96;
+        // var width = 128;
+        // var height = 96;
+        var width = 640;
+        var height = 480;
         var imgSrc = '../common/img/catimov.jpg';
         // var imgSrc = '../common/img/handy.jpg';
         var magPower = 4; // Power, not multiplier (e.g. 4 => pow(2, 4) => 16)
