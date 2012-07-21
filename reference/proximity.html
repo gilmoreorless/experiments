@@ -7,6 +7,13 @@
         .row {display: table-row;}
         .cell {display: table-cell; vertical-align: top;}
         #switcher {list-style: none; margin: 0;}
+        #container {position: relative;}
+        #mover {background: rgba(0,0,200,0.5); border:0 solid rgba(64,255,64,0.3); position: absolute; width: 200px; height: 100px; top: 50%; left: 40%;}
+        .edge {position: absolute; width: 100%; height: 100%}
+        .edge.top.active    {background: -webkit-linear-gradient(top, yellow 0%, transparent 50%);}
+        .edge.bottom.active {background: -webkit-linear-gradient(top, transparent 50%, yellow 100%);}
+        .edge.left.active   {background: -webkit-linear-gradient(left, yellow 0%, transparent 50%);}
+        .edge.right.active  {background: -webkit-linear-gradient(left, transparent 50%, yellow 100%);}
     </style>
 </head>
 <body>
@@ -19,9 +26,108 @@
             </ul>
         </div>
     </div>
-    <canvas id="mag"></canvas>
-    <div id="output"></div>
+    <div id="container">
+        <canvas id="background"></canvas>
+        <div id="mover">
+            <div class="edge top"></div>
+            <div class="edge bottom"></div>
+            <div class="edge left"></div>
+            <div class="edge right"></div>
+        </div>
+    </div>
     <script>
+        /* Config */
+        // var width = 128;
+        // var height = 96;
+        var width = 640;
+        var height = 480;
+        var imgSrc = '../common/img/catimov.jpg';
+
+        // var orig = document.getElementById('orig');
+        var bg = document.getElementById('background');
+        var container = document.getElementById('container');
+        var mover = document.getElementById('mover');
+        // var origCtx = orig.getContext('2d');
+        var bgCtx = bg.getContext('2d');
+
+        var objDims = {
+            borderWidth: 30
+        };
+
+        function setup() {
+            // orig.width  = width;
+            // orig.height = height;
+            bg.width  = width;
+            bg.height = height;
+            mover.style.left = (width / 3) + 'px';
+            mover.style.top = (height / 3) + 'px';
+            // var switcher = document.getElementById('switcher');
+            // switcher.addEventListener('click', inputClick, false);
+            // switcher.addEventListener('change', toleranceChange, false);
+            loadSrc();
+            setObjectBorder();
+            mover.addEventListener('mouseover', objectMouseHandler, false);
+            mover.addEventListener('mouseout', objectMouseHandler, false);
+        }
+
+        function loadSrc() {
+            var img = new Image();
+            img.onload = function () {
+                bgCtx.drawImage(img, 0, 0, width, height);
+                drawBorder();
+            }
+            img.src = imgSrc;
+        }
+
+        function setObjectBorder() {
+            mover.style.borderWidth = objDims.borderWidth + 'px';
+        }
+
+        function objectMouseHandler(e) {
+            if (e.target !== mover) {
+                return;
+            }
+            var isOut = e.type === 'mouseout';
+            var active;
+            if (isOut) {
+                active = Array.prototype.slice.apply(mover.querySelectorAll('.edge.active'));
+                active.forEach(function (edge) {
+                    edge.classList.remove('active');
+                });
+                mover.removeEventListener('mousemove', objectMouseHandler, false);
+                return;
+            }
+            // Work out which edge is closest
+            var ex = e.offsetX;
+            var ey = e.offsetY;
+            var outerWidth = mover.offsetWidth;
+            var outerHeight = mover.offsetHeight;
+            var border = objDims.borderWidth;
+            var edgeMatch = {
+                top:    ey <= border,
+                bottom: ey >= outerHeight - border,
+                left:   ex <= border,
+                right:  ex >= outerWidth - border
+            };
+            var edgeNode;
+            for (var p in edgeMatch) if (edgeMatch.hasOwnProperty(p)) {
+                edgeNode = mover.querySelector('.edge.' + p);
+                if (edgeMatch[p]) {
+                    edgeNode.classList.add('active');
+                } else {
+                    edgeNode.classList.remove('active');
+                }
+            }
+            mover.addEventListener('mousemove', objectMouseHandler, false);
+        }
+
+        function drawBorder() {
+            // bgCtx.globalCompositeOperation = 'lighter';
+            // bgCtx.fillStyle = '#600';
+            // bgCtx.fillRect(160, 120, 320, 240);
+        }
+
+        setup();
     </script>
 </body>
 </html>
