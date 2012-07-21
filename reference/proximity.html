@@ -37,11 +37,10 @@
     </div>
     <script>
         /* Config */
-        // var width = 128;
-        // var height = 96;
-        var width = 640;
-        var height = 480;
+        var origWidth = 640;
+        var origHeight = 480;
         var imgSrc = '../common/img/catimov.jpg';
+        /* End Config */
 
         // var orig = document.getElementById('orig');
         var bg = document.getElementById('background');
@@ -49,7 +48,11 @@
         var mover = document.getElementById('mover');
         // var origCtx = orig.getContext('2d');
         var bgCtx = bg.getContext('2d');
+        var src;
 
+        var width = origWidth;
+        var height = origHeight;
+        var scale = 1;
         var objDims = {
             borderWidth: 30
         };
@@ -66,21 +69,41 @@
             // switcher.addEventListener('change', toleranceChange, false);
             loadSrc();
             setObjectBorder();
+            getObjectDims();
             mover.addEventListener('mouseover', objectMouseHandler, false);
             mover.addEventListener('mouseout', objectMouseHandler, false);
         }
 
         function loadSrc() {
-            var img = new Image();
-            img.onload = function () {
-                bgCtx.drawImage(img, 0, 0, width, height);
-                drawBorder();
-            }
-            img.src = imgSrc;
+            src = new Image();
+            src.onload = drawBorder;
+            src.src = imgSrc;
+        }
+
+        function drawBorder() {
+            bgCtx.save();
+            bgCtx.drawImage(src, 0, 0, origWidth, origHeight);
+            var x = objDims.left * scale;
+            var y = objDims.top * scale;
+            var w = objDims.width * scale;
+            var h = objDims.height * scale;
+            bgCtx.globalCompositeOperation = 'lighter';
+            bgCtx.fillStyle = '#600';
+            bgCtx.fillRect(x, y, w, h);
+            bgCtx.restore();
         }
 
         function setObjectBorder() {
             mover.style.borderWidth = objDims.borderWidth + 'px';
+        }
+
+        function getObjectDims() {
+            var computed = getComputedStyle(mover);
+            var b2 = objDims.borderWidth * 2;
+            objDims.left = parseFloat(computed.left) || 0;
+            objDims.top = parseFloat(computed.top) || 0;
+            objDims.width = (parseFloat(computed.width) || 0) + b2;
+            objDims.height = (parseFloat(computed.height) || 0) + b2;
         }
 
         function objectMouseHandler(e) {
@@ -119,12 +142,6 @@
                 }
             }
             mover.addEventListener('mousemove', objectMouseHandler, false);
-        }
-
-        function drawBorder() {
-            // bgCtx.globalCompositeOperation = 'lighter';
-            // bgCtx.fillStyle = '#600';
-            // bgCtx.fillRect(160, 120, 320, 240);
         }
 
         setup();
