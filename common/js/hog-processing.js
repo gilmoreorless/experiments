@@ -100,7 +100,7 @@ var processing = {
     }
     // console.timeEnd('_gradientVectors');
     var end = +new Date();
-    timings.push(end - start);
+    // timings.push(end - start);
     return vectors;
   },
 
@@ -165,7 +165,8 @@ var processing = {
       }
     }
     ctx.putImageData(imageData, 0, 0, 0, 0, imageData.width, imageData.height);
-    return canvas;
+    // return canvas;
+    return vectors;
   },
 
   drawOrients: function(canvas) {
