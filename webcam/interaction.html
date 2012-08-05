@@ -40,14 +40,15 @@
     <div id="debug">
         Video stream:<br />
         <video id="webcam" autoplay width="640" height="480"></video>
+        <!-- <video id="webcam" autoplay width="64" height="48"></video> -->
     </div>
     <script src="../common/js/gumShield.js"></script>
     <script src="../common/js/hog-processing.js"></script>
     <script>
         /* Config */
         var fps = 30;             // Video frames per second (int)
-        var detectionWidth = 20;  // Width of edge detection zone (pixels)
-        var minMagnitude = 20;    // Minimum gradient magnitude for edge detection (percentage)
+        var detectionWidth = 20;  // Width of edge detection zone (pixels - split evenly either side of the object edge)
+        var minMagnitude = 5;    // Minimum gradient magnitude for edge detection (percentage)
         var minEdgePerc = 40;     // Minimum length of "grabber" for an edge (percentage)
         var debugEdges = false;   // Show edge detection areas (bool)
         var sourceMethod = 1;
@@ -80,8 +81,7 @@
             setCardDebugMode(debugEdges);
             width  = output.width  = video.width;
             height = output.height = video.height;
-            scaleX = width / window.innerWidth;
-            scaleY = height / window.innerHeight;
+            calculateScale();
             minMagnitude > 1 && (minMagnitude /= 100);
             minEdgePerc > 1 && (minEdgePerc /= 100);
             if (sourceMethod === 1) {
@@ -119,6 +119,12 @@
 
         /*** Actual experiment ***/
 
+        function calculateScale() {
+            scaleX = width / window.innerWidth;
+            scaleY = height / window.innerHeight;
+        }
+        window.addEventListener('resize', calculateScale, false);
+
         var rePerc = /^(.+)%$/;
         function getCardDims() {
             var computed = getComputedStyle(card);
@@ -149,9 +155,10 @@
                 return;
             }
             if (isDebug) {
-                card.style.borderWidth = detectionWidth + 'px';
-                card.style.left = (cardProps.left - detectionWidth) + 'px';
-                card.style.top = (cardProps.top - detectionWidth) + 'px';
+                var w = detectionWidth / 2;
+                card.style.borderWidth = w + 'px';
+                card.style.left = (cardProps.left - w) + 'px';
+                card.style.top = (cardProps.top - w) + 'px';
             } else {
                 card.style.borderWidth = 0;
                 card.style.left = cardProps.left + 'px';
@@ -164,18 +171,19 @@
                 return cache.zones;
             }
             var d = detectionWidth;
+            var d2 = d / 2;
             var x = cardProps.left - d;
             var y = cardProps.top - d;
-            var w = cardProps.width + d * 2;
-            var h = cardProps.height + d * 2;
+            var w = cardProps.width + d;
+            var h = cardProps.height + d;
             var x2 = x + w;
             var y2 = y + h;
             var zones = ['top', 'bottom', 'left', 'right'].map(function (edge, i) {
                 return {
                     edge: edge,
                     node: card.querySelector('.edge.' + edge),
-                    x: i === 3 ? x2 - d : x,
-                    y: i === 1 ? y2 - d : y,
+                    x: i === 3 ? x2 - d2 : x - d2,
+                    y: i === 1 ? y2 - d2 : y - d2,
                     w: i < 2 ? w : d,
                     h: i < 2 ? d : h
                 };
