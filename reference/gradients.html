@@ -16,8 +16,9 @@
         </div>
         <div class="cell">
             <ul id="switcher">
-                <li><label><input type="radio" name="imgType" value="visualArrows"> Visual: Arrows for magnitude/orientation</label></li>
+                <li><label><input type="radio" name="imgType" value="visualArrowsMag"> Visual: Arrows for magnitude/orientation</label></li>
                 <li><label><input type="radio" name="imgType" value="visualBackground"> Visual: Arrows for orientation, bg for magnitude</label></li>
+                <li><label><input type="radio" name="imgType" value="visualArrowsOrient"> Visual: Arrows for orientation (including colour)</label></li>
                 <li><label><input type="radio" name="imgType" value="textMagnitude"> Text: Magnitude (percentage)</label></li>
                 <li><label><input type="radio" name="imgType" value="textOrient"> Text: Orientation (degrees)</label></li>
                 <li><label><input type="checkbox" name="findPoints"> Only show highest magnitude points</label></li>
@@ -35,10 +36,10 @@
     <script src="../common/js/hog-processing.js"></script>
     <script>
         /* Config */
-        // var width = 128;
-        // var height = 96;
-        var width = 640;
-        var height = 480;
+        var width = 128;
+        var height = 96;
+        // var width = 640;
+        // var height = 480;
         var imgSrc = '../common/img/catimov.jpg';
         // var imgSrc = '../common/img/handy.jpg';
         var magPower = 4; // Power, not multiplier (e.g. 4 => pow(2, 4) => 16)
@@ -563,9 +564,17 @@
                 ctx.fillStyle = getOrigRGB(x, y);
                 ctx.fillRect(x * pow, y * pow, pow, pow);
             },
-            visualArrows: function (ctx, x, y) {
+            visualArrowsMag: function (ctx, x, y) {
                 var pixel = vectors[y][x];
                 ctx.fillStyle = getMagRGB(pixel.mag);
+                ctx.save();
+                ctx.translate(x * pow, y * pow);
+                drawArrow(ctx, pixel);
+                ctx.restore();
+            },
+            visualArrowsOrient: function (ctx, x, y) {
+                var pixel = vectors[y][x];
+                ctx.fillStyle = getOrientRGB(pixel.orient);
                 ctx.save();
                 ctx.translate(x * pow, y * pow);
                 drawArrow(ctx, pixel);
@@ -599,11 +608,12 @@
 
         /**
          * Valid methods:
-         *  'enlarge'          => Direct image copy
-         *  'visualArrows'     => Plain background, arrows showing orientation/magnitude
-         *  'visualBackground' => Background showing magnitude, arrows showing orientation
-         *  'textMagnitude'    => Background showing greyscale, text for magnitude (percentage)
-         *  'textOrient'       => Background showing greyscale, text for orientation (degrees)
+         *  'enlarge'            => Direct image copy
+         *  'visualArrowsMag'    => Plain background, arrows showing orientation/magnitude
+         *  'visualArrowsOrient' => Plain background, arrows showing orientation
+         *  'visualBackground'   => Background showing magnitude, arrows showing orientation
+         *  'textMagnitude'      => Background showing greyscale, text for magnitude (percentage)
+         *  'textOrient'         => Background showing greyscale, text for orientation (degrees)
          *
          * Tolerance is 0 to 1, any pixel less than tolerance magnitude has no display
          */
@@ -626,15 +636,21 @@
 
         function getMagRGB(magnitude) {
             magnitude = 1 - magnitude; // Invert
-            var rgbMag = (256 + Math.round(magnitude * 255)).toString(16).substr(1);
-            return '#' + rgbMag + rgbMag + rgbMag;
+            var rgbMag = Math.round(magnitude * 255);
+            return 'rgb(' + [rgbMag, rgbMag, rgbMag].join() + ')';
+        }
+
+        function getOrientRGB(orient) {
+            orient = 1 - ((orient + pi) / pi2);
+            var rgb = Math.round(orient * 255);
+            return 'rgb(' + [rgb, rgb, rgb].join() + ')';
         }
 
         function getOrigRGB(x, y) {
             // var rgb = (256 + origData.data[(y * width + x) * 4]).toString(16).substr(1);
             // return '#' + rgb + rgb + rgb;
             var rgb = origData.data[(y * width + x) * 4];
-            return 'rgba(' + [rgb, rgb, rgb].join(',') + ', 1)';
+            return 'rgb(' + [rgb, rgb, rgb].join() + ')';
         }
 
         function getPercentage(num) {
