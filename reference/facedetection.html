@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>References - Face Detection</title>
+    <style>
+        body {font-family:Arial;}
+        .region {border:1px #000 dashed; margin:10px; overflow:hidden; padding:10px;}
+        .region h1 {clear:both; color:red; font-size:1.4em; margin:0;}
+        .region h3 {clear:both; color:blue; font-size:1.1em; margin:10px 0 0 0;}
+        .block {float:left; margin:5px 0 0 5px; text-align:center;}
+        .block strong {display:block;}
+    </style>
+</head>
+<body>
+    <div class="region">
+        <canvas id="source"></canvas>
+        <div id="stats"></div>
+    </div>
+
+    <script src="ccv-debug.js"></script>
+    <script src="../common/js/ccv-face-data.js"></script>
+    <script>
+        var imgSrc = '../common/img/fedex18-winners.jpg';
+
+        var canvas = document.getElementById('source');
+        var ctx = canvas.getContext('2d');
+        var stats = document.getElementById('stats');
+
+        var img = new Image();
+        img.onload = function () {
+            canvas.width = img.width;
+            canvas.height = img.height;
+            ctx.drawImage(img, 0, 0);
+            sherlock();
+        }
+        img.src = imgSrc;
+
+        // Start detection and investigation
+        function sherlock() {
+            var faces = ccv.detect_objects({
+                canvas: ccv.grayscale(canvas),
+                cascade: ccv.cascade,
+                interval: 5,
+                min_neighbors: 1
+            });
+            var i = faces.length;
+            var face;
+            stats.innerHTML = 'Faces found: ' + i;
+            ctx.save();
+            ctx.strokeStyle = '#0F0';
+            ctx.font = '10px Arial';
+            while (i--) {
+                face = faces[i];
+                ctx.strokeRect(face.x, face.y, face.width, face.height);
+                ctx.strokeText(face.confidence.toFixed(4), face.x, face.y - 5);
+            }
+            ctx.restore();
+        }
+    </script>
+</body>
+</html>
