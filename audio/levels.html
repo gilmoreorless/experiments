@@ -25,17 +25,18 @@
         var audioCtx = new webkitAudioContext();
         var analyser = audioCtx.createAnalyser();
         var heightScale = height / 256;
+        var x2 = width + 20;
         var doDraw = true;
         var streamSrc;
         var byteData;
 
         function setup() {
-            canvas.width = width;
+            canvas.width = width * 2 + 30;
             canvas.height = height;
-            ctx.strokeRect(0, 0, width, height);
+            ctx.strokeRect(0.5, 0, width, height);
             ctx.fillStyle = '#090';
 
-            analyser.fftSize = 64;
+            analyser.fftSize = 64; // Must be a power of 2, >= 32
             analyser.connect(audioCtx.destination);
             byteData = new Uint8Array(analyser.fftSize / 2);
 
@@ -59,7 +60,7 @@
             var max = 0;
 
             // Draw individual frequency volumes
-            ctx.clearRect(0, 0, width, height);
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
             var len = byteData.length;
             var i = len;
             var w = width / len;
@@ -69,38 +70,56 @@
                 if (byteData[i] > max) {
                     max = byteData[i];
                 }
-                ctx.fillRect(Math.ceil(w * i), height - byteData[i] * heightScale, Math.ceil(w * i + w), height * heightScale);
+                ctx.fillRect(w * i, height - byteData[i] * heightScale, w, height * heightScale);
             };
 
-            // Draw average
+            // Draw average1
             avg1 = Math.sqrt(avg1);
             avg2 = avg2 / len;
             ctx.save();
             ctx.strokeStyle = '#f00';
             ctx.beginPath();
-            ctx.moveTo(0, height - avg1 * heightScale);
-            ctx.lineTo(width, height - avg1 * heightScale);
+            ctx.moveTo(0, height - avg1 * heightScale + 0.5);
+            ctx.lineTo(width, height - avg1 * heightScale + 0.5);
             ctx.stroke();
             ctx.restore();
-
+            // Draw average2
             ctx.save();
             ctx.strokeStyle = '#00f';
             ctx.beginPath();
-            ctx.moveTo(0, height - avg2 * heightScale);
-            ctx.lineTo(width, height - avg2 * heightScale);
+            ctx.moveTo(0, height - avg2 * heightScale + 0.5);
+            ctx.lineTo(width, height - avg2 * heightScale + 0.5);
             ctx.stroke();
             ctx.restore();
-
+            // Draw max level
             ctx.save();
-            ctx.strokeStyle = '#990';
+            ctx.strokeStyle = '#f0f';
             ctx.beginPath();
-            ctx.moveTo(0, height - max * heightScale);
-            ctx.lineTo(width, height - max * heightScale);
+            ctx.moveTo(0, height - max * heightScale + 0.5);
+            ctx.lineTo(width, height - max * heightScale + 0.5);
             ctx.stroke();
             ctx.restore();
 
             // Outline the graph
-            ctx.strokeRect(0, 0, width, height);
+            ctx.strokeRect(0.5, 0, width, height);
+            draw2(max);
+        }
+
+        function draw2(max) {
+            // Draw level block
+            ctx.save();
+            var gradient = ctx.createLinearGradient(x2, 0, x2, height * heightScale);
+            gradient.addColorStop(0, '#f00');
+            gradient.addColorStop(1, '#0f0');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(x2, height - max * heightScale, width, height * heightScale);
+            ctx.restore();
+
+            // Outline
+            ctx.save();
+            ctx.strokeStyle = '#000';
+            ctx.strokeRect(x2 + 0.5, 0, width, height);
+            ctx.restore();
         }
 
         function startInput() {
