@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Sound Levels</title>
+    <style>
+    </style>
+</head>
+<body>
+    <div id="controls">
+        <button id="btnStart">Start</button> <button id="btnStop">Stop</button><br />
+    </div>
+    <canvas id="levels"></canvas>
+    <script src="../common/js/gumShield.js"></script>
+    <script>
+        /*** Vars ***/
+
+        var width = 150;
+        var height = 300;
+
+        /*** Drawing stuff ***/
+
+        var canvas = document.getElementById('levels');
+        var ctx = canvas.getContext('2d');
+        var audioCtx = new webkitAudioContext();
+        var analyser = audioCtx.createAnalyser();
+        var heightScale = height / 256;
+        var doDraw = true;
+        var streamSrc;
+        var byteData;
+
+        function setup() {
+            canvas.width = width;
+            canvas.height = height;
+            ctx.strokeRect(0, 0, width, height);
+            ctx.fillStyle = '#090';
+
+            analyser.fftSize = 64;
+            analyser.connect(audioCtx.destination);
+            byteData = new Uint8Array(analyser.fftSize / 2);
+
+            document.getElementById('btnStart').addEventListener('click', startInput, false);
+            document.getElementById('btnStop').addEventListener('click', stopInput, false);
+
+            setTimeout(startInput);
+        }
+
+        function draw() {
+            if (!doDraw) {
+                return;
+            }
+            webkitRequestAnimationFrame(draw);
+
+            var count = analyser.frequencyBinCount;
+            analyser.getByteFrequencyData(byteData);
+
+            var avg1 = 0;
+            var avg2 = 0;
+            var max = 0;
+
+            // Draw individual frequency volumes
+            ctx.clearRect(0, 0, width, height);
+            var len = byteData.length;
+            var i = len;
+            var w = width / len;
+            while (i--) {
+                avg1 += byteData[i] * byteData[i];
+                avg2 += byteData[i];
+                if (byteData[i] > max) {
+                    max = byteData[i];
+                }
+                ctx.fillRect(Math.ceil(w * i), height - byteData[i] * heightScale, Math.ceil(w * i + w), height * heightScale);
+            };
+
+            // Draw average
+            avg1 = Math.sqrt(avg1);
+            avg2 = avg2 / len;
+            ctx.save();
+            ctx.strokeStyle = '#f00';
+            ctx.beginPath();
+            ctx.moveTo(0, height - avg1 * heightScale);
+            ctx.lineTo(width, height - avg1 * heightScale);
+            ctx.stroke();
+            ctx.restore();
+
+            ctx.save();
+            ctx.strokeStyle = '#00f';
+            ctx.beginPath();
+            ctx.moveTo(0, height - avg2 * heightScale);
+            ctx.lineTo(width, height - avg2 * heightScale);
+            ctx.stroke();
+            ctx.restore();
+
+            ctx.save();
+            ctx.strokeStyle = '#990';
+            ctx.beginPath();
+            ctx.moveTo(0, height - max * heightScale);
+            ctx.lineTo(width, height - max * heightScale);
+            ctx.stroke();
+            ctx.restore();
+
+            // Outline the graph
+            ctx.strokeRect(0, 0, width, height);
+        }
+
+        function startInput() {
+            navigator.getUserMedia({audio: true}, function (stream) {
+                streamSrc = audioCtx.createMediaStreamSource(stream);
+                streamSrc.connect(analyser)
+                doDraw = true;
+                draw();
+            }, function () {
+                console.error('Oh noes!');
+            });
+        }
+
+        function stopInput() {
+            streamSrc = null;
+            doDraw = false;
+        }
+
+        setup();
+    </script>
+</body>
+</html>
