@@ -37,7 +37,6 @@
             ctx.fillStyle = '#090';
 
             analyser.fftSize = 64; // Must be a power of 2, >= 32
-            analyser.connect(audioCtx.destination);
             byteData = new Uint8Array(analyser.fftSize / 2);
 
             document.getElementById('btnStart').addEventListener('click', startInput, false);

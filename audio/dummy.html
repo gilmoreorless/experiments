@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Ventriloquist Dummy</title>
+</head>
+<body>
+    <div id="controls">
+        <button id="btnStart">Start</button> <button id="btnStop">Stop</button><br />
+        <input type="range" id="mouthpos" value="0" min="0" max="100" step="1">
+    </div>
+    <canvas id="dummy"></canvas>
+    <script src="../common/js/gumShield.js"></script>
+    <script src="../common/js/chuckles.js"></script>
+    <script>
+        /*** Vars ***/
+
+        var width = 150;
+        var height = 300;
+
+        /*** Drawing stuff ***/
+
+        var canvas = document.getElementById('dummy');
+        var ctx = canvas.getContext('2d');
+        var mouthpos = document.getElementById('mouthpos');
+        var audioCtx = new webkitAudioContext();
+        var analyser = audioCtx.createAnalyser();
+        var doDraw = true;
+        var streamSrc;
+        var byteData;
+        var dummy;
+
+        function setup() {
+            canvas.width = width;
+            canvas.height = height;
+            ctx.strokeRect(0.5, 0, width, height);
+            ctx.fillStyle = '#090';
+
+            analyser.fftSize = 32; // Must be a power of 2, >= 32
+            analyser.connect(audioCtx.destination);
+            byteData = new Uint8Array(analyser.fftSize / 2);
+
+            dummy = new Chuckles({
+                canvas: canvas,
+                image: function (ctx) {
+                    ctx.fillStyle = '#0ff';
+                    ctx.fillRect(0, 0, 100, 100);
+                },
+                movement: {x: 10, y: 50}
+            })
+
+            document.getElementById('btnStart').addEventListener('click', startInput, false);
+            document.getElementById('btnStop').addEventListener('click', stopInput, false);
+            mouthpos.addEventListener('change', setMouthPos, false);
+
+            // setTimeout(startInput);
+        }
+
+        function setMouthPos() {
+            var value = parseFloat(mouthpos.value) || 0;
+            dummy.setPosition(value / 100);
+        }
+
+        function startInput() {
+            navigator.getUserMedia({audio: true}, function (stream) {
+                streamSrc = audioCtx.createMediaStreamSource(stream);
+                streamSrc.connect(analyser)
+                doDraw = true;
+                // draw();
+            }, function () {
+                console.error('Oh noes!');
+            });
+        }
+
+        function stopInput() {
+            streamSrc = null;
+            doDraw = false;
+        }
+
+        setup();
+    </script>
+</body>
+</html>
