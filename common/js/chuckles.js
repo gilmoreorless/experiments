@@ -3,22 +3,26 @@
 NOTES:
 
 * Canvas has a single background image (e.g. face)
-    * Image can be a string src, Image element or callback function for drawing to canvas directly
+    √ Image can be a string src, Image element or callback function for drawing to canvas directly
     * Allow offset positioning on canvas, don't default to 0,0
-* Segment is cut away from bg image (e.g. mouth)
-    * NEED DEFINITION OF SEGMENT PATH - series of context commands?
-* Movement is where the path should move to at 100%
-    * Simple x/y offsets, relative to initial starting position
-* Position is a value from 0 to 1 - path is moved according to position
+√ Segment is cut away from bg image (e.g. mouth)
+    √ NEED DEFINITION OF SEGMENT PATH - series of context commands?
+√ Movement is where the path should move to at 100%
+    √ Simple x/y offsets, relative to initial starting position
+√ Position is a value from 0 to 1 - path is moved according to position
+√ Fill colour when segment path is cut out
 
 FUTURE IDEAS
 
-* Fill colour when segment path is cut out
-* Easing & keyframes for movement
-* Support multiple paths
+* Movement options: Easing, keyframes, transforms (rotate, scale, skew)
+* Support multiple segments
+    * Idea 1: All segments behave the same way, based on a single position
+    * Idea 2: New segment types with different behaviour and different positions (e.g. eyes move left-right while mouth moves up-down)
 * Bind an input source to position for auto-updating
     * HTML input element (text|range|radio|checkbox, textarea, select)
     * AudioContext for sound-based
+* "Setup mode" - allow drawing a path on bg image to define a segment
+* Only move segment in steps for more of a "wooden" feel
 
 OPTIMISATIONS
 
@@ -29,24 +33,47 @@ OPTIMISATIONS
 *****/
 
 Chuckles = (function () {
+
+    var getType = function (thing) {
+        return Object.prototype.toString.call(thing).slice(8, -1).toLowerCase();
+    };
+
+    /**
+     * options:
+     *  - canvas: <canvas> element or ID
+     *  - movement: object with properties `x` and `y`
+     *  - path: array of segment path commands
+     *  - image: background image; <image> element, string src or function to define canvas drawing commands
+     *  - fillStyle: canvas fillStyle for area behind segment path
+     */
     function Chuckles(options) {
         options || (options = {});
-        this.canvas = options.canvas || document.createElement('canvas');
+        this.canvas = options.canvas;
+        if (getType(this.canvas) === 'string') {
+            this.canvas = document.getElementById(this.canvas);
+        }
+        if (!this.canvas) {
+            this.canvas = document.createElement('canvas');
+        }
         this.ctx = this.canvas.getContext('2d');
+
         this.movement = options.movement || {x: 0, y: 0};
         this.position = 0;
-        if (options.image) {
-            this.setImage(options.image);
-        }
+        this.fillStyle = options.fillStyle || 'none';
         this.setSegmentPath(options.path || []);
-        this.render();
+        if (options.image) {
+            var self = this;
+            this.setImage(options.image);
+        } else {
+            this.render();
+        }
     }
 
     var cproto = Chuckles.prototype;
 
     /*** Internal methods ***/
 
-    cproto._drawBackground = function () {
+    cproto._drawBackground = function (callback) {
         if (typeof this.image === 'function') {
             this.ctx.save();
             this.image(this.ctx);
@@ -62,15 +89,18 @@ Chuckles = (function () {
         ctx.save();
         this._drawPath(this.segmentPath);
         ctx.clip();
-        ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        if (this.fillStyle === 'none') {
+            ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        } else {
+            ctx.fillStyle = this.fillStyle;
+            ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        }
         ctx.restore();
         // Draw the segment part at the right offset
-        // ctx.strokeStyle = '#900';
         ctx.save();
         this._drawPath(this.segmentPath, this.getSegmentOffset());
         ctx.clip();
         this._drawBackground();
-        // ctx.stroke();
         ctx.restore();
     };
 
@@ -79,14 +109,20 @@ Chuckles = (function () {
         if (offset) {
             ctx.translate(offset.x, offset.y);
         }
-        // TEMP
         ctx.beginPath();
-        ctx.moveTo(75.5, 75.5);
-        ctx.lineTo(105.5, 75.5);
-        ctx.lineTo(105.5, 105.5);
-        ctx.lineTo(75.5, 105.5);
-        ctx.closePath();
-        // END TEMP
+        var piece, cmd, args;
+        for (var i = 0, ii = path.length; i < ii; i++) {
+            piece = path[i];
+            cmd = piece[0];
+            args = piece.slice(1);
+            if (getType(args[0]) === 'array') {
+                for (var j = 0, jj = args.length; j < jj; j++) {
+                    ctx[cmd].apply(ctx, args[j]);
+                }
+            } else {
+                ctx[cmd].apply(ctx, args);
+            }
+        }
     };
 
     /*** Public: Actions ***/
@@ -103,7 +139,7 @@ Chuckles = (function () {
         if (!image) {
             throw TypeError('Image expected');
         }
-        if (Object.prototype.toString.call(image) === '[object String]') {
+        if (getType(image) === 'string') {
             var newImg = new Image();
             var self = this;
             newImg.onload = function () {
@@ -113,6 +149,7 @@ Chuckles = (function () {
             return;
         }
         this.image = image;
+        this.render();
     };
 
     cproto.setSegmentPath = function (path) {

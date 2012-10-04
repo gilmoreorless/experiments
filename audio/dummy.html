@@ -15,8 +15,8 @@
     <script>
         /*** Vars ***/
 
-        var width = 150;
-        var height = 300;
+        var width = 400;
+        var height = 500;
 
         /*** Drawing stuff ***/
 
@@ -37,23 +37,42 @@
             ctx.fillStyle = '#090';
 
             analyser.fftSize = 32; // Must be a power of 2, >= 32
-            analyser.connect(audioCtx.destination);
             byteData = new Uint8Array(analyser.fftSize / 2);
 
             dummy = new Chuckles({
                 canvas: canvas,
-                image: function (ctx) {
-                    ctx.fillStyle = '#0ff';
-                    ctx.fillRect(0, 0, 100, 100);
-                },
-                movement: {x: 10, y: 50}
+                // image: function (ctx) {
+                //     ctx.fillStyle = '#0ff';
+                //     ctx.fillRect(0, 0, 100, 100);
+                // },
+                image: '../common/img/chuck.jpg',
+                movement: {x: -3, y: 20},
+                fillStyle: '#000',
+                path: [
+                    ['moveTo', 108, 181],
+                    ['lineTo',
+                        [105, 214],
+                        [107, 216],
+                        [113, 219],
+                        [125, 222],
+                        [138, 222],
+                        [151, 214],
+                        [156, 209],
+                        [160, 202],
+                        [162, 197],
+                        [167, 182],
+                        [167, 177],
+                        [158, 181]
+                    ],
+                    ['closePath']
+                ]
             })
 
             document.getElementById('btnStart').addEventListener('click', startInput, false);
             document.getElementById('btnStop').addEventListener('click', stopInput, false);
             mouthpos.addEventListener('change', setMouthPos, false);
 
-            // setTimeout(startInput);
+            setTimeout(startInput);
         }
 
         function setMouthPos() {
@@ -61,12 +80,23 @@
             dummy.setPosition(value / 100);
         }
 
+        function draw() {
+            if (!doDraw) {
+                return;
+            }
+            webkitRequestAnimationFrame(draw);
+
+            analyser.getByteFrequencyData(byteData);
+            var max = Math.max.apply(Math, byteData);
+            dummy.setPosition(max / 256);
+        }
+
         function startInput() {
             navigator.getUserMedia({audio: true}, function (stream) {
                 streamSrc = audioCtx.createMediaStreamSource(stream);
                 streamSrc.connect(analyser)
                 doDraw = true;
-                // draw();
+                draw();
             }, function () {
                 console.error('Oh noes!');
             });
