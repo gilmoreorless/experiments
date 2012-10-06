@@ -42,6 +42,7 @@ Chuckles = (function () {
      * options:
      *  - canvas: <canvas> element or ID
      *  - movement: object with properties `x` and `y`
+     *  - steps: number of "locked" steps for movement (e.g. steps=4 divides movement into quarters, with rounding; steps=0 disables locks)
      *  - path: array of segment path commands
      *  - image: background image; <image> element, string src or function to define canvas drawing commands
      *  - fillStyle: canvas fillStyle for area behind segment path
@@ -58,6 +59,7 @@ Chuckles = (function () {
         this.ctx = this.canvas.getContext('2d');
 
         this.movement = options.movement || {x: 0, y: 0};
+        this.steps = +options.steps || 0;
         this.position = 0;
         this.fillStyle = options.fillStyle || 'none';
         this.setSegmentPath(options.path || []);
@@ -170,8 +172,12 @@ Chuckles = (function () {
     cproto.getSegmentOffset = function () {
         var offset = {x: 0, y: 0};
         if (this.movement) {
-            offset.x = this.movement.x * this.position;
-            offset.y = this.movement.y * this.position;
+            var pos = this.position;
+            if (this.steps) {
+                pos = Math.round(pos * this.steps) * (1 / this.steps);
+            }
+            offset.x = this.movement.x * pos;
+            offset.y = this.movement.y * pos;
         }
         return offset;
     };
