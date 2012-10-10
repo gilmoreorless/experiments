@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Theremin (HTML input only)</title>
+</head>
+<body>
+    <div id="controls">
+        <button id="btnStart">Start</button> <button id="btnStop">Stop</button><br />
+        Volume: 0 <input type="range" id="ctrlVolume" value="50" min="0" max="100" step="1"> 100<br />
+        Frequency: 0 <input type="range" id="ctrlFrequency" value="0" min="0" max="1500" step="5"> 1500Hz
+    </div>
+    <canvas id="dummy"></canvas>
+    <script>
+        // Range ~+ 73kHz
+        // OR Range = 168kHz to 170kHz
+
+        var ctrlVolume = document.getElementById('ctrlVolume');
+        var ctrlFrequency = document.getElementById('ctrlFrequency');
+        var audioCtx = new webkitAudioContext();
+        var oscillator = audioCtx.createOscillator();
+        var gainNode = audioCtx.createGainNode();
+
+        function setup() {
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            oscillator.type =
+
+            document.getElementById('btnStart').addEventListener('click', play, false);
+            document.getElementById('btnStop').addEventListener('click', stop, false);
+            ctrlVolume.addEventListener('change', setVolume, false);
+            ctrlFrequency.addEventListener('change', setFrequency, false);
+            setVolume();
+            setFrequency();
+
+            setTimeout(play);
+        }
+
+        function setVolume() {
+            var value = parseFloat(ctrlVolume.value) || 0;
+            gainNode.gain.value = value / 100;
+        }
+
+        function setFrequency() {
+            var value = parseFloat(ctrlFrequency.value) || 0;
+            oscillator.frequency.value = value;
+            console.log('Frequency: ' + value + ' Hz');
+        }
+
+        function play() {
+            oscillator.noteOn(0);
+        }
+
+        function stop() {
+            oscillator.noteOff(0);
+        }
+
+        setup();
+    </script>
+</body>
+</html>
