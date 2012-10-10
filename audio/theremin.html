@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>Theremin (HTML input only)</title>
+    <title>Audio Experiments - Theremin (HTML input only)</title>
 </head>
 <body>
     <div id="controls">
@@ -10,11 +10,7 @@
         Volume: 0 <input type="range" id="ctrlVolume" value="50" min="0" max="100" step="1"> 100<br />
         Frequency: 0 <input type="range" id="ctrlFrequency" value="0" min="0" max="1500" step="5"> 1500Hz
     </div>
-    <canvas id="dummy"></canvas>
     <script>
-        // Range ~+ 73kHz
-        // OR Range = 168kHz to 170kHz
-
         var ctrlVolume = document.getElementById('ctrlVolume');
         var ctrlFrequency = document.getElementById('ctrlFrequency');
         var audioCtx = new webkitAudioContext();

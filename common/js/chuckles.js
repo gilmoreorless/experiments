@@ -11,6 +11,7 @@ NOTES:
     √ Simple x/y offsets, relative to initial starting position
 √ Position is a value from 0 to 1 - path is moved according to position
 √ Fill colour when segment path is cut out
+√ Only move segment in steps for more of a "wooden" feel
 
 FUTURE IDEAS
 
@@ -22,7 +23,6 @@ FUTURE IDEAS
     * HTML input element (text|range|radio|checkbox, textarea, select)
     * AudioContext for sound-based
 * "Setup mode" - allow drawing a path on bg image to define a segment
-* Only move segment in steps for more of a "wooden" feel
 
 OPTIMISATIONS
 
