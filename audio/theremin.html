@@ -20,7 +20,6 @@
         function setup() {
             oscillator.connect(gainNode);
             gainNode.connect(audioCtx.destination);
-            oscillator.type =
 
             document.getElementById('btnStart').addEventListener('click', play, false);
             document.getElementById('btnStop').addEventListener('click', stop, false);
