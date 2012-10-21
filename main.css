@@ -1,4 +1,12 @@
 /* Fill this in later */
 body {
-	font-family: Georgia, Arial, sans-serif;
+    font-family: Georgia, Arial, sans-serif;
+    line-height: 1.4;
+}
+a {
+    color: blue;
+    text-decoration: none;
+}
+a:hover {
+    text-decoration: underline;
 }
