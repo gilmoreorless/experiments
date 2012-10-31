@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>References - Colour / Luma Inspector</title>
+    <style>
+        canvas {float:left; margin:0 10px 10px 0;}
+    </style>
+</head>
+<body>
+    <canvas id="orig"></canvas>
+    <canvas id="grey"></canvas>
+    <div id="output"></div>
+    <script>
+        // From Raphael
+        function rgb2hsl(r, g, b) {
+            if (r > 1 || g > 1 || b > 1) {
+                r /= 255;
+                g /= 255;
+                b /= 255;
+            }
+
+            var H, S, L, M, m, C;
+            M = Math.max(r, g, b);
+            m = Math.min(r, g, b);
+            C = M - m;
+            H = (C == 0 ? null :
+                 M == r ? (g - b) / C :
+                 M == g ? (b - r) / C + 2 :
+                          (r - g) / C + 4);
+            H = ((H + 360) % 6) * 60 / 360;
+            L = (M + m) / 2;
+            S = (C == 0 ? 0 :
+                 L < .5 ? C / (2 * L) :
+                          C / (2 - 2 * L));
+            return {h: H, s: S, l: L};
+        };
+
+        /* Config */
+        var width = 640;
+        var height = 480;
+        var imgSrc = '../common/img/ref-theremin.jpg';
+        /* End Config */
+
+        var orig = document.getElementById('orig');
+        var origCtx = orig.getContext('2d');
+        var grey = document.getElementById('grey');
+        var greyCtx = grey.getContext('2d');
+
+        var output = document.getElementById('output');
+        var origData, greyData;
+
+        function setup() {
+            orig.width  = grey.width  = width;
+            orig.height = grey.height = height;
+            orig.addEventListener('click', inspectPoint, false);
+            loadSrc();
+        }
+
+        function loadSrc() {
+            var img = new Image();
+            img.onload = function () {
+                origCtx.drawImage(img, 0, 0, width, height);
+                drawOrig();
+            }
+            img.src = imgSrc;
+        }
+
+        function drawOrig() {
+            origData = origCtx.getImageData(0, 0, width, height);
+            greyData = convertToGreyscale(origData);
+            greyCtx.putImageData(greyData, 0, 0);
+        }
+
+        function convertToGreyscale(origData, tolerance) {
+            var newData = greyCtx.createImageData(origData.width, origData.height);
+            var origPixels = origData.data;
+            var greyPixels = newData.data;
+            var i = origPixels.length;
+            var luma;
+            while (i) {
+                i -= 4;
+                luma = origPixels[i] * 299/1000 + origPixels[i + 1] * 587/1000 + origPixels[i + 2] * 114/1000;
+                if (tolerance && luma < tolerance) {
+                    luma = 0;
+                }
+                greyPixels[i] = greyPixels[i + 1] = greyPixels[i + 2] = luma;
+                greyPixels[i + 3] = origPixels[i + 3];
+            }
+            return newData;
+        }
+
+        var origOffsetX = orig.offsetLeft;
+        var origOffsetY = orig.offsetTop;
+        function inspectPoint(e) {
+            var x, y;
+            if ('offsetX' in e) {
+                x = e.offsetX;
+                y = e.offsetY;
+            } else {
+                x = e.clientX - origOffsetX;
+                y = e.clientY - origOffsetY;
+            }
+            console.log(e, x, y);
+            inspectRange(x, y, 1, 1);
+        }
+
+        function pixelPercentage(val) {
+            return val + ' (' + (Math.round(val / 255 * 100) / 100) + '%)';
+        }
+
+        function hueDegrees(val) {
+            return val + ' (' + Math.round(val * 360) + 'deg)';
+        }
+
+        function inspectRange(x, y, w, h) {
+            var html = [
+                'X: ' + x,
+                'Y: ' + y
+            ];
+            var i = (y * width + x) * 4;
+            var pixels = origData.data;
+            var hsl = rgb2hsl(pixels[i], pixels[i + 1], pixels[i + 2]);
+
+            html.push(
+                '',
+                'R: ' + pixelPercentage(pixels[i]),
+                'G: ' + pixelPercentage(pixels[i + 1]),
+                'B: ' + pixelPercentage(pixels[i + 2]),
+                'L: ' + pixelPercentage(greyData.data[i]),
+                '',
+                'H: ' + hueDegrees(hsl.h),
+                'S: ' + hsl.s,
+                'L: ' + hsl.l
+            );
+
+            output.innerHTML = html.join('<br>');
+        }
+
+        setup();
+    </script>
+</body>
+</html>
