@@ -23,8 +23,11 @@
         var mag = document.getElementById('mag');
         var origCtx = orig.getContext('2d');
         var magCtx = mag.getContext('2d');
-        magCtx.mozImageSmoothingEnabled = false;
-        magCtx.webkitImageSmoothingEnabled = false;
+        window.onload = function () {
+            magCtx.mozImageSmoothingEnabled = false;
+            magCtx.webkitImageSmoothingEnabled = false;
+            magCtx.imageSmoothingEnabled = false;
+        }
 
         var output = document.getElementById('output');
         var origData, vectors;
