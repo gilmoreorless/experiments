@@ -49,7 +49,21 @@
     <div id="clock" class="experiment">
         <input type="range" id="clock-time" min="0" max="1" step="0.01" value="0">
     </div>
+
+    <div id="face" class="experiment">
+        <div id="face-controls">
+            <button id="face-spin">Spin (loading state)</button>
+            <button id="face-stop">Stop spinning</button><br />
+            <button id="face-blank">Neutral (default state)</button>
+            <button id="face-happy">Happy (tickets available)</button>
+            <button id="face-sad">Sad (sold out)</button>
+            <button id="face-confused">Confused (error)</button>
+        </div>
+    </div>
+
     <script>
+        /*** CLOCK ***/
+
         (function () {
             var clock = {
                 paper: Raphael('clock', 70, 70),
@@ -102,6 +116,73 @@
             var input = document.getElementById('clock-time');
             input.addEventListener('change', function () {
                 clock.setTime(+input.value);
+            }, false);
+        })();
+
+
+        /*** FACES ***/
+
+        (function () {
+            var face = {
+                paper: Raphael('face', 50, 50),
+                parts: {},
+                init: function () {
+                    this.parts.edge = this.paper.circle(25, 25, 20).attr({
+                        stroke: '#fff',
+                        'stroke-width': 4
+                    });
+                    this.parts.path = this.paper.path().attr({
+                        stroke: '#fff',
+                        'stroke-width': 4,
+                        'stroke-linecap': 'round'
+                    });
+                    this._spinning = false;
+                    this.spinAnimation = Raphael.animation({transform: 'r360'}, 1000, 'linear', function () {
+                        if (!face._spinning) {
+                            face.parts.path.stop();
+                        }
+                    }).repeat(Infinity);
+                    this.setExpression();
+                },
+                expressionPaths: {
+                    blank: 'M17,17 a1,1,0,1,1,0,2 a1,1,0,1,1,0,-2 M33,17 a1,1,0,1,1,0,2 a1,1,0,1,1,0,-2 M15,32 h20',
+                    happy: 'M17,17 a1,1,0,1,1,0,2 a1,1,0,1,1,0,-2 M33,17 a1,1,0,1,1,0,2 a1,1,0,1,1,0,-2 M15,29 a15,25,0,0,0,20,0',
+                    sad: 'M17,17 a1,1,0,1,1,0,2 a1,1,0,1,1,0,-2 M33,17 a1,1,0,1,1,0,2 a1,1,0,1,1,0,-2 M15,32 a15,20,0,0,1,20,0',
+                    confused: 'M17,17 a1,1,0,1,1,0,2 a1,1,0,1,1,0,-2 M33,17 a1,1,0,1,1,0,2 a1,1,0,1,1,0,-2 M15,32 a5,2,0,0,1,10,0 a5,2,0,0,0,10,0'
+                },
+                setExpression: function (expression, animate) {
+                    expression || (expression = 'blank');
+                    console.log(expression);
+                    var path = this.expressionPaths[expression] || '';
+                    if (animate) {
+                        this.parts.path.animate({
+                            path: path
+                        }, 200);
+                    } else {
+                        this.parts.path.attr('path', path);
+                    }
+                },
+                spin: function () {
+                    this._spinning = true;
+                    this.parts.path.animate(this.spinAnimation);
+                },
+                stop: function () {
+                    this._spinning = false;
+                }
+            };
+            face.init();
+
+            document.getElementById('face-controls').addEventListener('click', function (e) {
+                var target = e.target;
+                if (target.nodeName.toLowerCase() !== 'button') {
+                    return;
+                }
+                var action = target.id.split('-').pop();
+                if (action === 'spin' || action === 'stop') {
+                    face[action]();
+                } else {
+                    face.setExpression(action, true);
+                }
             }, false);
         })();
     </script>
