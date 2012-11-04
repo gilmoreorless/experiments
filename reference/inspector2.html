@@ -5,12 +5,14 @@
     <title>References - Colour / Luma Inspector</title>
     <style>
         canvas {float:left; margin:0 10px 10px 0;}
+        #selection {position:absolute; display:none; background:rgba(255, 255, 255, 0.4); border:1px dashed #000; box-sizing:border-box;}
     </style>
 </head>
 <body>
     <canvas id="orig"></canvas>
     <canvas id="grey"></canvas>
     <div id="output"></div>
+    <div id="selection"></div>
     <script>
         // From Raphael
         function rgb2hsl(r, g, b) {
@@ -39,7 +41,8 @@
         /* Config */
         var width = 640;
         var height = 480;
-        var imgSrc = '../common/img/ref-theremin.jpg';
+        // var imgSrc = '../common/img/ref-theremin.jpg';
+        var imgSrc = '../common/img/catimov.jpg';
         /* End Config */
 
         var orig = document.getElementById('orig');
@@ -48,12 +51,15 @@
         var greyCtx = grey.getContext('2d');
 
         var output = document.getElementById('output');
+        var selection = document.getElementById('selection');
         var origData, greyData;
 
         function setup() {
             orig.width  = grey.width  = width;
             orig.height = grey.height = height;
             orig.addEventListener('click', inspectPoint, false);
+            orig.addEventListener('mousedown', handleMousedown, false);
+            orig.addEventListener('mouseup', handleMouseup, false);
             loadSrc();
         }
 
@@ -92,7 +98,7 @@
 
         var origOffsetX = orig.offsetLeft;
         var origOffsetY = orig.offsetTop;
-        function inspectPoint(e) {
+        function getXY(e) {
             var x, y;
             if ('offsetX' in e) {
                 x = e.offsetX;
@@ -101,8 +107,70 @@
                 x = e.clientX - origOffsetX;
                 y = e.clientY - origOffsetY;
             }
-            console.log(e, x, y);
-            inspectRange(x, y, 1, 1);
+            return {x:x, y:y};
+        }
+
+        function inspectPoint(e) {
+            if (region.active && region.w && region.h) {
+                return;
+            }
+            var p = getXY(e);
+            console.log('inspectPoint', p.x, p.y, e);
+            selection.style.display = 'none';
+            inspectRange(p.x, p.y, 1, 1);
+        }
+
+        function preventDefault(e) {
+            e.preventDefault();
+        }
+
+        var region = {active: false};
+        function handleMousedown(e) {
+            region = {active: true};
+            var p = getXY(e);
+            console.log('handleMousedown', p.x, p.y, e);
+            region.x = p.x;
+            region.y = p.y;
+            region.sx1 = e.pageX;
+            region.sy1 = e.pageY;
+
+            var style = selection.style;
+            style.display = 'block';
+            style.left = style.top = style.width = style.height = 0;
+            orig.addEventListener('mousemove', handleMousemove, false);
+            document.addEventListener('selectstart', preventDefault, false);
+        }
+
+        function handleMouseup(e) {
+            var p = getXY(e);
+            console.log('handleMouseup', p.x, p.y, e);
+            orig.removeEventListener('mousemove', handleMousemove, false);
+            document.removeEventListener('selectstart', preventDefault, false);
+            // selection.style.display = 'none';
+            if (region.w && region.h) {
+                inspectRange(region.x, region.y, region.w, region.h);
+            }
+            setTimeout(function () {
+                region.active = false;
+            }, 0);
+        }
+
+        function handleMousemove(e) {
+            if (!region.active) {
+                return;
+            }
+            console.log('handleMousemove', e);
+            region.sx2 = e.pageX;
+            region.sy2 = e.pageY;
+            var x = Math.min(region.sx1, region.sx2);
+            var y = Math.min(region.sy1, region.sy2);
+            var w = region.w = Math.max(region.sx1, region.sx2) - x;
+            var h = region.h = Math.max(region.sy1, region.sy2) - y;
+            var style = selection.style;
+            style.left = x + 'px';
+            style.top = y + 'px';
+            style.width = w + 'px';
+            style.height = h + 'px';
         }
 
         function pixelPercentage(val) {
@@ -114,24 +182,52 @@
         }
 
         function inspectRange(x, y, w, h) {
+            console.log('inspectRange', x, y, w, h);
+            var p = 0, r = 0, g = 0, b = 0, l1 = 0, hue = 0, s = 0, l2 = 0;
             var html = [
                 'X: ' + x,
                 'Y: ' + y
             ];
-            var i = (y * width + x) * 4;
             var pixels = origData.data;
-            var hsl = rgb2hsl(pixels[i], pixels[i + 1], pixels[i + 2]);
+            var greyPixels = greyData.data;
+
+            var i, ix, hsl;
+            var iy = y + h;
+            while (iy-- > y) {
+                ix = x + w;
+                while (ix-- > x) {
+                    i = (iy * width + ix) * 4;
+                    p++;
+                    r += pixels[i];
+                    g += pixels[i + 1];
+                    b += pixels[i + 2];
+                    l1 += greyPixels[i];
+                    hsl = rgb2hsl(pixels[i], pixels[i + 1], pixels[i + 2]);
+                    hue += hsl.h;
+                    s += hsl.s;
+                    l2 += hsl.l;
+                }
+            }
+            if (p > 1) {
+                r /= p;
+                g /= p;
+                b /= p;
+                l1 /= p;
+                hue /= p;
+                s /= p;
+                l2 /= p;
+            }
 
             html.push(
                 '',
-                'R: ' + pixelPercentage(pixels[i]),
-                'G: ' + pixelPercentage(pixels[i + 1]),
-                'B: ' + pixelPercentage(pixels[i + 2]),
-                'L: ' + pixelPercentage(greyData.data[i]),
+                'R: ' + pixelPercentage(r),
+                'G: ' + pixelPercentage(g),
+                'B: ' + pixelPercentage(b),
+                'L: ' + pixelPercentage(l2),
                 '',
-                'H: ' + hueDegrees(hsl.h),
-                'S: ' + hsl.s,
-                'L: ' + hsl.l
+                'H: ' + hueDegrees(hue),
+                'S: ' + s,
+                'L: ' + l2
             );
 
             output.innerHTML = html.join('<br>');
