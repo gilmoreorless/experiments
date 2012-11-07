@@ -3,11 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <title>Audio Experiments - Ventriloquist Dummy</title>
+    <style>
+        #controls {position:relative;}
+        #controls .right {position:absolute; left:400px; top:0}
+    </style>
 </head>
 <body>
     <div id="controls">
-        <button id="btnStart">Start</button> <button id="btnStop">Stop</button><br />
-        <input type="range" id="mouthpos" value="0" min="0" max="100" step="1">
+        <div class="left">
+            <button id="btnStart">Start</button> <button id="btnStop">Stop</button><br />
+            <input type="range" id="mouthpos" value="0" min="0" max="100" step="1">
+        </div>
+        <div id="testMode" class="right">
+            <button data-mode="normal">Normal</button>
+            <button data-mode="drawing">Drawing (define new segment)</button>
+            <button data-mode="dragging">Dragging (define new movement)</button>
+        </div>
     </div>
     <canvas id="dummy"></canvas>
     <canvas id="testDummy"></canvas>
@@ -77,6 +88,7 @@
             document.getElementById('btnStart').addEventListener('click', startInput, false);
             document.getElementById('btnStop').addEventListener('click', stopInput, false);
             mouthpos.addEventListener('change', setMouthPos, false);
+            document.getElementById('testMode').addEventListener('click', setMode, false);
 
             // setTimeout(startInput);
         }
@@ -85,6 +97,15 @@
             var value = parseFloat(mouthpos.value) || 0;
             dummy.setPosition(value / 100);
             testDummy.setPosition(value / 100);
+        }
+
+        function setMode(e) {
+            if (e.target.nodeName.toLowerCase() === 'button') {
+                var mode = (e.target.dataset || {}).mode;
+                if (mode) {
+                    testDummy.setMode(mode);
+                }
+            }
         }
 
         function draw() {
