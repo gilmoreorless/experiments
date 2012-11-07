@@ -10,6 +10,7 @@
         <input type="range" id="mouthpos" value="0" min="0" max="100" step="1">
     </div>
     <canvas id="dummy"></canvas>
+    <canvas id="testDummy"></canvas>
     <script src="../common/js/gumShield.js"></script>
     <script src="../common/js/chuckles.js"></script>
     <script>
@@ -22,29 +23,27 @@
 
         var canvas = document.getElementById('dummy');
         var ctx = canvas.getContext('2d');
+        var testCanvas = document.getElementById('testDummy');
+        var testCtx = canvas.getContext('2d');
         var mouthpos = document.getElementById('mouthpos');
         var audioCtx = new webkitAudioContext();
         var analyser = audioCtx.createAnalyser();
         var doDraw = true;
         var streamSrc;
         var byteData;
-        var dummy;
+        var dummy, testDummy;
 
         function setup() {
             canvas.width = width;
             canvas.height = height;
-            ctx.strokeRect(0.5, 0, width, height);
-            ctx.fillStyle = '#090';
+            testCanvas.width = 640;
+            testCanvas.height = 480;
 
             analyser.fftSize = 32; // Must be a power of 2, >= 32
             byteData = new Uint8Array(analyser.fftSize / 2);
 
             dummy = new Chuckles({
                 canvas: canvas,
-                // image: function (ctx) {
-                //     ctx.fillStyle = '#0ff';
-                //     ctx.fillRect(0, 0, 100, 100);
-                // },
                 image: '../common/img/chuck.jpg',
                 movement: {x: -3, y: 30},
                 steps: 4,
@@ -67,18 +66,25 @@
                     ],
                     ['closePath']
                 ]
-            })
+            });
+            testDummy = new Chuckles({
+                canvas: 'testDummy',
+                image: '../common/img/catimov.jpg',
+                steps: 5,
+                movement: {x: 20, y: 40}
+            });
 
             document.getElementById('btnStart').addEventListener('click', startInput, false);
             document.getElementById('btnStop').addEventListener('click', stopInput, false);
             mouthpos.addEventListener('change', setMouthPos, false);
 
-            setTimeout(startInput);
+            // setTimeout(startInput);
         }
 
         function setMouthPos() {
             var value = parseFloat(mouthpos.value) || 0;
             dummy.setPosition(value / 100);
+            testDummy.setPosition(value / 100);
         }
 
         function draw() {
