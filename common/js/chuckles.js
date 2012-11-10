@@ -12,6 +12,7 @@ NOTES:
 √ Position is a value from 0 to 1 - path is moved according to position
 √ Fill colour when segment path is cut out
 √ Only move segment in steps for more of a "wooden" feel
+√ "Setup mode" - allow drawing a path on bg image to define a segment
 
 FUTURE IDEAS
 
@@ -22,7 +23,6 @@ FUTURE IDEAS
 * Bind an input source to position for auto-updating
     * HTML input element (text|range|radio|checkbox, textarea, select)
     * AudioContext for sound-based
-* "Setup mode" - allow drawing a path on bg image to define a segment
 
 OPTIMISATIONS
 
@@ -58,6 +58,7 @@ Chuckles = (function () {
         }
         this.ctx = this.canvas.getContext('2d');
         this.mode = 'normal';
+        this._inputs = [];
         this._listeners = {};
 
         this.movement = options.movement || {x: 0, y: 0};
@@ -131,6 +132,20 @@ Chuckles = (function () {
                 ctx[cmd].apply(ctx, args);
             }
         }
+    };
+
+    cproto._handleInputNodeChange = function (e) {
+        var value = parseFloat(e.target.value);
+        if (!isNaN(value)) {
+            this.setPosition(value);
+        }
+    };
+
+    cproto._handleAudioStream = function () {
+        this._animFrameID = webkitRequestAnimationFrame(this._handleAudioStream.bind(this));
+        this.analyser.getByteFrequencyData(this.byteData);
+        var max = Math.max.apply(Math, this.byteData);
+        this.setPosition(max / 256);
     };
 
     function addListener(elem, type, handler) {
@@ -324,6 +339,63 @@ Chuckles = (function () {
         this.mode = mode;
         if (newModeEvent) {
             newModeEvent.call(this);
+        }
+    };
+
+    cproto.bindInput = function (input) {
+        if (!input) {
+            return;
+        }
+        if (input.nodeName && input.nodeName.toLowerCase() === 'input') {
+            this._inputs.push({
+                type: 'node/input',
+                input: input,
+                listener: addListener(input, 'change', this._handleInputNodeChange.bind(this))
+            });
+            return;
+        }
+        if (input.mediaStream && input.context && input.context instanceof webkitAudioContext) {
+            var i = this._inputs.length;
+            while (i--) {
+                if (this._inputs[i].type === 'audio/stream' && this._inputs[i].input !== input) {
+                    this.unbindInput(this._inputs[i]);
+                }
+            }
+
+            if (!this.analyser) {
+                this.analyser = input.context.createAnalyser();
+                this.analyser.fftSize = 32;
+                this.byteData = new Uint8Array(this.analyser.fftSize / 2);
+            }
+            input.connect(this.analyser);
+            var chuck = this;
+            this._inputs.push({
+                type: 'audio/stream',
+                input: input,
+                listener: {
+                    remove: function () {
+                        input.disconnect(chuck.analyser);
+                        webkitCancelAnimationFrame(chuck._animFrameID);
+                    }
+                }
+            });
+            this._handleAudioStream();
+        }
+    };
+
+    cproto.unbindInput = function (input) {
+        if (!input) {
+            return;
+        }
+        var i = this._inputs.length;
+        var obj;
+        while (i--) {
+            obj = this._inputs[i];
+            if (obj.input === input) {
+                obj.listener.remove();
+                this._inputs.splice(i, 1);
+                break;
+            }
         }
     };
 

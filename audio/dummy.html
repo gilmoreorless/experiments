@@ -12,7 +12,7 @@
     <div id="controls">
         <div class="left">
             <button id="btnStart">Start</button> <button id="btnStop">Stop</button><br />
-            <input type="range" id="mouthpos" value="0" min="0" max="100" step="1">
+            <input type="range" id="mouthpos" value="0" min="0" max="1" step="0.01">
         </div>
         <div id="testMode" class="right">
             <button data-mode="normal">Normal</button>
@@ -81,9 +81,10 @@
             testDummy = new Chuckles({
                 canvas: 'testDummy',
                 image: '../common/img/catimov.jpg',
-                steps: 5,
+                // steps: 5,
                 movement: {x: 20, y: 40}
             });
+            testDummy.bindInput(mouthpos);
 
             document.getElementById('btnStart').addEventListener('click', startInput, false);
             document.getElementById('btnStop').addEventListener('click', stopInput, false);
@@ -95,8 +96,8 @@
 
         function setMouthPos() {
             var value = parseFloat(mouthpos.value) || 0;
-            dummy.setPosition(value / 100);
-            testDummy.setPosition(value / 100);
+            dummy.setPosition(value);
+            // testDummy.setPosition(value);
         }
 
         function setMode(e) {
@@ -117,6 +118,7 @@
             analyser.getByteFrequencyData(byteData);
             var max = Math.max.apply(Math, byteData);
             dummy.setPosition(max / 256);
+            // testDummy.setPosition(max / 256);
         }
 
         function startInput() {
