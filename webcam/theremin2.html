@@ -159,6 +159,7 @@
                     min: [],
                     max: [],
                     avg: [],
+                    stddev: [],
                     blocks: []
                 };
             }
@@ -195,6 +196,7 @@
                 var mmh = [], mms = [], mml = [];
                 var tc = 0, th = 0, ts = 0, tl = 0;
                 var Mmax = Math.max, Mmin = Math.min;
+                var sd = [[], [], []];
 
                 this.forEachBlock(function (bx, by, bw, bh) {
                     var ip, ix, iy, hsl;
@@ -202,12 +204,17 @@
                     for (ix = bx; ix < bx + bw; ix++) {
                         for (iy = by; iy < by + bh; iy++) {
                             ip = (iy * idw + ix) * 4;
-                            count++;
-                            tc++;
                             hsl = rgb2hsl([pixels[ip], pixels[ip + 1], pixels[ip + 2]]);
-                            h += hsl[0];
-                            s += hsl[1];
-                            l += hsl[2];
+                            if (hsl[1] > 0.2) {
+                                count++;
+                                tc++;
+                                h += hsl[0];
+                                s += hsl[1];
+                                l += hsl[2];
+                                sd[0].push(h);
+                                sd[1].push(s);
+                                sd[2].push(l);
+                            }
                         }
                     }
                     th += h;
@@ -236,6 +243,23 @@
                     ts / tc,
                     tl / tc
                 );
+                var i = posData.blocks.length, j;
+                var v = [0, 0, 0];
+                while (i--) {
+                    for (j = 3; j--;) {
+                        v[j] += Math.pow(posData.blocks[i][j] - posData.avg[j], 2);
+                    }
+                }
+                // i = sd.length;
+                // while (i--) {
+                //     for (j = 3; j--;) {
+                //         v[j] += Math.pow(sd[j][i] - posData.avg[j], 2);
+                //     }
+                // }
+                for (j = 3; j--;) {
+                    posData.stddev[j] = Math.sqrt(v[j] / posData.blocks.length);
+                    // posData.stddev[j] = Math.sqrt(v[j] / sd.length);
+                }
 
                 if (DEBUG >= 1) {
                     var i = 0, c = document.createElement('canvas'), ctx = c.getContext('2d');
@@ -268,6 +292,8 @@
                 var posData = this.positive;
                 var pmin = posData.min;
                 var pmax = posData.max;
+                var pav = posData.avg;
+                var psd = posData.stddev;
                 var i, x, rgb, hsl;
                 while (y--) {
                     x = w;
@@ -275,15 +301,22 @@
                         i = (y * w + x) * 4;
                         rgb = [0, 0, 0];
                         hsl = rgb2hsl([pixels[i], pixels[i + 1], pixels[i + 2]]);
-                        for (var i2 = 0; i2 < 3; i2++) {
-                            if (hsl[i2] >= pmin[i2] && hsl[i2] <= pmax[i2]) {
-                                rgb[i2] = 255;
-                            }
+                        // for (var i2 = 0; i2 < 3; i2++) {
+                        //     // if (hsl[i2] >= pmin[i2] && hsl[i2] <= pmax[i2]) { // min/max
+                        //     if (hsl[i2] >= pav[i2] - psd[i2] && hsl[i2] <= pav[i2] + psd[i2]) { // stddev
+                        //         rgb[i2] = 255;
+                        //     }
+                        // }
+                        if (
+                            hsl[0] >= pav[0] - psd[0] && hsl[0] <= pav[0] + psd[0] &&
+                            hsl[2] >= pav[2] - psd[2] && hsl[2] <= pav[2] + psd[2]
+                        ) {
+                            rgb = [255, 255, 255];
                         }
                         newPixels[i]     = rgb[0];
                         newPixels[i + 1] = rgb[1];
                         newPixels[i + 2] = rgb[2];
-                        newPixels[i + 3] = 128;
+                        newPixels[i + 3] = 255;
                     }
                 }
                 overlayCtx.putImageData(newData, this.dims.x, this.dims.y);
@@ -337,7 +370,7 @@
             function startTracking() {
                 console.info('startTracking()');
                 message.innerHTML = 'Ready and tracking';
-                // trackFrame();
+                trackFrame();
             }
 
             function trackFrame() {
