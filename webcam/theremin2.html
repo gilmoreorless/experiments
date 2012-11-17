@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Webcam Experiments - Theremin</title>
+    <style>
+        #output {position:relative;}
+        #output > canvas {position:absolute; left:0; top:0;}
+        .mirror video {-webkit-transform:scaleX(-1);}
+    </style>
+</head>
+<body class="mirror">
+    <div id="controls">
+        <button id="btnStart">Start Webcam</button> <button id="btnStop">Stop Webcam</button><br />
+        <button id="btnCalibrate">Start Calibration</button><br />
+        <label><input type="checkbox" name="mirror" checked disabled> Mirror image</label>
+    </div>
+    <div id="message">Press “Start Calibration” to begin.</div>
+    <div id="output">
+        <video id="webcam" autoplay width="640" height="480"></video>
+        <canvas id="overlay"></canvas>
+    </div>
+    <div id="debug">
+        <canvas id="processing"></canvas>
+    </div>
+    <script src="../common/js/gumShield.js"></script>
+    <script src="../common/js/hog-processing.js"></script>
+    <script src="../common/js/colour-utils.js"></script>
+    <script>
+
+        /* Config */
+
+        var minMagnitude = 10;    // Minimum gradient magnitude for edge detection (percentage)
+        var divZoneWidth = 20;    // Divide width by this number to get edge zone width
+        var divBlockWidth = 40;   // Divide width by this number to get detection block width
+        var divBlockHeight = 32;  // Divide height by this number to get detection block height
+        var divCalibHeight = 3;   // Divide height by this number to get calibration block height (centred)
+        var sourceMethod = 1;     // 1 = Webcam; 2 = Image
+        var frequencyRange = [0, 1500];  // Hz
+        var DEBUG = 1;            // 0 = Off; 1 = Blocks
+
+        /**
+
+        PROCESS:
+
+        # Use detection zones at left/right edges (w/20)
+        # Calibrate
+            # Click button then show a 3... 2... 1... SNAP countdown, while holding hands in position (with placeholder)
+            # Save HSL averages of pre-configured regions [mini blocks of (w/40):(h/32)]
+            # Calculate min/max HSL values to define a range
+            # Look for bottom edge, and if found, save HSL samples from regions above/below line, for comparison
+        # For each zone:
+            # Check pixels from bottom to top, looking for known HSL match (within range)
+            # If a match is found:
+                # Make sure HSL average for a mini-block starting at current x/y is within range
+                # Look for edge across whole block
+                    * If found, use edge max Y
+                    * If not, use current block max Y
+
+        */
+
+        /*** Polyfills ***/
+
+        window.requestAnimationFrame = window.requestAnimationFrame || window.webkitRequestAnimationFrame || window.mozRequestAnimationFrame;
+        window.cancelAnimationFrame = window.cancelAnimationFrame || window.webkitCancelAnimationFrame || window.mozCancelAnimationFrame;
+
+        /*** Boilerplate ***/
+
+        var message = document.getElementById('message');
+        var video = document.getElementById('webcam');
+        var overlay = document.getElementById('overlay');
+        var processing = document.getElementById('processing');
+        var overlayCtx = overlay.getContext('2d');
+        var procCtx = processing.getContext('2d');
+        var calibrationImage = new Image();
+        calibrationImage.src = '../common/img/theremin-overlay-hands.png';
+
+        var audioCtx = new webkitAudioContext();
+        var oscillator = audioCtx.createOscillator();
+        var gainNode = audioCtx.createGainNode();
+        var vectorCache = {};
+        var width, height, colLeft, colRight;
+
+        function startInput() {
+            width  = processing.width  = overlay.width  = video.width;
+            height = processing.height = overlay.height = video.height;
+            minMagnitude > 1 && (minMagnitude /= 100);
+            var colWidth = width / divZoneWidth;
+            colLeft  = new HandTracker(processing, {x:0, y:0, w:colWidth, h:height}, 'left');
+            colRight = new HandTracker(processing, {x:width - colWidth, y:0, w:colWidth, h:height}, 'right');
+            if (sourceMethod === 1) {
+                // Only works in Opera, Chrome and Firefox Nightlies (with a flag) right now
+                navigator.getUserMedia({video: true}, function (stream) {
+                    video.src = getStreamSrc(stream);
+                    procCtx.translate(width, 0);
+                    procCtx.scale(-1, 1);
+                }, function () {
+                    console.error('Oh noes!');
+                    message.innerHTML = 'Bad news&hellip; no webcam was found.';
+                });
+            } else if (sourceMethod === 2) {
+                var img = new Image();
+                img.onload = function () {
+                    var tmpcanvas = document.createElement('canvas');
+                    var tmpctx = tmpcanvas.getContext('2d');
+                    tmpcanvas.width = width;
+                    tmpcanvas.height = height;
+                    overlay.parentNode.insertBefore(tmpcanvas, overlay);
+                    tmpctx.drawImage(img, 0, 0, width, height);
+                    doStuff();
+                }
+                // img.src = '../common/img/ref-theremin.jpg';
+                img.src = '../common/img/catimov.jpg';
+            }
+
+            // oscillator.connect(gainNode);
+            // gainNode.connect(audioCtx.destination);
+            // setVolume(0);
+            // oscillator.noteOn(0);
+        }
+        // setTimeout(startInput);
+
+        function stopInput() {
+            video.src = '';
+            oscillator.noteOff(0);
+            oscillator.disconnect();
+            tracker.setState('off');
+        }
+
+        function startCalibration() {
+            tracker.setState('init');
+        }
+
+        document.getElementById('btnStart').addEventListener('click', startInput, false);
+        document.getElementById('btnStop').addEventListener('click', stopInput, false);
+        document.getElementById('btnCalibrate').addEventListener('click', startCalibration, false);
+
+        /*** Actual experiment ***/
+
+        function setVolume(value) {
+            console.log('Volume = ' + value + ' (maps to ' + (value * value) + ')');
+            gainNode.gain.value = value * value;
+        }
+
+        function setPitch(value) {
+            var newValue = value * value;
+            var freq = frequencyRange[0] + newValue * (frequencyRange[1] - frequencyRange[0]);
+            console.log('Pitch = ' + value + ' (maps to ' + newValue + ') (' + freq + ' Hz)');
+            oscillator.frequency.value = freq;
+        }
+
+        var HandTracker = (function () {
+            function HandTracker(canvas, dims, edge) {
+                this.canvas = canvas;
+                this.ctx = canvas.getContext('2d');
+                this.dims = dims;
+                this.edge = edge === 'right' ? edge : 'left';
+                this.positive = {
+                    min: [],
+                    max: [],
+                    avg: [],
+                    blocks: []
+                };
+            }
+
+            var hproto = HandTracker.prototype;
+
+            hproto.getImageData = function () {
+                var d = this.dims;
+                return this.ctx.getImageData(d.x, d.y, d.w, d.h);
+            };
+
+            hproto.forEachBlock = function (callback) {
+                var h = this.dims.h / divCalibHeight;
+                var y = (this.dims.h / 2) - (h / 2);
+                var my = y + h;
+                var sy = height / divBlockHeight;
+
+                var x = 0;
+                var mx = this.dims.w;
+                var sx = width / divBlockWidth;
+
+                for (var ix = x; ix < mx; ix += sx) {
+                    for (var iy = y; iy < my; iy += sy) {
+                        callback(ix, iy, sx, sy);
+                    }
+                }
+            };
+
+            hproto.setPositiveData = function () {
+                var imageData = this.getImageData();
+                var idw = imageData.width;
+                var pixels = imageData.data;
+                var posData = this.positive;
+                var mmh = [], mms = [], mml = [];
+                var tc = 0, th = 0, ts = 0, tl = 0;
+                var Mmax = Math.max, Mmin = Math.min;
+
+                this.forEachBlock(function (bx, by, bw, bh) {
+                    var ip, ix, iy, hsl;
+                    var h = 0, s = 0, l = 0, count = 0;
+                    for (ix = bx; ix < bx + bw; ix++) {
+                        for (iy = by; iy < by + bh; iy++) {
+                            ip = (iy * idw + ix) * 4;
+                            count++;
+                            tc++;
+                            hsl = rgb2hsl([pixels[ip], pixels[ip + 1], pixels[ip + 2]]);
+                            h += hsl[0];
+                            s += hsl[1];
+                            l += hsl[2];
+                        }
+                    }
+                    th += h;
+                    ts += s;
+                    tl += l;
+                    h /= count;
+                    s /= count;
+                    l /= count;
+                    posData.blocks.push([h, s, l]);
+                    mmh.push(h);
+                    mms.push(s);
+                    mml.push(l);
+                });
+                posData.max.push(
+                    Mmax.apply(Math, mmh),
+                    Mmax.apply(Math, mms),
+                    Mmax.apply(Math, mml)
+                );
+                posData.min.push(
+                    Mmin.apply(Math, mmh),
+                    Mmin.apply(Math, mms),
+                    Mmin.apply(Math, mml)
+                );
+                posData.avg.push(
+                    th / tc,
+                    ts / tc,
+                    tl / tc
+                );
+
+                if (DEBUG >= 1) {
+                    var i = 0, c = document.createElement('canvas'), ctx = c.getContext('2d');
+                    c.width = this.dims.w;
+                    c.height = this.dims.h;
+                    this.forEachBlock(function (bx, by, bw, bh) {
+                        var rgb = hsl2rgb(posData.blocks[i]);
+                        rgb[0] = Math.round(rgb[0]);
+                        rgb[1] = Math.round(rgb[1]);
+                        rgb[2] = Math.round(rgb[2]);
+                        ctx.fillStyle = 'rgb(' + rgb + ')';
+                        ctx.fillRect(bx, by, bw, bh);
+                        i++;
+                    });
+                    this.ctx.drawImage(c, this.dims.x, this.dims.y);
+                    c = null;
+                }
+            };
+
+            hproto.trackFrame = function () {
+                if (!DEBUG) {
+                    return;
+                }
+                var imageData = this.getImageData();
+                var newData = procCtx.createImageData(imageData.width, imageData.height);
+                var pixels = imageData.data;
+                var newPixels = newData.data;
+                var w = imageData.width;
+                var y = imageData.height;
+                var posData = this.positive;
+                var pmin = posData.min;
+                var pmax = posData.max;
+                var i, x, rgb, hsl;
+                while (y--) {
+                    x = w;
+                    while (x--) {
+                        i = (y * w + x) * 4;
+                        rgb = [0, 0, 0];
+                        hsl = rgb2hsl([pixels[i], pixels[i + 1], pixels[i + 2]]);
+                        for (var i2 = 0; i2 < 3; i2++) {
+                            if (hsl[i2] >= pmin[i2] && hsl[i2] <= pmax[i2]) {
+                                rgb[i2] = 255;
+                            }
+                        }
+                        newPixels[i]     = rgb[0];
+                        newPixels[i + 1] = rgb[1];
+                        newPixels[i + 2] = rgb[2];
+                        newPixels[i + 3] = 128;
+                    }
+                }
+                overlayCtx.putImageData(newData, this.dims.x, this.dims.y);
+            };
+
+            return HandTracker;
+        })();
+
+        var tracker = (function () {
+            var state = 'none';
+            var countdownSecs, timer;
+
+            function initCalibration() {
+                console.info('initCalibration()');
+                overlayCtx.clearRect(0, 0, width, height);
+                // TODO: Show image overlay
+                message.innerHTML = 'DO STUFF';
+                countdownSecs = 4;
+                doCountdown();
+            }
+
+            function doCountdown() {
+                countdownSecs--;
+                if (countdownSecs) {
+                    overlayCtx.clearRect(0, 0, width, height);
+                    overlayCtx.drawImage(calibrationImage, 0, 0, width, height);
+                    overlayCtx.save();
+                    overlayCtx.font = '8em Arial';
+                    overlayCtx.strokeStyle = '#000';
+                    overlayCtx.lineWidth = 8;
+                    overlayCtx.strokeText(countdownSecs, width / 2, height / 2);
+                    overlayCtx.fillStyle = '#FFF';
+                    overlayCtx.fillText(countdownSecs, width / 2, height / 2);
+                    overlayCtx.restore();
+                    setTimeout(doCountdown, 1000);
+                } else {
+                    overlayCtx.clearRect(0, 0, width, height);
+                    tracker.setState('calibrating');
+                }
+            }
+
+            function calibrate() {
+                console.info('calibrate()');
+                message.innerHTML = 'Now calibrating...';
+                procCtx.drawImage(video, 0, 0, width, height);
+                colLeft.setPositiveData();
+                colRight.setPositiveData();
+                tracker.setState('ready');
+            }
+
+            function startTracking() {
+                console.info('startTracking()');
+                message.innerHTML = 'Ready and tracking';
+                // trackFrame();
+            }
+
+            function trackFrame() {
+                timer = requestAnimationFrame(trackFrame);
+                procCtx.drawImage(video, 0, 0, width, height);
+                colLeft.trackFrame();
+                colRight.trackFrame();
+            }
+
+            function stopTracking() {
+                console.info('stopTracking()');
+                if (timer) {
+                    cancelAnimationFrame(timer);
+                }
+            }
+
+            function setState(newState) {
+                if (newState in validStates) {
+                    validStates[newState]();
+                    state = newState;
+                }
+            }
+
+            var validStates = {
+                init: initCalibration,
+                calibrating: calibrate,
+                ready: startTracking,
+                off: stopTracking
+            };
+
+            return {
+                getState: function () {
+                    return state;
+                },
+                setState: setState
+            }
+        })();
+
+        function doStuff() {
+            // setVolume(getZoneValue('left'));
+            // setPitch(getZoneValue('right'));
+        }
+    </script>
+</body>
+</html>
