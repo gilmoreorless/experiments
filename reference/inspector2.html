@@ -41,8 +41,8 @@
         /* Config */
         var width = 640;
         var height = 480;
-        // var imgSrc = '../common/img/ref-theremin.jpg';
-        var imgSrc = '../common/img/catimov.jpg';
+        var imgSrc = '../common/img/ref-theremin.jpg';
+        // var imgSrc = '../common/img/catimov.jpg';
         /* End Config */
 
         var orig = document.getElementById('orig');
@@ -186,7 +186,9 @@
             var p = 0, r = 0, g = 0, b = 0, l1 = 0, hue = 0, s = 0, l2 = 0;
             var html = [
                 'X: ' + x,
-                'Y: ' + y
+                'Y: ' + y,
+                'W: ' + w,
+                'H: ' + h
             ];
             var pixels = origData.data;
             var greyPixels = greyData.data;
@@ -223,7 +225,7 @@
                 'R: ' + pixelPercentage(r),
                 'G: ' + pixelPercentage(g),
                 'B: ' + pixelPercentage(b),
-                'L: ' + pixelPercentage(l2),
+                'L: ' + pixelPercentage(l1),
                 '',
                 'H: ' + hueDegrees(hue),
                 'S: ' + s,
