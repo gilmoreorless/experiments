@@ -7,6 +7,7 @@
         #output {position:relative;}
         #output > canvas {position:absolute; left:0; top:0;}
         .mirror video {-webkit-transform:scaleX(-1);}
+        #debug {float:right;}
     </style>
 </head>
 <body class="mirror">
@@ -37,7 +38,7 @@
         var divCalibHeight = 3;   // Divide height by this number to get calibration block height (centred)
         var sourceMethod = 1;     // 1 = Webcam; 2 = Image
         var frequencyRange = [0, 1500];  // Hz
-        var DEBUG = 1;            // 0 = Off; 1 = Blocks
+        var DEBUG = 2;            // 0 = Off; 1 = Blocks; 2 = Values
 
         /**
 
@@ -113,10 +114,10 @@
                 img.src = '../common/img/catimov.jpg';
             }
 
-            // oscillator.connect(gainNode);
-            // gainNode.connect(audioCtx.destination);
-            // setVolume(0);
-            // oscillator.noteOn(0);
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            setVolume(0);
+            oscillator.noteOn(0);
         }
         // setTimeout(startInput);
 
@@ -322,6 +323,46 @@
                 overlayCtx.putImageData(newData, this.dims.x, this.dims.y);
             };
 
+            hproto.getValue = function () {
+                var imageData = this.getImageData();
+                var pixels = imageData.data;
+                var w = imageData.width;
+                var y = imageData.height;
+                var posData = this.positive;
+                var pav = posData.avg;
+                var psd = posData.stddev;
+                var value = 0;
+                var i, x, hsl, valid, foundRow;
+                while (y--) {
+                    x = w;
+                    valid = 0;
+                    while (x--) {
+                        i = (y * w + x) * 4;
+                        hsl = rgb2hsl([pixels[i], pixels[i + 1], pixels[i + 2]]);
+                        if (
+                            hsl[0] >= pav[0] - psd[0] && hsl[0] <= pav[0] + psd[0] &&
+                            hsl[2] >= pav[2] - psd[2] && hsl[2] <= pav[2] + psd[2]
+                        ) {
+                            valid++;
+                        }
+                    }
+                    if (valid >= w * 0.6) {
+                        foundRow = y;
+                        break;
+                    }
+                }
+                if (foundRow) {
+                    value = (this.dims.h - foundRow) / this.dims.h;
+                }
+                if (DEBUG >= 2) {
+                    overlayCtx.save();
+                    overlayCtx.fillStyle = 'rgba(0, 255, 0, 0.5)';
+                    overlayCtx.fillRect(this.dims.x, foundRow, this.dims.w, this.dims.h);
+                    overlayCtx.restore();
+                }
+                return value;
+            };
+
             return HandTracker;
         })();
 
@@ -376,8 +417,11 @@
             function trackFrame() {
                 timer = requestAnimationFrame(trackFrame);
                 procCtx.drawImage(video, 0, 0, width, height);
+                overlayCtx.clearRect(0, 0, width, height);
                 colLeft.trackFrame();
                 colRight.trackFrame();
+                setVolume(colLeft.getValue());
+                setPitch(colRight.getValue());
             }
 
             function stopTracking() {
