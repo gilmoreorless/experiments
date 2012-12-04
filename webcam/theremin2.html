@@ -4,10 +4,13 @@
     <meta charset="utf-8">
     <title>Webcam Experiments - Theremin</title>
     <style>
-        #output {position:relative;}
+        #output {position:relative; margin-left:120px;}
         #output > canvas {position:absolute; left:0; top:0;}
         .mirror video {-webkit-transform:scaleX(-1);}
-        #debug {float:right;}
+        #debug-edge-left {float:left;}
+        #debug, #debug-edge-right {float:right;}
+        #debug {display:none;}
+        /*#processing {width:480px; height:360px;}*/
     </style>
 </head>
 <body class="mirror">
@@ -17,6 +20,8 @@
         <label><input type="checkbox" name="mirror" checked disabled> Mirror image</label>
     </div>
     <div id="message">Press “Start Calibration” to begin.</div>
+    <div id="debug-edge-left" class="debug-edge"></div>
+    <div id="debug-edge-right" class="debug-edge"></div>
     <div id="output">
         <video id="webcam" autoplay width="640" height="480"></video>
         <canvas id="overlay"></canvas>
@@ -37,8 +42,8 @@
         var divBlockHeight = 32;  // Divide height by this number to get detection block height
         var divCalibHeight = 3;   // Divide height by this number to get calibration block height (centred)
         var sourceMethod = 1;     // 1 = Webcam; 2 = Image
-        var frequencyRange = [0, 1500];  // Hz
-        var DEBUG = 2;            // 0 = Off; 1 = Blocks; 2 = Values
+        var frequencyRange = [300, 1000];  // Hz
+        var DEBUG = 3;            // 0 = Off; 1 = Blocks; 2 = Values; 3 = HSL (separate canvases)
 
         /**
 
@@ -81,6 +86,7 @@
         var gainNode = audioCtx.createGainNode();
         var vectorCache = {};
         var width, height, colLeft, colRight;
+        var debugCanvas = {};
 
         function startInput() {
             width  = processing.width  = overlay.width  = video.width;
@@ -284,6 +290,23 @@
                 if (!DEBUG) {
                     return;
                 }
+                if (DEBUG >= 3) {
+                    var d = debugCanvas[this.edge];
+                    if (!d) {
+                        d = debugCanvas[this.edge] = {};
+                        var that = this;
+                        ['hue', 'sat', 'light'].forEach(function (type) {
+                            var can = document.createElement('canvas');
+                            can.width = that.dims.w;
+                            can.height = that.dims.h;
+                            document.getElementById('debug-edge-' + that.edge).appendChild(can);
+                            d[type] = {
+                                canvas: can,
+                                ctx: can.getContext('2d')
+                            };
+                        });
+                    }
+                }
                 var imageData = this.getImageData();
                 var newData = procCtx.createImageData(imageData.width, imageData.height);
                 var pixels = imageData.data;
@@ -296,18 +319,24 @@
                 var pav = posData.avg;
                 var psd = posData.stddev;
                 var i, x, rgb, hsl;
+                if (DEBUG >= 3) {
+                    var debugData = [
+                        d.hue.ctx.createImageData(imageData.width, imageData.height),
+                        d.sat.ctx.createImageData(imageData.width, imageData.height),
+                        d.light.ctx.createImageData(imageData.width, imageData.height)
+                    ];
+                    var debugPixels = [
+                        debugData[0].data,
+                        debugData[1].data,
+                        debugData[2].data
+                    ];
+                }
                 while (y--) {
                     x = w;
                     while (x--) {
                         i = (y * w + x) * 4;
                         rgb = [0, 0, 0];
                         hsl = rgb2hsl([pixels[i], pixels[i + 1], pixels[i + 2]]);
-                        // for (var i2 = 0; i2 < 3; i2++) {
-                        //     // if (hsl[i2] >= pmin[i2] && hsl[i2] <= pmax[i2]) { // min/max
-                        //     if (hsl[i2] >= pav[i2] - psd[i2] && hsl[i2] <= pav[i2] + psd[i2]) { // stddev
-                        //         rgb[i2] = 255;
-                        //     }
-                        // }
                         if (
                             hsl[0] >= pav[0] - psd[0] && hsl[0] <= pav[0] + psd[0] &&
                             hsl[2] >= pav[2] - psd[2] && hsl[2] <= pav[2] + psd[2]
@@ -318,9 +347,25 @@
                         newPixels[i + 1] = rgb[1];
                         newPixels[i + 2] = rgb[2];
                         newPixels[i + 3] = 255;
+                        if (DEBUG >= 3) {
+                            for (var i2 = 0; i2 < 3; i2++) {
+                                // if (hsl[i2] >= pmin[i2] && hsl[i2] <= pmax[i2]) { // min/max
+                                if (hsl[i2] >= pav[i2] - psd[i2] && hsl[i2] <= pav[i2] + psd[i2]) { // stddev
+                                    debugPixels[i2][i]     = i2 === 0 ? 255 : 0;
+                                    debugPixels[i2][i + 1] = i2 === 1 ? 255 : 0;
+                                    debugPixels[i2][i + 2] = i2 === 2 ? 255 : 0;
+                                    debugPixels[i2][i + 3] = 255;
+                                }
+                            }
+                        }
                     }
                 }
                 overlayCtx.putImageData(newData, this.dims.x, this.dims.y);
+                if (DEBUG >= 3) {
+                    d.hue.ctx.putImageData(debugData[0], 0, 0);
+                    d.sat.ctx.putImageData(debugData[1], 0, 0);
+                    d.light.ctx.putImageData(debugData[2], 0, 0);
+                }
             };
 
             hproto.getValue = function () {
