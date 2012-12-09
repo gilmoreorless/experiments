@@ -9,7 +9,8 @@
         .mirror video {-webkit-transform:scaleX(-1);}
         #debug-edge-left {float:left;}
         #debug, #debug-edge-right {float:right;}
-        #debug {display:none;}
+        /*#debug {display:none;}*/
+        /*#debug > canvas {width:320px; height:240px;}*/
         /*#processing {width:480px; height:360px;}*/
     </style>
 </head>
@@ -27,6 +28,7 @@
         <canvas id="overlay"></canvas>
     </div>
     <div id="debug">
+        <canvas id="debug-blocks"></canvas>
         <canvas id="processing"></canvas>
     </div>
     <script src="../common/js/gumShield.js"></script>
@@ -38,8 +40,8 @@
 
         var minMagnitude = 10;    // Minimum gradient magnitude for edge detection (percentage)
         var divZoneWidth = 20;    // Divide width by this number to get edge zone width
-        var divBlockWidth = 40;   // Divide width by this number to get detection block width
-        var divBlockHeight = 32;  // Divide height by this number to get detection block height
+        var divBlockWidth = 20;   // Divide width by this number to get detection block width (40?)
+        var divBlockHeight = 16;  // Divide height by this number to get detection block height (32?)
         var divCalibHeight = 3;   // Divide height by this number to get calibration block height (centred)
         var sourceMethod = 1;     // 1 = Webcam; 2 = Image
         var frequencyRange = [300, 1000];  // Hz
@@ -76,8 +78,10 @@
         var video = document.getElementById('webcam');
         var overlay = document.getElementById('overlay');
         var processing = document.getElementById('processing');
+        var debugBlocks = document.getElementById('debug-blocks');
         var overlayCtx = overlay.getContext('2d');
         var procCtx = processing.getContext('2d');
+        var blockCtx = debugBlocks.getContext('2d');
         var calibrationImage = new Image();
         calibrationImage.src = '../common/img/theremin-overlay-hands.png';
 
@@ -281,7 +285,7 @@
                         ctx.fillRect(bx, by, bw, bh);
                         i++;
                     });
-                    this.ctx.drawImage(c, this.dims.x, this.dims.y);
+                    blockCtx.drawImage(c, this.dims.x, this.dims.y);
                     c = null;
                 }
             };
@@ -349,8 +353,8 @@
                         newPixels[i + 3] = 255;
                         if (DEBUG >= 3) {
                             for (var i2 = 0; i2 < 3; i2++) {
-                                // if (hsl[i2] >= pmin[i2] && hsl[i2] <= pmax[i2]) { // min/max
-                                if (hsl[i2] >= pav[i2] - psd[i2] && hsl[i2] <= pav[i2] + psd[i2]) { // stddev
+                                if (hsl[i2] >= pmin[i2] && hsl[i2] <= pmax[i2]) { // min/max
+                                // if (hsl[i2] >= pav[i2] - psd[i2] && hsl[i2] <= pav[i2] + psd[i2]) { // stddev
                                     debugPixels[i2][i]     = i2 === 0 ? 255 : 0;
                                     debugPixels[i2][i + 1] = i2 === 1 ? 255 : 0;
                                     debugPixels[i2][i + 2] = i2 === 2 ? 255 : 0;
@@ -448,6 +452,11 @@
                 console.info('calibrate()');
                 message.innerHTML = 'Now calibrating...';
                 procCtx.drawImage(video, 0, 0, width, height);
+                if (DEBUG >= 1) {
+                    debugBlocks.width = width;
+                    debugBlocks.height = height;
+                    blockCtx.drawImage(video, 0, 0, width, height);
+                }
                 colLeft.setPositiveData();
                 colRight.setPositiveData();
                 tracker.setState('ready');
