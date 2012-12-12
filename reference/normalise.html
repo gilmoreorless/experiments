@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>References - Normalise colours</title>
+    <style>
+        input[type=range] {-webkit-appearance:slider-vertical; width:30px; height:130px;}
+    </style>
+</head>
+<body>
+    <canvas id="source"></canvas>
+    <canvas id="compare"></canvas>
+    <input type="range" id="shifter" min="1" max="7" value="1" />
+    <span id="shiftValue"></span>
+
+    <script src="../common/js/headtrackr.camshift.js"></script>
+    <script>
+        var imgSrc = '../common/img/catimov.jpg';
+        var width = 320;
+        var height; // Auto-calculated
+
+        var shifter = document.getElementById('shifter');
+        var shiftSpan = document.getElementById('shiftValue');
+        var source = document.getElementById('source');
+        var compare = document.getElementById('compare');
+        var sourceCtx = source.getContext('2d');
+        var compareCtx = compare.getContext('2d');
+        var bitShift;
+
+        function load() {
+            var img = new Image();
+            img.onload = function () {
+                var scale = width / img.width;
+                source.width  = compare.width  = width;
+                source.height = compare.height = height = Math.round(img.height * scale);
+                sourceCtx.drawImage(img, 0, 0, img.width, img.height, 0, 0, width, height);
+                init();
+            }
+            img.src = imgSrc;
+        }
+
+        function init() {
+            shifter.addEventListener('change', shiftChange, false);
+            shiftChange();
+        }
+
+        function shiftChange() {
+            bitShift = +shifter.value || 1;
+            shiftSpan.innerHTML = 'Bitshift: ' + bitShift;
+            normalise();
+        }
+
+        function normalise() {
+            var imgData = sourceCtx.getImageData(0, 0, width, height);
+            var pixels = imgData.data;
+            var i = pixels.length;
+            while (i--) {
+                if (i % 4 !== 3) {
+                    pixels[i] = pixels[i] >> bitShift << bitShift;
+                }
+            }
+            compareCtx.putImageData(imgData, 0, 0);
+        }
+
+        load();
+    </script>
+</body>
+</html>
