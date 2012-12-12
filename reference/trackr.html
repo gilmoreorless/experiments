@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>References - Face Detection</title>
+    <style>
+        body {font-family:Arial;}
+        .region {border:1px #000 dashed; margin:10px; /*overflow:hidden;*/ padding:10px;}
+        .region h1 {clear:both; color:red; font-size:1.4em; margin:0;}
+        .region h3 {clear:both; color:blue; font-size:1.1em; margin:10px 0 0 0;}
+        .block {float:left; margin:5px 0 0 5px; text-align:center;}
+        .region strong {display:block;}
+    </style>
+</head>
+<body>
+    <div id="container"></div>
+
+    <script src="../common/js/headtrackr.camshift.js"></script>
+    <script>
+        var imgSrcBg = '../common/img/fedex18-winners.jpg';
+        var imgSrcFg = '../common/img/mad.png';
+        var bgW = 200;
+        var fgW = 50;
+        var bgH; // Auto-calculated
+        var fgH; // Auto-calculated
+
+        var src = {
+            bg: document.createElement('canvas'),
+            fg: document.createElement('canvas')
+        };
+        var regions = {};
+        var currentRegion;
+        var container = document.getElementById('container');
+
+        function drawImage(canvas, img, w, h) {
+            w = w || img.width;
+            h = h || img.height;
+            canvas.width = w;
+            canvas.height = h;
+            canvas.getContext('2d').drawImage(img, 0, 0, img.width, img.height, 0, 0, w, h);
+        }
+
+        function preload() {
+            var img1 = new Image();
+            var img2 = new Image();
+            var loadCount = 0;
+
+            function checkLoaded() {
+                if (++loadCount == 2) {
+                    init();
+                }
+            }
+
+            img1.onload = function () {
+                bgH = img1.height * (bgW / img1.width);
+                drawImage(src.bg, img1, bgW, bgH);
+                checkLoaded();
+            };
+            img2.onload = function () {
+                fgH = img2.height * (fgW / img2.width);
+                drawImage(src.fg, img2, fgW, fgH);
+                checkLoaded();
+            };
+            img1.src = imgSrcBg;
+            img2.src = imgSrcFg;
+        }
+
+        function addRegion(name) {
+            var div = document.createElement('div');
+            div.className = 'region';
+            div.id = 'region-' + name;
+            div.innerHTML = '<strong>' + name + '</strong>';
+            regions[name] = div;
+            container.appendChild(div);
+            currentRegion = div;
+            return div;
+        }
+
+        function addCanvas(name, w, h, region) {
+            region || (region = currentRegion);
+            if (!region.nodeName) {
+                region = regions[region];
+            }
+            var canvas = document.createElement('canvas');
+            canvas.id = region.id + '-' + name;
+            canvas.width = w;
+            canvas.height = h;
+            region.appendChild(canvas);
+            return canvas;
+        }
+
+        function drawReference(canvas, offX, offY) {
+            var ctx = canvas.getContext('2d');
+            ctx.drawImage(src.bg, 0, 0);
+            ctx.drawImage(src.fg, offX || 0, offY || 0);
+        }
+
+        function drawHistogram(canvas, hist, yScale) {
+            var ctx = canvas.getContext('2d');
+            var cw = canvas.width;
+            var ch = canvas.height;
+            ctx.save();
+            ctx.fillStyle = '#F8F8F8';
+            ctx.fillRect(0, 0, cw, ch);
+
+            var binsPerGroup = 4096 / cw;
+            var binCount = 0;
+            var combined = 0;
+            var isArray = hist instanceof Array;
+            var bin, y, r, g, b;
+            yScale = yScale || 0.4;
+            for (var i = 0; i < 4096; i++) {
+                bin = isArray ? hist[i] : hist.getBin(i);
+                binCount++;
+                combined += bin;
+                if (binCount >= binsPerGroup) {
+                    if (combined > 0) {
+                        r = ((i >> 8) % 16) * 16;
+                        g = ((i >> 4) % 16) * 16;
+                        b = (i % 16) * 16;
+                        ctx.fillStyle = 'rgb(' + [r, g, b] + ')';
+                        y = Math.max(0, ch - (combined / binsPerGroup) * yScale);
+                        // y = Math.max(0, ch - combined * yScale);
+                        ctx.fillRect(~~(i / binsPerGroup), y, 1, ch);
+                    }
+                    binCount = 0;
+                    combined = 0;
+                }
+            }
+            ctx.restore();
+        }
+
+        function init() {
+            var tracker = new headtrackr.camshift.Tracker({
+                calcAngles: false
+            });
+            // var histW = 682;
+            var histW = 4096;
+            var histH = 130;
+
+            // Setup
+            addRegion('start');
+            var startCanvas = addCanvas('initial-track', bgW, bgH);
+            drawReference(startCanvas, 25, 25);
+
+            // Hidden canvas for use with headtrackr
+            var fakeRegion = document.createElement('div');
+            var refCanvas = addCanvas('reference', bgW, bgH, fakeRegion);
+            refCanvas.getContext('2d').drawImage(startCanvas, 0, 0);
+            tracker.initTracker(refCanvas, new headtrackr.camshift.Rectangle(25, 25, fgW, fgH));
+
+            // Initial tracking init with histogram
+            addRegion('track-init');
+            var trackCanvas = addCanvas('obj', bgW + fgW + 20, bgH);
+            drawReference(trackCanvas, 25, 25);
+            var trackCtx = trackCanvas.getContext('2d');
+            trackCtx.drawImage(refCanvas, 25, 25, fgW, fgH, bgW + 10, 0, fgW, fgH);
+            var trackHistCanvas = addCanvas('hist', histW, histH);
+            drawHistogram(trackHistCanvas, tracker.getModelHist());
+
+            // Move object, start tracking process
+            // track -> camShift -> meanShift
+            addRegion('meanShift-full-hist');
+            var meanShiftRef = addCanvas('ref', bgW + 10, bgH);
+            drawReference(meanShiftRef, 50, 75);
+            drawReference(refCanvas, 50, 75);
+            tracker.track(refCanvas);
+
+            var meanShiftData = meanShiftRef.getContext('2d').getImageData(0, 0, meanShiftRef.width, meanShiftRef.height);
+            var curHist = new headtrackr.camshift.Histogram(meanShiftData.data);
+            var meanShiftHist = addCanvas('hist', histW, histH);
+            drawHistogram(meanShiftHist, curHist);
+
+            // track -> camShift -> meanShift -> getWeights
+            addRegion('getWeights');
+            var getWeightsCanvas = addCanvas('weights', histW, histH);
+            var weights = tracker.getWeights(tracker.getModelHist(), curHist);
+            drawHistogram(getWeightsCanvas, weights, histH);
+
+            // track -> camShift -> meanShift
+            addRegion('mean-shift');
+            var moments = tracker.getMeanShiftData();
+            var projData = tracker.getBackProjectionImg();
+            console.log(moments)
+            var msCanvas, msCtx, msMoment, msWindow;
+            for (var i = 0, ii = moments.length; i < ii; i++) {
+                msMoment = moments[i].moment;
+                msWindow = moments[i].searchWindow;
+                msCanvas = addCanvas('moment-' + i, bgW, bgH);
+                msCtx = msCanvas.getContext('2d');
+                msCtx.putImageData(projData, 0, 0);
+                msCtx.strokeStyle = '#0F0';
+                msCtx.strokeRect(msWindow.x - 0.5, msWindow.y - 0.5, msWindow.width + 1, msWindow.height + 1);
+            }
+
+            // End result
+            addRegion('track-end');
+            var endCanvas = addCanvas('end', bgW, bgH);
+            var endCtx = endCanvas.getContext('2d');
+            var trackObj = tracker.getTrackObj();
+            endCtx.drawImage(refCanvas, 0, 0);
+            endCtx.strokeStyle = '#0F0';
+            endCtx.translate(trackObj.x, trackObj.y)
+            endCtx.rotate(trackObj.angle-(Math.PI/2));
+            endCtx.strokeRect((-(trackObj.width/2)) >> 0, (-(trackObj.height/2)) >> 0, trackObj.width, trackObj.height);
+        }
+
+        preload();
+    </script>
+</body>
+</html>
