@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <title>Webcam Experiments - Theremin</title>
     <style>
-        #output {position:relative; margin-left:120px;}
+        #output {position:relative; margin-left:140px;}
         #output > canvas {position:absolute; left:0; top:0;}
         .mirror video {-webkit-transform:scaleX(-1);}
         #debug-edge-left {float:left;}
@@ -46,6 +46,8 @@
         var sourceMethod = 1;     // 1 = Webcam; 2 = Image
         var frequencyRange = [300, 1000];  // Hz
         var DEBUG = 3;            // 0 = Off; 1 = Blocks; 2 = Values; 3 = HSL (separate canvases)
+        var DETECT_METHOD = 2;    // 1 = HSL; 2 = Histogram
+        var histBitShift = 4;
 
         /**
 
@@ -171,7 +173,8 @@
                     max: [],
                     avg: [],
                     stddev: [],
-                    blocks: []
+                    blocks: [],
+                    hist: []
                 };
             }
 
@@ -181,6 +184,66 @@
                 var d = this.dims;
                 return this.ctx.getImageData(d.x, d.y, d.w, d.h);
             };
+
+            /**
+             * Methods copied from https://github.com/auduno/headtrackr
+             */
+            hproto.getHistogram = function (imageData) {
+                var size = 4096;
+                var bins = [];
+                var pixels = (imageData || this.getImageData()).data;
+                var i, x, r, g, b, il;
+
+                // Initialize bins
+                for (i = 0; i < size; i++) {
+                    bins.push(0);
+                }
+
+                // Add histogram data
+                for (x = 0, il = pixels.length; x < il; x += 4) {
+                    r = pixels[x + 0] >> histBitShift; // Round down to bins of 16
+                    g = pixels[x + 1] >> histBitShift;
+                    b = pixels[x + 2] >> histBitShift;
+                    bins[256 * r + 16 * g + b]++;
+                }
+                return bins;
+            };
+
+            function getWeights(baseHist, currentHist) {
+                // Return an array of the probabilities of each histogram color bins
+                var weights = [];
+                var p, i, ii;
+
+                // iterate over the entire histogram and compare
+                for (i = 0, ii = baseHist.length; i < ii; i++) {
+                    if (currentHist[i] != 0) {
+                        p = Math.min(baseHist[i] / currentHist[i], 1);
+                    } else {
+                        p = 0;
+                    }
+                    weights.push(p);
+                }
+
+                return weights;
+            }
+
+            function getProjectionData(imageData, weights) {
+                var newData = this.ctx.createImageData(imageData.width, imageData.height);
+                var newPixels = newData.data;
+                var oldPixels = imageData.data;
+                var c, r, g, b;
+                for (var i = 0, ii = oldPixels.length; i < ii; i += 4) {
+                    r = oldPixels[i] >> histBitShift;
+                    g = oldPixels[i + 1] >> histBitShift;
+                    b = oldPixels[i + 2] >> histBitShift;
+                    c = weights[256 * r + 16 * g + b];
+                    newPixels[i] = newPixels[i + 1] = newPixels[i + 2] = Math.floor(c * 255);
+                    newPixels[i + 3] = 255;
+                }
+
+                return newData;
+            }
+            // END methods copied from headtrackr
 
             hproto.forEachBlock = function (callback) {
                 var h = this.dims.h / divCalibHeight;
@@ -208,6 +271,8 @@
                 var tc = 0, th = 0, ts = 0, tl = 0;
                 var Mmax = Math.max, Mmin = Math.min;
                 var sd = [[], [], []];
+
+                this.hist = this.getHistogram(imageData);
 
                 this.forEachBlock(function (bx, by, bw, bh) {
                     var ip, ix, iy, hsl;
@@ -299,7 +364,7 @@
                     if (!d) {
                         d = debugCanvas[this.edge] = {};
                         var that = this;
-                        ['hue', 'sat', 'light'].forEach(function (type) {
+                        ['hue', 'sat', 'light', 'hist'].forEach(function (type) {
                             var can = document.createElement('canvas');
                             can.width = that.dims.w;
                             can.height = that.dims.h;
@@ -335,6 +400,13 @@
                         debugData[2].data
                     ];
                 }
+                // Histogram method
+                if (DEBUG >= 3) {
+                    var hist = this.getHistogram(imageData);
+                    var projData = getProjectionData.call(this, imageData, getWeights(this.hist, hist));
+                    d.hist.ctx.putImageData(projData, 0, 0);
+                }
+                // HSL method
                 while (y--) {
                     x = w;
                     while (x--) {
@@ -381,18 +453,35 @@
                 var pav = posData.avg;
                 var psd = posData.stddev;
                 var value = 0;
-                var i, x, hsl, valid, foundRow;
+                var i, x, hsl, valid, foundRow, histMatch, r, g, b;
+                if (DETECT_METHOD === 2) {
+                    var hist = this.getHistogram(imageData);
+                    var weights = getWeights(this.hist, hist);
+                }
                 while (y--) {
                     x = w;
                     valid = 0;
                     while (x--) {
                         i = (y * w + x) * 4;
-                        hsl = rgb2hsl([pixels[i], pixels[i + 1], pixels[i + 2]]);
-                        if (
-                            hsl[0] >= pav[0] - psd[0] && hsl[0] <= pav[0] + psd[0] &&
-                            hsl[2] >= pav[2] - psd[2] && hsl[2] <= pav[2] + psd[2]
-                        ) {
-                            valid++;
+                        // HSL method
+                        if (DETECT_METHOD === 1) {
+                            hsl = rgb2hsl([pixels[i], pixels[i + 1], pixels[i + 2]]);
+                            if (
+                                hsl[0] >= pav[0] - psd[0] && hsl[0] <= pav[0] + psd[0] &&
+                                hsl[2] >= pav[2] - psd[2] && hsl[2] <= pav[2] + psd[2]
+                            ) {
+                                valid++;
+                            }
+                        }
+                        // Histogram method
+                        if (DETECT_METHOD === 2) {
+                            r = pixels[i] >> histBitShift;
+                            g = pixels[i + 1] >> histBitShift;
+                            b = pixels[i + 2] >> histBitShift;
+                            histMatch = weights[256 * r + 16 * g + b];
+                            if (histMatch > 0.95) {
+                                valid++;
+                            }
                         }
                     }
                     if (valid >= w * 0.6) {
@@ -403,6 +492,7 @@
                 if (foundRow) {
                     value = (this.dims.h - foundRow) / this.dims.h;
                 }
+                // Show green bar for value
                 if (DEBUG >= 2) {
                     overlayCtx.save();
                     overlayCtx.fillStyle = 'rgba(0, 255, 0, 0.5)';
