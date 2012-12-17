@@ -185,6 +185,13 @@
                 return this.ctx.getImageData(d.x, d.y, d.w, d.h);
             };
 
+            hproto.getCalibrationImageData = function () {
+                var d = this.dims;
+                var h = d.h / divCalibHeight;
+                var y = ~~((d.h / 2) - (h / 2));
+                return this.ctx.getImageData(d.x, y, d.w, h);
+            };
+
             /**
              * Methods copied from https://github.com/auduno/headtrackr
              */
@@ -272,7 +279,7 @@
                 var Mmax = Math.max, Mmin = Math.min;
                 var sd = [[], [], []];
 
-                this.hist = this.getHistogram(imageData);
+                this.hist = this.getHistogram(this.getCalibrationImageData());
 
                 this.forEachBlock(function (bx, by, bw, bh) {
                     var ip, ix, iy, hsl;
@@ -479,7 +486,7 @@
                             g = pixels[i + 1] >> histBitShift;
                             b = pixels[i + 2] >> histBitShift;
                             histMatch = weights[256 * r + 16 * g + b];
-                            if (histMatch > 0.95) {
+                            if (histMatch > 0.8) {
                                 valid++;
                             }
                         }
