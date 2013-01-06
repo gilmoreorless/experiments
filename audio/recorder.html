@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Audio Experiments - Recorder</title>
+</head>
+<body>
+    <div id="controls">
+        <button id="btnStartInput">Enable Microphone</button> <button id="btnStopInput">Disable Microphone</button><br />
+        <button id="btnStartRec">Start Recording</button> <button id="btnStopRec">Stop Recording / Start Playback</button><br />
+    </div>
+    <script src="../common/js/gumShield.js"></script>
+    <script src="../common/js/recorder.js"></script>
+    <script>
+        /*** Vars ***/
+
+        // var width = 400;
+        // var height = 500;
+
+        /*** Drawing stuff ***/
+
+        var audioCtx = new webkitAudioContext();
+        var isRecording = false;
+        var streamSrc, recorder;
+        var btn = {
+            startInput: document.getElementById('btnStartInput'),
+            stopInput: document.getElementById('btnStopInput'),
+            startRec: document.getElementById('btnStartRec'),
+            stopRec: document.getElementById('btnStopRec')
+        };
+
+        function setButtonStates() {
+            btn.startInput.disabled = !!streamSrc;
+            btn.stopInput.disabled = !streamSrc;
+            btn.startRec.disabled = !streamSrc || isRecording;
+            btn.stopRec.disabled = !streamSrc || !isRecording;
+        }
+
+        function setup() {
+            btn.startInput.addEventListener('click', startInput, false);
+            btn.stopInput.addEventListener('click', stopInput, false);
+            btn.startRec.addEventListener('click', startRecording, false);
+            btn.stopRec.addEventListener('click', stopRecording, false);
+            document.getElementById('controls').addEventListener('click', setButtonStates, false);
+
+            setButtonStates();
+            setTimeout(startInput);
+        }
+
+        function startInput() {
+            navigator.getUserMedia({audio: true}, function (stream) {
+                streamSrc = audioCtx.createMediaStreamSource(stream);
+                // streamSrc.connect(audioCtx.destination);
+                recorder = new Recorder(streamSrc, {
+                    workerPath: '../common/js/recorderWorker.js'
+                });
+                setButtonStates();
+            }, function () {
+                console.error('Oh noes!');
+            });
+        }
+
+        function stopInput() {
+            streamSrc.disconnect();
+            streamSrc = null;
+        }
+
+        function startRecording() {
+            isRecording = true;
+            recorder.clear();
+            recorder.record();
+        }
+
+        function stopRecording() {
+            isRecording = false;
+            recorder.stop();
+            recorder.getBuffer(getRecording);
+        }
+
+        function getRecording(buffers) {
+            // Copied from Recorder.js example
+            var newSource = audioCtx.createBufferSource();
+            var newBuffer = audioCtx.createBuffer(2, buffers[0].length, audioCtx.sampleRate);
+            newBuffer.getChannelData(0).set(buffers[0]);
+            newBuffer.getChannelData(1).set(buffers[1]);
+            newSource.buffer = newBuffer;
+
+            newSource.connect(audioCtx.destination);
+            newSource.start(0);
+        }
+
+        setup();
+    </script>
+</body>
+</html>
