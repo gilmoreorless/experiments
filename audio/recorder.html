@@ -3,58 +3,114 @@
 <head>
     <meta charset="UTF-8">
     <title>Audio Experiments - Recorder</title>
+    <style>
+        #controls > div {border:1px dashed #000; margin:10px; padding:10px;}
+        .recording, .playing {display:none; font-style:italic; padding:5px 0 0 20px; position:relative;}
+        .recording::before {border:8px solid #F00; border-radius:50%; content:''; display:block; height:0; left:0; position:absolute; width:0;}
+        .playing::before {border:0 solid transparent; border-width:8px 0 8px 16px; border-left-color:#090; content:''; display:block; height:0; left:0; position:absolute; width:0;}
+        #output-options {display:none;}
+    </style>
 </head>
 <body>
     <div id="controls">
-        <button id="btnStartInput">Enable Microphone</button> <button id="btnStopInput">Disable Microphone</button><br />
-        <button id="btnStartRec">Start Recording</button> <button id="btnStopRec">Stop Recording / Start Playback</button><br />
+        <div id="actions">
+            <button id="btn-startInput">Enable Microphone</button> <button id="btn-stopInput">Disable Microphone</button><br>
+            <button id="btn-startRecording">Start Recording</button> <button id="btn-stopRecording">Stop Recording / Start Playback</button><br>
+            <div class="recording">Recording&hellip;</div>
+            <div class="playing">Playing audio&hellip;</div>
+        </div>
+        <div id="input-options">
+            <label><input type="checkbox" name="autoDetect"> Auto-detect/record input voice</label>
+        </div>
+        <div id="output-options">
+            <strong>Output:</strong><br>
+            <label><input type="radio" name="outputType" value="normal" checked> Normal</label><br>
+            <label><input type="radio" name="outputType" value="dalek"> Dalek</label><br>
+            <label><input type="radio" name="outputType" value="cyberman"> Cyberman</label><br>
+        </div>
     </div>
     <script src="../common/js/gumShield.js"></script>
+    <script src="../common/js/eve.js"></script>
     <script src="../common/js/recorder.js"></script>
     <script>
-        /*** Vars ***/
-
-        // var width = 400;
-        // var height = 500;
-
-        /*** Drawing stuff ***/
-
         var audioCtx = new webkitAudioContext();
+        var analyser = audioCtx.createAnalyser();
         var isRecording = false;
-        var streamSrc, recorder;
-        var btn = {
-            startInput: document.getElementById('btnStartInput'),
-            stopInput: document.getElementById('btnStopInput'),
-            startRec: document.getElementById('btnStartRec'),
-            stopRec: document.getElementById('btnStopRec')
+        var isPlaying = false;
+        var options = {
+            autoDetect: false,
+            outputType: 'normal'
         };
+        var streamSrc, recorder;
 
-        function setButtonStates() {
+        // Debug
+        eve.on('*', function () {
+            console.log('EVE', eve.nt(), arguments);
+        });
+
+        // DOM nodes
+        var btn = {
+            startInput: document.getElementById('btn-startInput'),
+            stopInput: document.getElementById('btn-stopInput'),
+            startRec: document.getElementById('btn-startRecording'),
+            stopRec: document.getElementById('btn-stopRecording')
+        };
+        var recIndicator = document.querySelector('#actions .recording');
+        var playIndicator = document.querySelector('#actions .playing');
+
+        function setStates() {
             btn.startInput.disabled = !!streamSrc;
             btn.stopInput.disabled = !streamSrc;
-            btn.startRec.disabled = !streamSrc || isRecording;
-            btn.stopRec.disabled = !streamSrc || !isRecording;
+            btn.startRec.disabled = !streamSrc || isRecording || options.autoDetect;
+            btn.stopRec.disabled = !streamSrc || !isRecording || options.autoDetect;
+        }
+
+        function actionClick(e) {
+            var id = e.target.id.replace('btn-', '');
+            if (typeof window[id] === 'function') {
+                window[id]();
+            }
+            setStates();
+        }
+
+        function optionClick(e) {
+            var input = e.target;
+            if (input.nodeName.toLowerCase() === 'input') {
+                var type = input.type;
+                var name = input.name;
+                if (type === 'checkbox') {
+                    options[name] = input.checked;
+                } else {
+                    options[name] = input.value;
+                }
+                eve('option.change', input, name, options[name]);
+                setStates();
+            }
         }
 
         function setup() {
-            btn.startInput.addEventListener('click', startInput, false);
-            btn.stopInput.addEventListener('click', stopInput, false);
-            btn.startRec.addEventListener('click', startRecording, false);
-            btn.stopRec.addEventListener('click', stopRecording, false);
-            document.getElementById('controls').addEventListener('click', setButtonStates, false);
+            analyser.fftSize = 64; // Must be a power of 2, >= 32
+            // analyser.fftSize = 1024; // Must be a power of 2, >= 32
+            byteData = new Uint8Array(analyser.fftSize / 2);
 
-            setButtonStates();
+            document.getElementById('actions').addEventListener('click', actionClick, false);
+            document.getElementById('input-options').addEventListener('click', optionClick, false);
+            document.getElementById('output-options').addEventListener('click', optionClick, false);
+
+            setStates();
             setTimeout(startInput);
+            listenForAudioStart();
         }
 
         function startInput() {
             navigator.getUserMedia({audio: true}, function (stream) {
                 streamSrc = audioCtx.createMediaStreamSource(stream);
-                // streamSrc.connect(audioCtx.destination);
+                streamSrc.connect(analyser);
                 recorder = new Recorder(streamSrc, {
                     workerPath: '../common/js/recorderWorker.js'
                 });
-                setButtonStates();
+                eve('input.start');
+                setStates();
             }, function () {
                 console.error('Oh noes!');
             });
@@ -63,21 +119,29 @@
         function stopInput() {
             streamSrc.disconnect();
             streamSrc = null;
+            eve('input.stop');
         }
 
         function startRecording() {
             isRecording = true;
+            recIndicator.style.display = 'block';
             recorder.clear();
             recorder.record();
+            eve('recording.start');
         }
 
         function stopRecording() {
             isRecording = false;
+            recIndicator.style.display = 'none';
             recorder.stop();
-            recorder.getBuffer(getRecording);
+            recorder.getBuffer(playRecording);
+            eve('recording.stop');
         }
 
-        function getRecording(buffers) {
+        function playRecording(buffers) {
+            isPlaying = true;
+            playIndicator.style.display = 'block';
+
             // Copied from Recorder.js example
             var newSource = audioCtx.createBufferSource();
             var newBuffer = audioCtx.createBuffer(2, buffers[0].length, audioCtx.sampleRate);
@@ -87,6 +151,63 @@
 
             newSource.connect(audioCtx.destination);
             newSource.start(0);
+            eve('playback.start');
+
+            // AudioBufferSourceNodes don't have an event fired when playbackState has changed :(
+            function checkState() {
+                console.log('checkState', newSource.playbackState);
+                if (newSource.playbackState === 3) { // FINISHED_STATE
+                    isPlaying = false;
+                    playIndicator.style.display = 'none';
+                    eve('playback.stop');
+                } else {
+                    setTimeout(checkState, 0);
+                }
+            }
+            setTimeout(checkState, newBuffer.duration * 1000);
+        }
+
+        var once = eve.once;
+        eve.once = function (name) {
+            console.log('eve.once', name);
+            once.apply(eve, arguments);
+        };
+        function listenForAudioStart() {
+            if (!options.autoDetect) {
+                return eve.once('option.change', listenForAudioStart);
+            }
+            if (!streamSrc) {
+                return eve.once('input.start', listenForAudioStart);
+            }
+            if (isRecording) {
+                return eve.once('recording.stop', listenForAudioStart);
+            }
+            if (isPlaying) {
+                return eve.once('playback.stop', listenForAudioStart);
+            }
+
+            if (isAudioAboveThreshold()) {
+                startRecording();
+                setTimeout(listenForAudioStop, 10);
+            } else {
+                setTimeout(listenForAudioStart, 10);
+            }
+        }
+
+        function listenForAudioStop() {
+            if (!isAudioAboveThreshold()) {
+                stopRecording();
+            } else {
+                setTimeout(listenForAudioStop, 10);
+            }
+        }
+
+        var threshold = 0.5;
+        function isAudioAboveThreshold() {
+            var count = analyser.frequencyBinCount;
+            analyser.getByteFrequencyData(byteData);
+            var max = Math.max.apply(Math, byteData);
+            return max >= threshold;
         }
 
         setup();
