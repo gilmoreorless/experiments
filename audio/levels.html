@@ -13,8 +13,11 @@
     <script>
         /*** Vars ***/
 
-        var width = 150;
+        // var width = 150;
+        var width = 512;
         var height = 300;
+        var showRecentMax = true;
+        var useFilter = false;
 
         /*** Drawing stuff ***/
 
@@ -22,20 +25,33 @@
         var ctx = canvas.getContext('2d');
         var audioCtx = new webkitAudioContext();
         var analyser = audioCtx.createAnalyser();
+        var filter = audioCtx.createBiquadFilter();
         var heightScale = height / 256;
         var x2 = width + 20;
         var doDraw = true;
         var streamSrc;
-        var byteData;
+        var byteData, recentData, recentIndex;
 
         function setup() {
             canvas.width = width * 2 + 30;
             canvas.height = height;
             ctx.strokeRect(0.5, 0, width, height);
-            ctx.fillStyle = '#090';
 
-            analyser.fftSize = 64; // Must be a power of 2, >= 32
+            // analyser.fftSize = 64; // Must be a power of 2, >= 32
+            analyser.fftSize = 1024; // Must be a power of 2, >= 32
             byteData = new Uint8Array(analyser.fftSize / 2);
+            if (showRecentMax) {
+                var i = byteData.length;
+                recentData = new Array(i);
+                recentIndex = 0;
+                while (i--) {
+                    recentData[i] = new Uint8Array(30);
+                }
+            }
+            if (useFilter) {
+                filter.type = 1;
+                filter.connect(analyser);
+            }
 
             document.getElementById('btnStart').addEventListener('click', startInput, false);
             document.getElementById('btnStop').addEventListener('click', stopInput, false);
@@ -55,6 +71,7 @@
             var avg1 = 0;
             var avg2 = 0;
             var max = 0;
+            var recentMax = 0;
 
             // Draw individual frequency volumes
             ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -67,12 +84,22 @@
                 if (byteData[i] > max) {
                     max = byteData[i];
                 }
+                if (showRecentMax) {
+                    recentData[i][recentIndex] = byteData[i];
+                    recentMax = Math.max.apply(Math, recentData[i]);
+                    ctx.fillStyle = 'hsl(' + Math.round(i / len * 360) + ', 70%, 30%)';
+                    ctx.fillRect(w * i, height - recentMax * heightScale, w, 1);
+                }
+                // Style copied from http://webaudiodemos.appspot.com/AudioRecorder/index.html
+                ctx.fillStyle = 'hsl(' + Math.round(i / len * 360) + ', 100%, 40%)';
                 ctx.fillRect(w * i, height - byteData[i] * heightScale, w, height * heightScale);
             };
+            if (showRecentMax) {
+                recentIndex = (recentIndex + 1) % recentData[0].length;
+            }
 
             // Draw average1
             avg1 = Math.sqrt(avg1);
-            avg2 = avg2 / len;
             ctx.save();
             ctx.strokeStyle = '#f00';
             ctx.beginPath();
@@ -81,6 +108,7 @@
             ctx.stroke();
             ctx.restore();
             // Draw average2
+            avg2 = avg2 / len;
             ctx.save();
             ctx.strokeStyle = '#00f';
             ctx.beginPath();
@@ -122,7 +150,11 @@
         function startInput() {
             navigator.getUserMedia({audio: true}, function (stream) {
                 streamSrc = audioCtx.createMediaStreamSource(stream);
-                streamSrc.connect(analyser)
+                if (useFilter) {
+                    streamSrc.connect(filter);
+                } else {
+                    streamSrc.connect(analyser);
+                }
                 doDraw = true;
                 draw();
             }, function () {
