@@ -140,6 +140,11 @@
         }
 
         function playRecording(buffers) {
+            if (!buffers[0].length) {
+                console.log('No buffer length - cannot play');
+                eve('playback.stop');
+                return;
+            }
             isPlaying = true;
             playIndicator.style.display = 'block';
 
@@ -201,18 +206,36 @@
 
         function listenForAudioStop() {
             if (!isAudioAboveThreshold()) {
+                eve.once('playback.stop', listenForAudioStart);
                 stopRecording();
             } else {
                 setTimeout(listenForAudioStop, 10);
             }
         }
 
-        var threshold = 0.5;
+        var threshold = 140;
+        var cutoffAllowance = 1000; // milliseconds
+        var lastTimeAboveThreshold = 0;
         function isAudioAboveThreshold() {
+            var now = +new Date();
             var count = analyser.frequencyBinCount;
             analyser.getByteFrequencyData(byteData);
             var max = Math.max.apply(Math, byteData);
-            return max >= threshold;
+            if (max >= threshold) {
+                lastTimeAboveThreshold = now;
+                console.log('max', max);
+                return true;
+            }
+            console.log('max', max, now - lastTimeAboveThreshold);
+            if (!lastTimeAboveThreshold) {
+                return false;
+            }
+            var delta = now - lastTimeAboveThreshold;
+            if (delta > cutoffAllowance) {
+                lastTimeAboveThreshold = 0;
+                return false;
+            }
+            return true;
         }
 
         setup();
