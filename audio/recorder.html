@@ -8,7 +8,6 @@
         .recording, .playing {display:none; font-style:italic; padding:5px 0 0 20px; position:relative;}
         .recording::before {border:8px solid #F00; border-radius:50%; content:''; display:block; height:0; left:0; position:absolute; width:0;}
         .playing::before {border:0 solid transparent; border-width:8px 0 8px 16px; border-left-color:#090; content:''; display:block; height:0; left:0; position:absolute; width:0;}
-        #output-options {display:none;}
     </style>
 </head>
 <body>
@@ -32,9 +31,11 @@
     <script src="../common/js/gumShield.js"></script>
     <script src="../common/js/eve.js"></script>
     <script src="../common/js/recorder.js"></script>
+    <script src="../common/js/ring-modulator.js"></script>
     <script>
         var audioCtx = new webkitAudioContext();
         var analyser = audioCtx.createAnalyser();
+        var ringModulator = new RingModulator(audioCtx);
         var isRecording = false;
         var isPlaying = false;
         var options = {
@@ -149,7 +150,11 @@
             newBuffer.getChannelData(1).set(buffers[1]);
             newSource.buffer = newBuffer;
 
-            newSource.connect(audioCtx.destination);
+            if (options.outputType === 'normal') {
+                newSource.connect(audioCtx.destination);
+            } else {
+                ringModulator.setInput(newSource);
+            }
             newSource.start(0);
             eve('playback.start');
 
