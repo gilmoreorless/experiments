@@ -5,6 +5,7 @@
     <title>Audio Experiments - Recorder</title>
     <style>
         #controls > div {border:1px dashed #000; margin:10px; padding:10px;}
+        #actions {min-height:80px;}
         .recording, .playing {display:none; font-style:italic; padding:5px 0 0 20px; position:relative;}
         .recording::before {border:8px solid #F00; border-radius:50%; content:''; display:block; height:0; left:0; position:absolute; width:0;}
         .playing::before {border:0 solid transparent; border-width:8px 0 8px 16px; border-left-color:#090; content:''; display:block; height:0; left:0; position:absolute; width:0;}
@@ -26,6 +27,7 @@
             <label><input type="radio" name="outputType" value="normal" checked> Normal</label><br>
             <label><input type="radio" name="outputType" value="dalek"> Dalek</label><br>
             <label><input type="radio" name="outputType" value="cyberman"> Cyberman</label><br>
+            <label><input type="checkbox" name="highSpeed"> High speed</label><br>
         </div>
     </div>
     <script src="../common/js/gumShield.js"></script>
@@ -40,7 +42,8 @@
         var isPlaying = false;
         var options = {
             autoDetect: false,
-            outputType: 'normal'
+            outputType: 'normal',
+            highSpeed: false
         };
         var streamSrc, recorder;
 
@@ -84,7 +87,7 @@
                 } else {
                     options[name] = input.value;
                 }
-                eve('option.change', input, name, options[name]);
+                eve('option.change.' + name, input, options[name]);
                 setStates();
             }
         }
@@ -101,6 +104,16 @@
             setStates();
             setTimeout(startInput);
             listenForAudioStart();
+
+            eve.on('option.change.outputType', function (value) {
+                if (value === 'dalek') {
+                    ringModulator.setFrequency(30);
+                    ringModulator.setDistortion(1);
+                } else if (value === 'cyberman') {
+                    ringModulator.setFrequency(60);
+                    ringModulator.setDistortion(1.6);
+                }
+            })
         }
 
         function startInput() {
@@ -160,6 +173,9 @@
             } else {
                 ringModulator.setInput(newSource);
             }
+            if (options.highSpeed) {
+                newSource.playbackRate.value = 1.5;
+            }
             newSource.start(0);
             eve('playback.start');
 
@@ -213,7 +229,7 @@
             }
         }
 
-        var threshold = 140;
+        var threshold = 130;
         var cutoffAllowance = 1000; // milliseconds
         var lastTimeAboveThreshold = 0;
         function isAudioAboveThreshold() {
