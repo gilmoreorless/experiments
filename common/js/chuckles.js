@@ -13,16 +13,17 @@ NOTES:
 √ Fill colour when segment path is cut out
 √ Only move segment in steps for more of a "wooden" feel
 √ "Setup mode" - allow drawing a path on bg image to define a segment
+√ Bind an input source to position for auto-updating
+    √ HTML input element (text|range|radio|checkbox, textarea, select)
+    √ AudioContext for sound-based
 
 FUTURE IDEAS
 
 * Movement options: Easing, keyframes, transforms (rotate, scale, skew)
 * Support multiple segments
     * Idea 1: All segments behave the same way, based on a single position
-    * Idea 2: New segment types with different behaviour and different positions (e.g. eyes move left-right while mouth moves up-down)
-* Bind an input source to position for auto-updating
-    * HTML input element (text|range|radio|checkbox, textarea, select)
-    * AudioContext for sound-based
+    * Idea 2: New segment types with different behaviour and different positions
+              (e.g. eyes move left-right while mouth moves up-down)
 
 OPTIMISATIONS
 
@@ -67,7 +68,6 @@ Chuckles = (function () {
         this.fillStyle = options.fillStyle || 'none';
         this.setSegmentPath(options.path || []);
         if (options.image) {
-            var self = this;
             this.setImage(options.image);
         } else {
             this.render();
@@ -365,7 +365,7 @@ Chuckles = (function () {
             if (!this.analyser) {
                 this.analyser = input.context.createAnalyser();
                 this.analyser.fftSize = 32;
-                this.byteData = new Uint8Array(this.analyser.fftSize / 2);
+                this.byteData = new Uint8Array(this.analyser.frequencyBinCount);
             }
             input.connect(this.analyser);
             var chuck = this;
@@ -374,7 +374,8 @@ Chuckles = (function () {
                 input: input,
                 listener: {
                     remove: function () {
-                        input.disconnect(chuck.analyser);
+                        // Uncomment when https://www.w3.org/Bugs/Public/show_bug.cgi?id=17793 is resolved
+                        // input.disconnect();
                         webkitCancelAnimationFrame(chuck._animFrameID);
                     }
                 }

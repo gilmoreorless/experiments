@@ -85,7 +85,7 @@ var RingModulator = (function () {
     this.diodes = [vInDiode1, vInDiode2, vcDiode3, vcDiode4];
 
     outGain = context.createGainNode();
-    outGain.gain.value = 4;
+    outGain.gain.value = 2;
 
     compressor = context.createDynamicsCompressor();
     compressor.threshold.value = -12;
