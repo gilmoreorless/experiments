@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Image tiles</title>
+    <link rel="stylesheet" href="../main.css">
+</head>
+<body class="centre">
+    <p class="desc">Click tiles to move them into the empty space. Complete the picture.</p>
+    <canvas id="game"></canvas>
+    <script src="js/tilegame.js"></script>
+    <script>
+        var tiler = new Tiler('game', {
+            width: 640,
+            height: 480,
+            rows: 3,
+            cols: 3
+        });
+        tiler.setSrc('../common/img/catimov.jpg');
+    </script>
+</body>
+</html>

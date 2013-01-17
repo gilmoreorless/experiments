@@ -50,8 +50,6 @@
             pieces[e] = pieces[i];
             pieces[i] = t;
             e = i;
-            // TEMP
-            // this.render();
 
             // Make sure we've moved all pieces at least once
             if (!(e in cache)) {
@@ -117,7 +115,7 @@
         sourceCanvas.height = canvas.height;
 
         // TEMP for debugging
-        document.body.appendChild(sourceCanvas);
+        // document.body.appendChild(sourceCanvas);
 
         // Register click handler
         var handler = this.clickHandler.bind(this);
@@ -186,7 +184,7 @@
                 if (opts.rotate && randChoice(chanceRotate)) {
                     piece.rotate = Math.PI; // Radians
                 }
-                // Quick optimisation
+                // Quick optimisation - a flipped and rotated tile is equivalent to being flipped on the other axis
                 if (piece.flip && piece.rotate) {
                     piece.rotate = 0;
                     piece.flip = piece.flip === 'h' ? 'v' : 'h';
@@ -246,7 +244,7 @@
 
         // Background colour
         ctx.save();
-        ctx.fillStyle = '#666';
+        ctx.fillStyle = '#333';
         ctx.fillRect(0, 0, opts.width, opts.height);
         ctx.restore();
 
@@ -426,7 +424,7 @@
             if (piece.index !== i) {
                 return false;
             }
-            if (piece.flip || piece.rotate) {
+            if (!piece.empty && (piece.flip || piece.rotate)) {
                 manipulated = true;
             }
         }

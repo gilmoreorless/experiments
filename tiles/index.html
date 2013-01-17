@@ -1,19 +1,18 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Image tiles</title>
+    <meta charset="UTF-8">
+    <title>Experiments - index of /tiles/</title>
+    <link rel="stylesheet" href="../main.css">
 </head>
 <body>
-    <canvas id="game"></canvas>
-    <script src="js/tilegame.js"></script>
-    <script>
-        var tiler = new Tiler('game', {
-            width: 640,
-            height: 480,
-            rows: 3,
-            cols: 3
-        });
-        tiler.setSrc('../common/img/catimov.jpg');
-    </script>
+<nav>
+    <ul>
+        <li><a href="basic.html">Basic tile-slider game (static image)</li>
+        <li><a href="webcam.html">Basic tile-slider game (live webcam)</li>
+        <li><a href="fliprotate.html">Flip and rotate tiles (static image)</li>
+        <li><a href="webcamflip.html">Flip and rotate tiles (live webcam)</li>
+    </ul>
+</nav>
 </body>
 </html>

@@ -2,9 +2,12 @@
 <html>
 <head>
     <title>Image tiles / Flip+Rotate</title>
+    <link rel="stylesheet" href="../main.css">
 </head>
-<body>
-    <div id="buttons">
+<body class="centre">
+    <p class="desc">Allow webcam. Click tile to select. Double-click to move it into the empty space.<br>
+        Use buttons to manipulate the selected tile. Complete the picture.</p>
+    <div id="buttons" class="controls">
         <button id="rotate">Rotate</button>
         <button id="fliphoriz">Flip Horizontal</button>
         <button id="flipvert">Flip Vertical</button>
@@ -12,6 +15,7 @@
     <canvas id="game"></canvas>
     <video id="webcam" autoplay></video>
     <canvas id="source" width="640" height="480"></canvas>
+    <script src="../common/js/shimShiminy.js"></script>
     <script src="js/tilegame.js"></script>
     <script>
         var tiler = new Tiler('game', {
@@ -26,15 +30,15 @@
         var video = document.getElementById('webcam');
         var source = document.getElementById('source');
         var ctx = source.getContext('2d');
-        // Only works in Opera Labs right now
         navigator.getUserMedia({video: true}, function (stream) {
-            video.src = stream;
+            setStreamSrc(video, stream);
             ctx.translate(640, 0);
             ctx.scale(-1, 1);
-            setInterval(function () {
+            (function draw() {
                 ctx.drawImage(video, 0, 0);
                 tiler.setSrc(source);
-            }, 1000 / 24);
+                requestAnimationFrame(draw);
+            })();
         }, function () {
             console.error('Oh noes!');
         });
