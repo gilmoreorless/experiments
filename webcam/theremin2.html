@@ -3,22 +3,27 @@
 <head>
     <meta charset="utf-8">
     <title>Webcam Experiments - Theremin</title>
+    <link rel="stylesheet" href="../main.css">
     <style>
         #output {position:relative; margin-left:140px;}
         #output > canvas {position:absolute; left:0; top:0;}
         .mirror video {-webkit-transform:scaleX(-1);}
+        #message {font-size:125%; font-weight:bold; padding:10px; text-align:center;}
         #debug-edge-left {float:left;}
         #debug, #debug-edge-right {float:right;}
-        /*#debug {display:none;}*/
+        #debug {display:none;}
         /*#debug > canvas {width:320px; height:240px;}*/
         /*#processing {width:480px; height:360px;}*/
     </style>
 </head>
 <body class="mirror">
-    <div id="controls">
-        <button id="btnStart">Start Webcam</button> <button id="btnStop">Stop Webcam</button><br />
-        <button id="btnCalibrate">Start Calibration</button><br />
-        <label><input type="checkbox" name="mirror" checked disabled> Mirror image</label>
+    <div id="controls" class="controls">
+        <div class="control-row">
+            <button id="btnStart">Start Webcam</button>
+            <button id="btnStop">Stop Webcam</button>
+            <button id="btnCalibrate">Start Calibration</button>
+        </div>
+        <div class="control-row"><label><input type="checkbox" name="mirror" checked disabled> Mirror image</label></div>
     </div>
     <div id="message">Press “Start Calibration” to begin.</div>
     <div id="debug-edge-left" class="debug-edge"></div>
@@ -31,7 +36,7 @@
         <canvas id="debug-blocks"></canvas>
         <canvas id="processing"></canvas>
     </div>
-    <script src="../common/js/gumShield.js"></script>
+    <script src="../common/js/shimShiminy.js"></script>
     <script src="../common/js/hog-processing.js"></script>
     <script src="../common/js/colour-utils.js"></script>
     <script>
@@ -42,10 +47,11 @@
         var divZoneWidth = 20;    // Divide width by this number to get edge zone width
         var divBlockWidth = 20;   // Divide width by this number to get detection block width (40?)
         var divBlockHeight = 16;  // Divide height by this number to get detection block height (32?)
-        var divCalibHeight = 3;   // Divide height by this number to get calibration block height (centred)
+        var divCalibHeight = 2;   // Divide height by this number to get calibration block height (centred)
         var sourceMethod = 1;     // 1 = Webcam; 2 = Image
+        var interpFrames = 3;     // Number of frames to remember for interpolation, 0 to disable
         var frequencyRange = [300, 1000];  // Hz
-        var DEBUG = 3;            // 0 = Off; 1 = Blocks; 2 = Values; 3 = HSL (separate canvases)
+        var DEBUG = 1;            // 0 = Off; 1 = Values; 2 = Blocks; 3 = HSL (separate canvases)
         var DETECT_METHOD = 2;    // 1 = HSL; 2 = Histogram
         var histBitShift = 4;
 
@@ -68,11 +74,6 @@
                     * If not, use current block max Y
 
         */
-
-        /*** Polyfills ***/
-
-        window.requestAnimationFrame = window.requestAnimationFrame || window.webkitRequestAnimationFrame || window.mozRequestAnimationFrame;
-        window.cancelAnimationFrame = window.cancelAnimationFrame || window.webkitCancelAnimationFrame || window.mozCancelAnimationFrame;
 
         /*** Boilerplate ***/
 
@@ -102,9 +103,8 @@
             colLeft  = new HandTracker(processing, {x:0, y:0, w:colWidth, h:height}, 'left');
             colRight = new HandTracker(processing, {x:width - colWidth, y:0, w:colWidth, h:height}, 'right');
             if (sourceMethod === 1) {
-                // Only works in Opera, Chrome and Firefox Nightlies (with a flag) right now
                 navigator.getUserMedia({video: true}, function (stream) {
-                    video.src = getStreamSrc(stream);
+                    setStreamSrc(video, stream);
                     procCtx.translate(width, 0);
                     procCtx.scale(-1, 1);
                 }, function () {
@@ -122,8 +122,8 @@
                     tmpctx.drawImage(img, 0, 0, width, height);
                     doStuff();
                 }
-                // img.src = '../common/img/ref-theremin.jpg';
-                img.src = '../common/img/catimov.jpg';
+                img.src = '../common/img/ref-theremin.jpg';
+                // img.src = '../common/img/catimov.jpg';
             }
 
             oscillator.connect(gainNode);
@@ -151,14 +151,14 @@
         /*** Actual experiment ***/
 
         function setVolume(value) {
-            console.log('Volume = ' + value + ' (maps to ' + (value * value) + ')');
+            // console.log('Volume = ' + value + ' (maps to ' + (value * value) + ')');
             gainNode.gain.value = value * value;
         }
 
         function setPitch(value) {
             var newValue = value * value;
             var freq = frequencyRange[0] + newValue * (frequencyRange[1] - frequencyRange[0]);
-            console.log('Pitch = ' + value + ' (maps to ' + newValue + ') (' + freq + ' Hz)');
+            // console.log('Pitch = ' + value + ' (maps to ' + newValue + ') (' + freq + ' Hz)');
             oscillator.frequency.value = freq;
         }
 
@@ -176,6 +176,7 @@
                     blocks: [],
                     hist: []
                 };
+                this.prevValues = [];
             }
 
             var hproto = HandTracker.prototype;
@@ -344,7 +345,7 @@
                     // posData.stddev[j] = Math.sqrt(v[j] / sd.length);
                 }
 
-                if (DEBUG >= 1) {
+                if (DEBUG >= 2) {
                     var i = 0, c = document.createElement('canvas'), ctx = c.getContext('2d');
                     c.width = this.dims.w;
                     c.height = this.dims.h;
@@ -363,7 +364,7 @@
             };
 
             hproto.trackFrame = function () {
-                if (!DEBUG) {
+                if (DEBUG <= 1) {
                     return;
                 }
                 if (DEBUG >= 3) {
@@ -500,11 +501,35 @@
                     value = (this.dims.h - foundRow) / this.dims.h;
                 }
                 // Show green bar for value
-                if (DEBUG >= 2) {
+                if (DEBUG >= 1) {
                     overlayCtx.save();
                     overlayCtx.fillStyle = 'rgba(0, 255, 0, 0.5)';
                     overlayCtx.fillRect(this.dims.x, foundRow, this.dims.w, this.dims.h);
                     overlayCtx.restore();
+                }
+                // Smooth out any sudden drops to 0 (image detection sometimes fails temporarily)
+                if (interpFrames) {
+                    i = this.prevValues.length;
+                    var lastValue = this.prevValues[i - 1];
+                    // Only smooth out if the previous value wasn't 0
+                    if (!value && i && lastValue) {
+                        var countPos = 0, countNeg = 0;
+                        while (i--) {
+                            if (this.prevValues[i] === 0) {
+                                countNeg++;
+                            } else {
+                                countPos++;
+                            }
+                        }
+                        if (countPos > countNeg) {
+                            value = lastValue;
+                            console.log('SMOOTHED: ' + this.prevValues.join(','));
+                        }
+                    }
+                    if (this.prevValues.length >= interpFrames) {
+                        this.prevValues.shift();
+                    }
+                    this.prevValues.push(value);
                 }
                 return value;
             };
@@ -565,7 +590,14 @@
                 trackFrame();
             }
 
+            // var lastTime;
             function trackFrame() {
+                // var now = Date.now();
+                // if (lastTime) {
+                //     console.log((now - lastTime) + 'ms');
+                // }
+                // lastTime = now;
+
                 timer = requestAnimationFrame(trackFrame);
                 procCtx.drawImage(video, 0, 0, width, height);
                 overlayCtx.clearRect(0, 0, width, height);

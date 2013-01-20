@@ -18,7 +18,7 @@ ul {
     font-size: 110%;
 }
 a {
-    color: #A67B3C;
+    color: #A85D20;
     text-decoration: none;
 }
 a:hover {
@@ -26,6 +26,9 @@ a:hover {
 }
 .controls {
     padding: 10px;
+}
+.control-row + .control-row {
+    margin-top: 5px;
 }
 
 /*** Copied from AUI: https://bitbucket.org/atlassian/aui-archive/ ***/
