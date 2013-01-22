@@ -3,16 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <title>Audio Experiments - Ventriloquist Dummy</title>
+    <link rel="stylesheet" href="../main.css">
     <style>
+        body {background:#fff;}
         #controls {position:relative;}
         #controls .right {position:absolute; left:400px; top:0}
     </style>
 </head>
-<body>
-    <div id="controls">
+<body class="centre">
+    <div id="controls" class="controls">
         <div class="left">
-            <button id="btnStart">Start</button> <button id="btnStop">Stop</button><br />
-            <input type="range" id="mouthpos" value="0" min="0" max="1" step="0.01">
+            <div class="control-row">
+                <button id="btnStart">Start Mic</button> <button id="btnStop">Stop Mic</button>
+            </div>
+            <div class="control-row">Mouth Pos: <input type="range" id="mouthpos" value="0" min="0" max="1" step="0.01"></div>
         </div>
         <div id="testMode" class="right">
             <button data-mode="normal">Normal</button>
@@ -22,13 +26,14 @@
     </div>
     <canvas id="dummy"></canvas>
     <canvas id="testDummy"></canvas>
-    <script src="../common/js/gumShield.js"></script>
+    <script src="../common/js/shimShiminy.js"></script>
     <script src="../common/js/chuckles.js"></script>
     <script>
         /*** Vars ***/
 
-        var width = 400;
-        var height = 500;
+        var width = 210;
+        var height = 270;
+        var SHOW_TEST = false;
 
         /*** Drawing stuff ***/
 
@@ -38,20 +43,13 @@
         var testCtx = canvas.getContext('2d');
         var mouthpos = document.getElementById('mouthpos');
         var audioCtx = new webkitAudioContext();
-        var analyser = audioCtx.createAnalyser();
-        var doDraw = true;
-        var streamSrc;
-        var byteData;
-        var dummy, testDummy;
+        var streamSrc, dummy, testDummy;
 
         function setup() {
             canvas.width = width;
             canvas.height = height;
             testCanvas.width = 640;
             testCanvas.height = 480;
-
-            analyser.fftSize = 32; // Must be a power of 2, >= 32
-            byteData = new Uint8Array(analyser.fftSize / 2);
 
             dummy = new Chuckles({
                 canvas: canvas,
@@ -78,26 +76,26 @@
                     ['closePath']
                 ]
             });
-            testDummy = new Chuckles({
-                canvas: 'testDummy',
-                image: '../common/img/catimov.jpg',
-                // steps: 5,
-                movement: {x: 20, y: 40}
-            });
-            testDummy.bindInput(mouthpos);
+            dummy.bindInput(mouthpos);
+
+            if (SHOW_TEST) {
+                testDummy = new Chuckles({
+                    canvas: 'testDummy',
+                    image: '../common/img/catimov.jpg',
+                    // steps: 5,
+                    movement: {x: 20, y: 40}
+                });
+                testDummy.bindInput(mouthpos);
+            }
 
             document.getElementById('btnStart').addEventListener('click', startInput, false);
             document.getElementById('btnStop').addEventListener('click', stopInput, false);
-            mouthpos.addEventListener('change', setMouthPos, false);
-            document.getElementById('testMode').addEventListener('click', setMode, false);
-
-            // setTimeout(startInput);
-        }
-
-        function setMouthPos() {
-            var value = parseFloat(mouthpos.value) || 0;
-            dummy.setPosition(value);
-            // testDummy.setPosition(value);
+            if (SHOW_TEST) {
+                document.getElementById('testMode').addEventListener('click', setMode, false);
+            } else {
+                document.getElementById('testMode').style.display = 'none';
+                testCanvas.style.display = 'none';
+            }
         }
 
         function setMode(e) {
@@ -109,32 +107,18 @@
             }
         }
 
-        function draw() {
-            if (!doDraw) {
-                return;
-            }
-            webkitRequestAnimationFrame(draw);
-
-            analyser.getByteFrequencyData(byteData);
-            var max = Math.max.apply(Math, byteData);
-            dummy.setPosition(max / 256);
-            // testDummy.setPosition(max / 256);
-        }
-
         function startInput() {
             navigator.getUserMedia({audio: true}, function (stream) {
                 streamSrc = audioCtx.createMediaStreamSource(stream);
-                streamSrc.connect(analyser)
-                doDraw = true;
-                draw();
+                dummy.bindInput(streamSrc);
             }, function () {
                 console.error('Oh noes!');
             });
         }
 
         function stopInput() {
+            dummy.unbindInput(streamSrc);
             streamSrc = null;
-            doDraw = false;
         }
 
         setup();
