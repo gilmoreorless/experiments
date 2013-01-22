@@ -254,6 +254,7 @@ Chuckles = (function () {
     var modeEvents = {
         normal: {
             setup: function () {
+                this.setPosition(0);
                 this.render();
             }
         },
