@@ -9,9 +9,11 @@
         #controls h2 {font-size:140%; margin:20px 0 0 0;}
         #controls h2:first-child {margin:0;}
         #controls h2 + .control-row {margin-top:10px;}
+        #lasers {position:absolute; left:0; top:0; width:100%; height:100%; pointer-events:none;}
     </style>
 </head>
 <body>
+    <canvas id="lasers"></canvas>
     <canvas id="subject"></canvas>
     <div id="controls" class="controls">
         <h2>Input</h2>
@@ -35,14 +37,21 @@
         // var height = 480;
         var width = 450;
         var height = 500;
+        var eyes = [
+            {x: 290, y: 170},
+            {x: 380, y: 170},
+        ];
 
         /*** Drawing stuff ***/
 
         var canvas = document.getElementById('subject');
         var ctx = canvas.getContext('2d');
+        var laserCanvas = document.getElementById('lasers');
+        var laserCtx = laserCanvas.getContext('2d');
         var mouthpos = document.getElementById('mouthpos');
         var modeButtons = document.querySelectorAll('#chuckles-mode button');
         var audioCtx = new webkitAudioContext();
+        var isLasering = false;
         var streamSrc, dummy;
 
         function setup() {
@@ -61,6 +70,10 @@
             document.getElementById('btnStart').addEventListener('click', startInput, false);
             document.getElementById('btnStop').addEventListener('click', stopInput, false);
             document.getElementById('chuckles-mode').addEventListener('click', setMode, false);
+            window.addEventListener('resize', setLaserCanvasSize, false);
+            document.addEventListener('keydown', laserKeyListener, false);
+
+            setLaserCanvasSize();
         }
 
         function setMode(e) {
@@ -90,6 +103,66 @@
         function stopInput() {
             dummy.unbindInput(streamSrc);
             streamSrc = null;
+        }
+
+        function setLaserCanvasSize() {
+            var style = getComputedStyle(laserCanvas);
+            laserCanvas.width = parseFloat(style.width);
+            laserCanvas.height = parseFloat(style.height);
+        }
+
+        function laserKeyListener(e) {
+            if (e.keyCode == 76) { // L
+                isLasering = !isLasering;
+                if (isLasering) {
+                    startLasers();
+                } else {
+                    stopLasers();
+                }
+            }
+        }
+
+        function startLasers() {
+            document.addEventListener('mousemove', laserMouseMove, false);
+        }
+
+        function stopLasers() {
+            document.removeEventListener('mousemove', laserMouseMove, false);
+            laserCtx.clearRect(0, 0, laserCanvas.width, laserCanvas.height);
+        }
+
+        function laserMouseMove(e) {
+            drawLasers({
+                x: e.pageX,
+                y: e.pageY
+            });
+        }
+
+        function drawLasers(target) {
+            if (!target) {
+                target = {
+                    x: ~~(Math.random() * laserCanvas.width),
+                    y: ~~(Math.random() * laserCanvas.height)
+                };
+            }
+            laserCtx.clearRect(0, 0, laserCanvas.width, laserCanvas.height);
+            laserCtx.lineCap = 'round';
+            var layers = 4;
+            var widthMin = 3;
+            var widthStep = 3;
+            var l = 0;
+            var ii = eyes.length;
+            var i;
+            while (l++ <= layers) {
+                laserCtx.strokeStyle = 'rgba(' + ~~(160 * (l / layers) + 95) + ', 0, 0, ' + (l / layers) + ')';
+                laserCtx.lineWidth = widthMin + (widthStep * (layers - l));
+                for (i = 0; i < ii; i++) {
+                    laserCtx.beginPath();
+                    laserCtx.moveTo(eyes[i].x, eyes[i].y);
+                    laserCtx.lineTo(target.x, target.y);
+                    laserCtx.stroke();
+                }
+            }
         }
 
         setup();
