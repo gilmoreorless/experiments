@@ -39,7 +39,7 @@
         var height = 500;
         var eyes = [
             {x: 290, y: 170},
-            {x: 380, y: 170},
+            {x: 390, y: 170},
         ];
 
         /*** Drawing stuff ***/
@@ -138,6 +138,7 @@
             });
         }
 
+        // Some of the laser-drawing code inspired by http://laserey.es/
         function drawLasers(target) {
             if (!target) {
                 target = {
@@ -147,21 +148,43 @@
             }
             laserCtx.clearRect(0, 0, laserCanvas.width, laserCanvas.height);
             laserCtx.lineCap = 'round';
-            var layers = 4;
-            var widthMin = 3;
-            var widthStep = 3;
-            var l = 0;
-            var ii = eyes.length;
-            var i;
-            while (l++ <= layers) {
-                laserCtx.strokeStyle = 'rgba(' + ~~(160 * (l / layers) + 95) + ', 0, 0, ' + (l / layers) + ')';
-                laserCtx.lineWidth = widthMin + (widthStep * (layers - l));
-                for (i = 0; i < ii; i++) {
+            var layers = [
+                [7, 'rgba(192, 0, 0, 0.5)', true], // Has shadow
+                [5, 'rgba(255, 0, 0, 0.7)'],
+                [2, 'rgba(255, 255, 255, 0.7)']
+            ];
+            var ii = layers.length;
+            var ee = eyes.length;
+            var i, e, gradient;
+            // Lasers
+            for (i = 0; i < ii; i++) {
+                laserCtx.save();
+                laserCtx.lineWidth = layers[i][0];
+                laserCtx.strokeStyle = layers[i][1];
+                if (layers[i][2]) {
+                    laserCtx.shadowColor = 'rgba(255, 0, 0, 0.5)';
+                    laserCtx.shadowBlur = layers[i][0] * 4;
+                }
+                for (e = 0; e < ee; e++) {
                     laserCtx.beginPath();
-                    laserCtx.moveTo(eyes[i].x, eyes[i].y);
+                    laserCtx.moveTo(eyes[e].x, eyes[e].y);
                     laserCtx.lineTo(target.x, target.y);
                     laserCtx.stroke();
                 }
+                laserCtx.restore();
+            }
+            // Glowing eyes
+            for (e = 0; e < ee; e++) {
+                gradient = laserCtx.createRadialGradient(eyes[e].x, eyes[e].y, 0, eyes[e].x, eyes[e].y, 15);
+                gradient.addColorStop(0, 'rgba(255, 255, 255, 0.8)');
+                gradient.addColorStop(1, 'rgba(255, 0, 0, 0)');
+                laserCtx.beginPath();
+                laserCtx.fillStyle = gradient;
+                laserCtx.strokeStyle = "rgba(0,0,0,0)";
+                laserCtx.arc(eyes[e].x, eyes[e].y, 15, 0, Math.PI * 2, true);
+                laserCtx.fill();
+                laserCtx.arc(eyes[e].x, eyes[e].y, 10, 0, Math.PI * 2, true);
+                laserCtx.fill();
             }
         }
 
