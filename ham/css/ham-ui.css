@@ -1,0 +1,51 @@
+button.sfx-action {
+    height: 26px;
+    padding: 4px 6px;
+}
+.icon {
+    display: inline-block;
+    position: relative;
+    height: 0;
+    width: 0;
+}
+button[disabled] .icon {
+    opacity: 0.5;
+}
+.icon-record {
+    background: #c00;
+    border: 2px solid #600;
+    border-radius: 50%;
+    height: 12px;
+    width: 12px;
+}
+.icon-play {
+    border: 0 solid transparent;
+    border-width: 8px 0 8px 16px;
+    border-left-color: #090;
+}
+.icon-stop {
+    background: #f00;
+    height: 16px;
+    width: 16px;
+}
+.icon-erase {
+    border: 3px solid #600;
+    border-radius: 50%;
+    height: 10px;
+    width: 10px;
+}
+.icon-erase::before {
+    background: #600;
+    content: '';
+    display: block;
+    height: 14px;
+    left: 3px;
+    position: absolute;
+    top: -2px;
+    width: 3px;
+    -webkit-transform: rotate(45deg);
+       -moz-transform: rotate(45deg);
+        -ms-transform: rotate(45deg);
+         -o-transform: rotate(45deg);
+            transform: rotate(45deg);
+}

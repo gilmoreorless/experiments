@@ -1,0 +1,80 @@
+(function (HAM) {
+
+	HAM.ui || (HAM.ui = {});
+	var ui = HAM.ui.audio = {};
+
+	function $(selector) {
+		return document.querySelector(selector);
+	}
+
+	function AudioControl(params) {
+		this.name = params.name;
+		this.elem = params.elem || put('.audio-control');
+		this.sound = params.sound;
+		this.buttons = {};
+		this.setup();
+	}
+
+	var ACproto = AudioControl.prototype;
+
+	ACproto.setup = function () {
+		put(this.elem, 'span.title', this.name);
+		['record', 'play', 'erase'].forEach(function (action) {
+			this.buttons[action] = put(this.elem, 'button.sfx-action.' + action + '[data-action=' + action + ']');
+			put(this.buttons[action], 'span.icon.icon-' + action);
+		}, this);
+		this.elem.addEventListener('click', this.clickHandler.bind(this), false);
+		HAM.on('input.start', this.updateButtons.bind(this));
+		this.updateButtons();
+	};
+
+	ACproto.updateButtons = function () {
+		var hasInput = !!HAM.input.inputStream;
+		var hasSound = !!this.sound.audioBuffer;
+		this.buttons.record.disabled = !hasInput || hasSound;
+		this.buttons.play.disabled = !hasSound;
+		this.buttons.erase.disabled = !hasSound;
+	};
+
+	ACproto.clickHandler = function (e) {
+		var action = e.target.dataset.action || e.target.parentNode.dataset.action;
+		if (action && this[action]) {
+			this[action]();
+		}
+	};
+
+	ACproto.record = function () {
+		var iconClasses = this.buttons.record.querySelector('.icon').classList;
+		if (this.sound.state == 'recording') {
+			this.sound.stopRecording();
+			iconClasses.remove('icon-stop');
+			iconClasses.add('icon-record');
+		} else {
+			this.sound.record();
+			iconClasses.remove('icon-record');
+			iconClasses.add('icon-stop');
+		}
+	};
+
+	ACproto.play = function () {
+		this.sound.play();
+	};
+
+	ACproto.erase = function () {
+
+	};
+
+	function setup() {
+		var container = $('#audio-controls');
+		HAM.sfx.names().forEach(function (name) {
+			ui[name] = new AudioControl({
+				name: name,
+				sound: HAM.sfx.get(name)
+			});
+			put(container, ui[name].elem);
+		});
+	}
+
+	setup();
+
+})(this.HAM);

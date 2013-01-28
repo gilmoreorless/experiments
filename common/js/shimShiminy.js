@@ -26,6 +26,9 @@
         }
     };
 
+    // AudioContext normalisation
+    window.AudioContext = window.AudioContext || window.webkitAudioContext || window.mozAudioContext;
+
     // requestAnimationFrame() normalisation
     window.requestAnimationFrame = window.requestAnimationFrame ||
                                    window.webkitRequestAnimationFrame ||
