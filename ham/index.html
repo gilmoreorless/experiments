@@ -15,5 +15,11 @@
 	<script src="../common/js/eve.js"></script>
 	<script src="js/ham-game.js"></script>
 	<script src="js/ui-audio.js"></script>
+	<script>
+        // Debug
+        eve.on('*', function () {
+            console.log('EVE', eve.nt(), arguments);
+        });
+        </script>
 </body>
 </html>

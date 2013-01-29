@@ -1,6 +1,8 @@
 (function (window) {
 	var HAM = window.HAM = {};
 
+	HAM._guid = 0;
+
 	/*** EVENTS ***/
 
 	['on', 'once', 'off'].forEach(function (name) {
@@ -22,6 +24,7 @@
 		args.splice(1, 0, HAM);
 		return eve.apply(eve, args);
 	};
+
 
 	/*** GAME ***/
 
@@ -64,6 +67,7 @@
 	/*** AUDIO ***/
 
 	HAM.Sound = function (params) {
+		this.id = HAM._guid++;
 		this.name = params.name;
 		this.context = params.context;
 		this.loop = !!params.loop;
@@ -78,15 +82,22 @@
 		HAM.sfx.recorder.clear();
 		HAM.sfx.recorder.record();
 		this.state = 'recording';
+		HAM.trigger('sound.startRecord.' + this.id, this);
 	};
 
 	Sproto.stopRecording = function () {
 		var that = this;
+		function cleanup() {
+            that.state = 'stopped';
+            HAM.trigger('sound.stopRecord.' + that.id, that);
+		}
+
 		HAM.sfx.recorder.stop();
 		HAM.sfx.recorder.getBuffer(function (buffers) {
             if (!buffers[0].length) {
                 console.log('No buffer length');
                 that.src = null;
+                cleanup();
                 return;
             }
 
@@ -94,7 +105,7 @@
             buffer.getChannelData(0).set(buffers[0]);
             buffer.getChannelData(1).set(buffers[1]);
             that.buffer = buffer;
-            that.state = 'stopped';
+            cleanup();
 		});
 	};
 
@@ -107,6 +118,7 @@
 			this.src.connect(this.context.destination);
 			this.src.start(0);
 			this.state = 'playing';
+			HAM.trigger('sound.startPlay.' + this.id, this);
 			setTimeout(this.stop.bind(this), this.src.buffer.duration * 1000);
 		}
 	};
@@ -117,8 +129,21 @@
 			this.src.disconnect();
 			this.src = null;
 			this.state = 'stopped';
+			HAM.trigger('sound.stopPlay.' + this.id, this);
 		}
 	};
+
+	Sproto.erase = function () {
+		console.log('erase', this.name, this);
+		if (this.buffer) {
+			if (this.src && this.state == 'playing') {
+				this.stop();
+			}
+			this.buffer = null;
+			this.state = 'empty';
+			HAM.trigger('sound.erase.' + this.id, this);
+		}
+	}
 
 	var sounds = {};
 
