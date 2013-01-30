@@ -3,34 +3,93 @@
 <head>
     <meta charset="UTF-8">
     <title>Audio Experiments - Recorder</title>
+    <link rel="stylesheet" href="../main.css">
     <style>
-        #controls > div {border:1px dashed #000; margin:10px; padding:10px;}
-        #actions {min-height:80px;}
-        .recording, .playing {display:none; font-style:italic; padding:5px 0 0 20px; position:relative;}
-        .recording::before {border:8px solid #F00; border-radius:50%; content:''; display:block; height:0; left:0; position:absolute; width:0;}
-        .playing::before {border:0 solid transparent; border-width:8px 0 8px 16px; border-left-color:#090; content:''; display:block; height:0; left:0; position:absolute; width:0;}
+        #controls > div {
+            background: #b4d0db;
+            border-radius: 10px;
+            margin: 0 0 20px 150px;
+            padding: 10px;
+            position: relative;
+        }
+        #controls > div h2 {
+            background: #b4d0db;
+            border-radius: 10px 0 0 10px;
+            left: -150px;
+            margin: 0;
+            padding: 10px;
+            position: absolute;
+            width: 130px;
+        }
+        #indicators {
+            background: #79A0AF;
+            border-radius: 5px;
+            color: #E8E9F8;
+            display: none;
+            float: right;
+            font-size: 20px;
+            padding: 15px;
+        }
+        .recording, .playing {
+            display: none;
+            font-style: italic;
+            padding: 5px 0 0 30px;
+            position: relative;
+        }
+        .recording::before {
+            border: 11px solid #c00;
+            border-radius: 50%;
+            content: '';
+            display: block;
+            height: 0;
+            left: 0;
+            position: absolute;
+            top: 6px;
+            width: 0;
+        }
+        .playing::before {
+            border: 0 solid transparent;
+            border-width: 11px 0 11px 22px;
+            border-left-color: #64E95D;
+            content: '';
+            display: block;
+            height: 0;
+            left: 0;
+            position: absolute;
+            top: 6px;
+            width: 0;
+        }
     </style>
 </head>
 <body>
-    <div id="controls">
+    <div id="controls" class="controls">
         <div id="actions">
-            <button id="btn-startInput">Enable Microphone</button> <button id="btn-stopInput">Disable Microphone</button><br>
-            <button id="btn-startRecording">Start Recording</button> <button id="btn-stopRecording">Stop Recording / Start Playback</button><br>
-            <div class="recording">Recording&hellip;</div>
-            <div class="playing">Playing audio&hellip;</div>
-        </div>
-        <div id="input-options">
-            <label><input type="checkbox" name="autoDetect"> Auto-detect/record input voice</label>
+            <h2>Input</h2>
+            <div id="indicators" class="control-row">
+                <div class="recording">Recording&hellip;</div>
+                <div class="playing">Playing audio&hellip;</div>
+            </div>
+            <div class="control-row">
+                <button id="btn-startInput">Enable Microphone</button>
+                <button id="btn-stopInput">Disable Microphone</button>
+            </div>
+            <div class="control-row">
+                <button id="btn-startRecording">Start Recording</button>
+                <button id="btn-stopRecording">Stop Recording / Start Playback</button>
+            </div>
+            <div id="input-options" class="control-row">
+                <label><input type="checkbox" name="autoDetect"> Auto-detect/record input voice</label>
+            </div>
         </div>
         <div id="output-options">
-            <strong>Output:</strong><br>
+            <h2>Output</h2>
             <label><input type="radio" name="outputType" value="normal" checked> Normal</label><br>
             <label><input type="radio" name="outputType" value="dalek"> Dalek</label><br>
             <label><input type="radio" name="outputType" value="cyberman"> Cyberman</label><br>
             <label><input type="checkbox" name="highSpeed"> High speed</label><br>
         </div>
     </div>
-    <script src="../common/js/gumShield.js"></script>
+    <script src="../common/js/shimShiminy.js"></script>
     <script src="../common/js/eve.js"></script>
     <script src="../common/js/recorder.js"></script>
     <script src="../common/js/ring-modulator.js"></script>
@@ -59,8 +118,9 @@
             startRec: document.getElementById('btn-startRecording'),
             stopRec: document.getElementById('btn-stopRecording')
         };
-        var recIndicator = document.querySelector('#actions .recording');
-        var playIndicator = document.querySelector('#actions .playing');
+        var indicators = document.querySelector('#indicators');
+        var recIndicator = indicators.querySelector('.recording');
+        var playIndicator = indicators.querySelector('.playing');
 
         function setStates() {
             btn.startInput.disabled = !!streamSrc;
@@ -136,9 +196,15 @@
             eve('input.stop');
         }
 
+        function showIndicator(elem, isShown) {
+            var display = isShown !== false ? 'block' : 'none';
+            indicators.style.display = display;
+            elem.style.display = display;
+        }
+
         function startRecording() {
             isRecording = true;
-            recIndicator.style.display = 'block';
+            showIndicator(recIndicator);
             recorder.clear();
             recorder.record();
             eve('recording.start');
@@ -146,7 +212,7 @@
 
         function stopRecording() {
             isRecording = false;
-            recIndicator.style.display = 'none';
+            showIndicator(recIndicator, false);
             recorder.stop();
             recorder.getBuffer(playRecording);
             eve('recording.stop');
@@ -159,7 +225,7 @@
                 return;
             }
             isPlaying = true;
-            playIndicator.style.display = 'block';
+            showIndicator(playIndicator);
 
             // Copied from Recorder.js example
             var newSource = audioCtx.createBufferSource();
@@ -184,7 +250,7 @@
                 console.log('checkState', newSource.playbackState);
                 if (newSource.playbackState === 3) { // FINISHED_STATE
                     isPlaying = false;
-                    playIndicator.style.display = 'none';
+                    showIndicator(playIndicator, false);
                     eve('playback.stop');
                 } else {
                     setTimeout(checkState, 0);
