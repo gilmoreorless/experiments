@@ -25,7 +25,7 @@
         </div>
         <div class="control-row"><label><input type="checkbox" name="mirror" checked disabled> Mirror image</label></div>
     </div>
-    <div id="message">Press “Start Calibration” to begin.</div>
+    <div id="message">Start webcam, then press “Start Calibration” to begin.</div>
     <div id="debug-edge-left" class="debug-edge"></div>
     <div id="debug-edge-right" class="debug-edge"></div>
     <div id="output">
@@ -94,6 +94,7 @@
         var vectorCache = {};
         var width, height, colLeft, colRight;
         var debugCanvas = {};
+        var hasStream = false;
 
         function startInput() {
             width  = processing.width  = overlay.width  = video.width;
@@ -104,10 +105,13 @@
             colRight = new HandTracker(processing, {x:width - colWidth, y:0, w:colWidth, h:height}, 'right');
             if (sourceMethod === 1) {
                 navigator.getUserMedia({video: true}, function (stream) {
+                    hasStream = true;
                     setStreamSrc(video, stream);
                     procCtx.translate(width, 0);
                     procCtx.scale(-1, 1);
+                    setButtonStates();
                 }, function () {
+                    hasStream = false;
                     console.error('Oh noes!');
                     message.innerHTML = 'Bad news&hellip; no webcam was found.';
                 });
@@ -133,20 +137,33 @@
         }
         // setTimeout(startInput);
 
+        var btnStart = document.getElementById('btnStart');
+        var btnStop = document.getElementById('btnStop');
+        var btnCalibrate = document.getElementById('btnCalibrate');
+
         function stopInput() {
+            hasStream = false;
             video.src = '';
             oscillator.noteOff(0);
             oscillator.disconnect();
             tracker.setState('off');
+            setButtonStates();
         }
 
         function startCalibration() {
             tracker.setState('init');
         }
 
-        document.getElementById('btnStart').addEventListener('click', startInput, false);
-        document.getElementById('btnStop').addEventListener('click', stopInput, false);
-        document.getElementById('btnCalibrate').addEventListener('click', startCalibration, false);
+        function setButtonStates() {
+            btnStart.disabled = hasStream;
+            btnStop.disabled = !hasStream;
+            btnCalibrate.disabled = !hasStream;
+        }
+
+        btnStart.addEventListener('click', startInput, false);
+        btnStop.addEventListener('click', stopInput, false);
+        btnCalibrate.addEventListener('click', startCalibration, false);
+        setButtonStates();
 
         /*** Actual experiment ***/
 
@@ -511,6 +528,7 @@
                 if (interpFrames) {
                     i = this.prevValues.length;
                     var lastValue = this.prevValues[i - 1];
+                    var origValue = value;
                     // Only smooth out if the previous value wasn't 0
                     if (!value && i && lastValue) {
                         var countPos = 0, countNeg = 0;
@@ -529,7 +547,7 @@
                     if (this.prevValues.length >= interpFrames) {
                         this.prevValues.shift();
                     }
-                    this.prevValues.push(value);
+                    this.prevValues.push(origValue);
                 }
                 return value;
             };
