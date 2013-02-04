@@ -2,10 +2,7 @@
 
 	HAM.ui || (HAM.ui = {});
 	var ui = HAM.ui.audio = {};
-
-	function $(selector) {
-		return document.querySelector(selector);
-	}
+	var $ = HAM.$;
 
 	function AudioControl(params) {
 		this.name = params.name;
