@@ -103,6 +103,7 @@
 			state.enemyShots = [];
 			state.started = true;
 			game.tick();
+			HAM.trigger('game.start');
 		},
 
 		finish: function () {
@@ -111,6 +112,7 @@
 				game.rafId = null;
 			}
 			game.state.started = false;
+			HAM.trigger('game.finish');
 		},
 
 		tick: function () {
@@ -282,18 +284,66 @@
 		this.name = params.name;
 		this.context = params.context;
 		this.loop = !!params.loop;
-		this.src = null;
 		this.buffer = null;
+		this.src = null;
 		this.state = 'empty';
+
+		this.analyser = this.context.createAnalyser();
+		this.analyser.fftSize = 64;
+		this.byteData = new Uint8Array(this.analyser.frequencyBinCount);
+		this.lastTimeAboveThreshold = 0;
+	};
+
+	var recOpts = HAM.Sound.recordingOptions = {
+		threshold: 130, // 0 - 255
+		cutoffAllowance: 1000 // milliseconds
 	};
 
 	var Sproto = HAM.Sound.prototype;
 
+	function listenForAudioStart() {
+		if (isAudioAboveThreshold(this)) {
+			HAM.sfx.recorder.record();
+			setTimeout(listenForAudioStop.bind(this), 10);
+		} else {
+			setTimeout(listenForAudioStart.bind(this), 10);
+		}
+	}
+
+	function listenForAudioStop() {
+        if (!isAudioAboveThreshold(this)) {
+            this.stopRecording();
+        } else {
+            setTimeout(listenForAudioStop.bind(this), 10);
+        }
+	}
+
+    function isAudioAboveThreshold(sound) {
+        var now = +new Date();
+        sound.analyser.getByteFrequencyData(sound.byteData);
+        var max = Math.max.apply(Math, sound.byteData);
+        if (max >= recOpts.threshold) {
+            sound.lastTimeAboveThreshold = now;
+            // console.log('max', max);
+            return true;
+        }
+        // console.log('max', max, now - lastTimeAboveThreshold);
+        if (!sound.lastTimeAboveThreshold) {
+            return false;
+        }
+        var delta = now - sound.lastTimeAboveThreshold;
+        if (delta > recOpts.cutoffAllowance) {
+            sound.lastTimeAboveThreshold = 0;
+            return false;
+        }
+        return true;
+    }
+
 	Sproto.record = function () {
 		HAM.sfx.recorder.clear();
-		HAM.sfx.recorder.record();
 		this.state = 'recording';
 		HAM.trigger('sound.startRecord.' + this.id, this);
+		listenForAudioStart.call(this);
 	};
 
 	Sproto.stopRecording = function () {
