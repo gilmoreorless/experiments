@@ -32,6 +32,24 @@
         this.buttons.record.disabled = !hasInput || hasSound;
         this.buttons.play.disabled = !hasSound;
         this.buttons.erase.disabled = !hasSound;
+
+        var recordClasses = this.buttons.record.querySelector('.icon').classList;
+        if (this.sound.state == 'recording') {
+            recordClasses.remove('icon-record');
+            recordClasses.add('icon-stop');
+        } else {
+            recordClasses.remove('icon-stop');
+            recordClasses.add('icon-record');
+        }
+
+        var playClasses = this.buttons.play.querySelector('.icon').classList;
+        if (this.sound.state == 'playing') {
+            playClasses.remove('icon-play');
+            playClasses.add('icon-stop');
+        } else {
+            playClasses.remove('icon-stop');
+            playClasses.add('icon-play');
+        }
     };
 
     ACproto.clickHandler = function (e) {
@@ -42,26 +60,18 @@
     };
 
     ACproto.record = function () {
-        var iconClasses = this.buttons.record.querySelector('.icon').classList;
         if (this.sound.state == 'recording') {
             this.sound.stopRecording();
-            iconClasses.remove('icon-stop');
-            iconClasses.add('icon-record');
         } else {
             this.sound.record();
-            iconClasses.remove('icon-record');
-            iconClasses.add('icon-stop');
         }
     };
 
     ACproto.play = function () {
-        var iconClasses = this.buttons.play.querySelector('.icon').classList;
         if (this.sound.state == 'playing') {
             this.stop();
         } else {
             this.sound.play();
-            iconClasses.remove('icon-play');
-            iconClasses.add('icon-stop');
             HAM.once('sound.stopPlay.' + this.sound.id, this.stop.bind(this));
         }
     };
@@ -70,9 +80,6 @@
         if (this.sound.state == 'playing') {
             this.sound.stop();
         }
-        var iconClasses = this.buttons.play.querySelector('.icon').classList;
-        iconClasses.remove('icon-stop');
-        iconClasses.add('icon-play');
     };
 
     ACproto.erase = function () {

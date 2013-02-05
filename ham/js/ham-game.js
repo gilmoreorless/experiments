@@ -10,6 +10,7 @@
         HAM.sfx.init();
     };
 
+
     /*** EVENTS ***/
 
     ['on', 'once', 'off'].forEach(function (name) {
@@ -165,28 +166,38 @@
         },
 
         action: {
-            up: function () {
+            up: actionWrapper(function () {
                 game.setPlayerY(game.state.player.y - 10);
-            },
+            }),
 
-            down: function () {
+            down: actionWrapper(function () {
                 game.setPlayerY(game.state.player.y + 10);
-            },
+            }),
 
-            fire: function () {
+            fire: actionWrapper(function () {
                 var playerSprite = game.sprites.player;
                 game.state.playerShots.push({
                     x: playerSprite.width,
                     y: game.state.player.y
                 });
                 HAM.sfx.play('fire');
-            }
+            })
         }
 
     };
 
+    function actionWrapper(func) {
+        return function () {
+            if (game.state.started) {
+                func.apply(this, arguments);
+            }
+        };
+    }
+
 
     /*** INPUT ***/
+
+    var _gettingMedia = false;
 
     HAM.input = {
         inputStream: null,
@@ -194,11 +205,14 @@
 
         getUserMedia: function () {
             var that = this;
+            _gettingMedia = true;
             navigator.getUserMedia({video: true, audio: true}, function (stream) {
+                _gettingMedia = false;
                 that.inputStream = stream;
                 that.audioSource = HAM.sfx.context.createMediaStreamSource(stream);
                 HAM.trigger('input.start');
             }, function () {
+                _gettingMedia = false;
                 console.error('Oh no! Something went wrong and I can\'t be bothered handling this error properly.');
             });
         },
@@ -212,7 +226,9 @@
             HAM.once('input.start', function () {
                 callback(that.inputStream);
             });
-            this.getUserMedia();
+            if (!_gettingMedia) {
+                this.getUserMedia();
+            }
         },
 
         getAudio: function (callback) {
@@ -224,7 +240,9 @@
             HAM.once('input.start', function () {
                 callback(that.audioSource);
             });
-            this.getUserMedia();
+            if (!_gettingMedia) {
+                this.getUserMedia();
+            }
         },
 
         keyMap: {
@@ -292,6 +310,11 @@
         this.analyser.fftSize = 64;
         this.byteData = new Uint8Array(this.analyser.frequencyBinCount);
         this.lastTimeAboveThreshold = 0;
+        this.timer = 0;
+        var analyser = this.analyser;
+        HAM.input.getAudio(function (audioSource) {
+            audioSource.connect(analyser);
+        });
     };
 
     var recOpts = HAM.Sound.recordingOptions = {
@@ -304,9 +327,9 @@
     function listenForAudioStart() {
         if (isAudioAboveThreshold(this)) {
             HAM.sfx.recorder.record();
-            setTimeout(listenForAudioStop.bind(this), 10);
+            this.timer = setTimeout(listenForAudioStop.bind(this), 10);
         } else {
-            setTimeout(listenForAudioStart.bind(this), 10);
+            this.timer = setTimeout(listenForAudioStart.bind(this), 10);
         }
     }
 
@@ -314,7 +337,7 @@
         if (!isAudioAboveThreshold(this)) {
             this.stopRecording();
         } else {
-            setTimeout(listenForAudioStop.bind(this), 10);
+            this.timer = setTimeout(listenForAudioStop.bind(this), 10);
         }
     }
 
@@ -327,7 +350,7 @@
             // console.log('max', max);
             return true;
         }
-        // console.log('max', max, now - lastTimeAboveThreshold);
+        // console.log('max', max, now - sound.lastTimeAboveThreshold)
         if (!sound.lastTimeAboveThreshold) {
             return false;
         }
@@ -350,6 +373,10 @@
         var that = this;
         function cleanup() {
             that.state = 'stopped';
+            if (that.timer) {
+                clearTimeout(that.timer);
+                that.timer = 0;
+            }
             HAM.trigger('sound.stopRecord.' + that.id, that);
         }
 
@@ -377,10 +404,15 @@
             this.src = this.context.createBufferSource();
             this.src.buffer = this.buffer;
             this.src.connect(this.context.destination);
+            if (this.loop) {
+                this.src.loop = true;
+            }
             this.src.start(0);
             this.state = 'playing';
             HAM.trigger('sound.startPlay.' + this.id, this);
-            setTimeout(this.stop.bind(this), this.src.buffer.duration * 1000);
+            if (!this.loop) {
+                setTimeout(this.stop.bind(this), this.src.buffer.duration * 1000);
+            }
         }
     };
 
