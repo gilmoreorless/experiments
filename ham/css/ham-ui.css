@@ -1,4 +1,43 @@
-button.sfx-action {
+/*** GAME ***/
+
+.main {
+    display: table;
+    width: 100%;
+}
+.main > div {
+    display: table-cell;
+    vertical-align: top;
+}
+#playing-area {
+    width: 482px;
+}
+#game {
+    background: #fff;
+    border: 1px solid #333;
+}
+
+
+/*** AUDIO ***/
+
+.audio-control {
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 0 3px 3px 0;
+    clear: left;
+    float: left;
+    line-height: 1.625;
+    margin-top: 4px;
+    padding: 5px;
+    text-align: left;
+}
+.audio-control .title {
+    display: block;
+    float: left;
+    width: 100px;
+}
+.audio-control button ~ button {
+    margin-left: 2px;
+}
+.sfx-action {
     height: 26px;
     padding: 4px 6px;
 }

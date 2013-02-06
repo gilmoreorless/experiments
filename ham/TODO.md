@@ -8,7 +8,6 @@
 * Enemy shooting
 * Enemy death
 * Player death
-* Hook up sfx
 
 ## Webcam
 
@@ -18,7 +17,5 @@
 
 ## Sound
 
-* Auto-record for sfx
-* Looping for sfx
 * Calibrate firing trigger ("pew")
 * Hook up firing trigger to game

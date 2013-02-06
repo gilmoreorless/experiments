@@ -48,6 +48,7 @@
 
         state: {
             started: false,
+            startTime: 0,
             alive: true,
             kills: 0,
             player: {},
@@ -59,8 +60,8 @@
         init: function (id) {
             this.canvas = document.getElementById(id);
             this.context = this.canvas.getContext('2d');
-            this.canvas.width = 320;
-            this.canvas.height = 240;
+            this.canvas.width = 480;
+            this.canvas.height = 360;
 
             // Temp player until image is created
             var canvas = document.createElement('canvas');
@@ -69,7 +70,7 @@
             ctx.fillStyle = '#090';
             ctx.beginPath();
             ctx.moveTo(0, 0);
-            ctx.lineTo(0, 32);
+            ctx.quadraticCurveTo(12, 16, 0, 32);
             ctx.lineTo(32, 16);
             ctx.closePath();
             ctx.fill();
@@ -85,7 +86,10 @@
             canvas.width = canvas.height = 32;
             ctx = canvas.getContext('2d');
             ctx.fillStyle = '#900';
-            ctx.fillRect(0, 0, 32, 32);
+            ctx.fillRect(4, 4, 24, 24);
+            ctx.translate(16, -6);
+            ctx.rotate(Math.PI / 4);
+            ctx.fillRect(4, 4, 24, 24);
 
             this.sprites.enemy = {
                 width: canvas.width,
@@ -102,8 +106,10 @@
             state.enemies = [];
             state.playerShots = [];
             state.enemyShots = [];
+            state.startTime = Date.now();
             state.started = true;
             game.tick();
+            HAM.sfx.play('engine');
             HAM.trigger('game.start');
         },
 
@@ -113,6 +119,7 @@
                 game.rafId = null;
             }
             game.state.started = false;
+            HAM.sfx.stop('engine');
             HAM.trigger('game.finish');
         },
 
@@ -136,11 +143,11 @@
 
             // Draw shots
             ctx.save();
+            ctx.fillStyle = '#f00';
             i = state.playerShots.length;
             while (i--) {
                 shot = state.playerShots[i];
                 var sw = 5, sh = 2;
-                ctx.fillStyle = '#f00';
                 ctx.fillRect(shot.x - sw, shot.y - sh, sw * 2, sh * 2);
                 if (shot.x > gw) {
                     state.playerShots.splice(i, 1);
@@ -342,7 +349,7 @@
     }
 
     function isAudioAboveThreshold(sound) {
-        var now = +new Date();
+        var now = Date.now();
         sound.analyser.getByteFrequencyData(sound.byteData);
         var max = Math.max.apply(Math, sound.byteData);
         if (max >= recOpts.threshold) {
@@ -474,6 +481,10 @@
 
         play: function (name) {
             (sounds[name] || {play: function () {}}).play();
+        },
+
+        stop: function (name) {
+            (sounds[name] || {stop: function () {}}).stop();
         }
     };
 

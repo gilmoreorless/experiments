@@ -27,6 +27,9 @@
     };
 
     ACproto.updateButtons = function () {
+        if (HAM.game.started) {
+            return;
+        }
         var hasInput = !!HAM.input.inputStream;
         var hasSound = !!this.sound.buffer;
         this.buttons.record.disabled = !hasInput || hasSound;
