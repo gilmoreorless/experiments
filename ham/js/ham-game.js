@@ -36,6 +36,43 @@
 
     /*** GAME ***/
 
+    function actionWrapper(func) {
+        return function () {
+            if (game.state.started) {
+                func.apply(this, arguments);
+            }
+        };
+    }
+
+    var lastEnemySpawnTime = 0;
+    var enemySpawnRate = 5000; // Milliseconds
+
+    function shouldSpawnEnemy() {
+        var now = Date.now();
+        // TODO: Use a formula that increases spawn rate over time
+        var timeSinceStart = now - game.state.startTime;
+        var timeSinceLastEnemy = now - (lastEnemySpawnTime || game.state.startTime);
+        if (timeSinceLastEnemy >= enemySpawnRate) {
+            lastEnemySpawnTime = now;
+            return true;
+        }
+        return false;
+    }
+
+    function killEnemy(id) {
+        var enemies = game.state.enemies;
+        var i = enemies.length;
+        while (i--) {
+            if (enemies[i].id === id) {
+                game.state.enemies.splice(i, 1);
+                break;
+            }
+        }
+
+        game.state.kills++;
+        HAM.trigger('state.kills', game.state.kills);
+    }
+
     var game = HAM.game = {
         canvas: null,
         context: null,
@@ -67,6 +104,8 @@
             var canvas = document.createElement('canvas');
             canvas.width = canvas.height = 32;
             var ctx = canvas.getContext('2d');
+            ctx.strokeWidth = 1;
+            ctx.strokeStyle = '#030';
             ctx.fillStyle = '#090';
             ctx.beginPath();
             ctx.moveTo(0, 0);
@@ -74,6 +113,7 @@
             ctx.lineTo(32, 16);
             ctx.closePath();
             ctx.fill();
+            ctx.stroke();
 
             this.sprites.player = {
                 width: canvas.width,
@@ -131,25 +171,71 @@
                 game.finish();
             }
 
-            var i, shot;
+            var i, j, enemy, shot, x, y, w2, h2, hit, values;
             var gw = game.canvas.width;
             var gh = game.canvas.height;
             var ctx = game.context;
             ctx.clearRect(0, 0, gw, gh);
 
-            // Draw player
             var playerSprite = game.sprites.player;
+            var enemySprite = game.sprites.enemy;
+            var enemyBounds = {};
+
+            // Create new enemies if needed
+            if (shouldSpawnEnemy()) {
+                state.enemies.push({
+                    id: HAM._guid++,
+                    x: gw - enemySprite.width,
+                    y: ~~(Math.random() * (gh - enemySprite.height)),
+                    vx: -0.25  // X pixels to move every tick()
+                });
+            }
+
+            // Draw player
             ctx.drawImage(playerSprite.image, 0, state.player.y - playerSprite.height / 2);
+
+            // Draw enemies
+            i = state.enemies.length;
+            values = [];
+            while (i--) {
+                enemy = state.enemies[i];
+                ctx.drawImage(enemySprite.image, enemy.x, enemy.y);
+                enemy.x += enemy.vx;
+                enemyBounds[enemy.x] = [enemy.y, enemy.y + enemySprite.height, enemy.id];
+                values.push(enemy.x);
+            }
+            if (state.enemies.length) {
+                enemyBounds.min = Math.min.apply(Math, values);
+                enemyBounds.max = Math.max.apply(Math, values) + enemySprite.width;
+            } else {
+                enemyBounds.min = enemyBounds.max = Infinity;
+            }
 
             // Draw shots
             ctx.save();
-            ctx.fillStyle = '#f00';
+            ctx.fillStyle = '#0c0';
             i = state.playerShots.length;
             while (i--) {
                 shot = state.playerShots[i];
                 var sw = 5, sh = 2;
-                ctx.fillRect(shot.x - sw, shot.y - sh, sw * 2, sh * 2);
-                if (shot.x > gw) {
+                x = shot.x;
+                y = shot.y;
+                ctx.fillRect(x - sw, y - sh, sw * 2, sh * 2);
+
+                // Hit/bounds detection
+                hit = false;
+                if (x > enemyBounds.min && x < enemyBounds.max) {
+                    for (j in enemyBounds) {
+                        if (j !== 'max' && j !== 'min' && enemyBounds.hasOwnProperty(j)) {
+                            if (x >= j && y >= enemyBounds[j][0] && y <= enemyBounds[j][1]) {
+                                hit = true;
+                                killEnemy(enemyBounds[j][2]);
+                                break;
+                            }
+                        }
+                    }
+                }
+                if (hit || x > gw) {
                     state.playerShots.splice(i, 1);
                 } else {
                     shot.x += 5;
@@ -192,14 +278,6 @@
         }
 
     };
-
-    function actionWrapper(func) {
-        return function () {
-            if (game.state.started) {
-                func.apply(this, arguments);
-            }
-        };
-    }
 
 
     /*** INPUT ***/
@@ -331,23 +409,6 @@
 
     var Sproto = HAM.Sound.prototype;
 
-    function listenForAudioStart() {
-        if (isAudioAboveThreshold(this)) {
-            HAM.sfx.recorder.record();
-            this.timer = setTimeout(listenForAudioStop.bind(this), 10);
-        } else {
-            this.timer = setTimeout(listenForAudioStart.bind(this), 10);
-        }
-    }
-
-    function listenForAudioStop() {
-        if (!isAudioAboveThreshold(this)) {
-            this.stopRecording();
-        } else {
-            this.timer = setTimeout(listenForAudioStop.bind(this), 10);
-        }
-    }
-
     function isAudioAboveThreshold(sound) {
         var now = Date.now();
         sound.analyser.getByteFrequencyData(sound.byteData);
@@ -367,6 +428,23 @@
             return false;
         }
         return true;
+    }
+
+    function listenForAudioStop() {
+        if (!isAudioAboveThreshold(this)) {
+            this.stopRecording();
+        } else {
+            this.timer = setTimeout(listenForAudioStop.bind(this), 10);
+        }
+    }
+
+    function listenForAudioStart() {
+        if (isAudioAboveThreshold(this)) {
+            HAM.sfx.recorder.record();
+            this.timer = setTimeout(listenForAudioStop.bind(this), 10);
+        } else {
+            this.timer = setTimeout(listenForAudioStart.bind(this), 10);
+        }
     }
 
     Sproto.record = function () {

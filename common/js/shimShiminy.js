@@ -9,6 +9,7 @@
 (function (window) {
     // window.URL normalisation
     window.URL = window.URL || window.webkitURL || window.msURL || window.oURL;
+
     // navigator.getUserMedia normalisation
     navigator.getUserMedia = navigator.getUserMedia ||
                              navigator.webkitGetUserMedia ||
@@ -17,6 +18,7 @@
                              function (opts, success, fail) {
                                  fail();
                              };
+
     // Convenience method for setting user media source on a <video>
     window.setStreamSrc = function (video, stream) {
         if (navigator.mozGetUserMedia) {
