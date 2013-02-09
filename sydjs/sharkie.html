@@ -5,11 +5,15 @@
     <title>SydJS Demo - Sharkie</title>
     <link rel="stylesheet" href="../main.css">
     <style>
+        body {width:auto; margin:10px 20px;}
         #subject {float:left; margin-right:20px;}
         #controls h2 {font-size:140%; margin:20px 0 0 0;}
         #controls h2:first-child {margin:0;}
         #controls h2 + .control-row {margin-top:10px;}
         #lasers {position:absolute; left:0; top:0; width:100%; height:100%; pointer-events:none;}
+        #output {font-size:120%; font-weight:bold;}
+        #output.good {color:#090;}
+        #output.evil {color:#900;}
     </style>
 </head>
 <body>
@@ -27,6 +31,8 @@
             <div class="control-row"><button data-mode="drawing">Drawing (define new segment)</button></div>
             <div class="control-row"><button data-mode="dragging">Dragging (define new movement)</button></div>
         </div>
+        <h2>Output</h2>
+        <p id="output" class="good">Good</p>
     </div>
     <script src="../common/js/shimShiminy.js"></script>
     <script src="../common/js/chuckles.js"></script>
@@ -35,11 +41,11 @@
 
         // var width = 640;
         // var height = 480;
-        var width = 450;
-        var height = 500;
+        var width = 400;
+        var height = 536;
         var eyes = [
-            {x: 290, y: 170},
-            {x: 390, y: 170},
+            {x: 140, y: 215},
+            {x: 218, y: 177},
         ];
 
         /*** Drawing stuff ***/
@@ -60,7 +66,8 @@
 
             dummy = new Chuckles({
                 canvas: canvas,
-                image: '../common/img/mad.png',
+                // image: '../common/img/mad.png',
+                image: '../common/img/js.jpg',
                 fillStyle: '#000',
                 // steps: 5,
                 movement: {x: 20, y: 40}
@@ -114,12 +121,20 @@
         function laserKeyListener(e) {
             if (e.keyCode == 76) { // L
                 isLasering = !isLasering;
+                setOutputText();
                 if (isLasering) {
                     startLasers();
                 } else {
                     stopLasers();
                 }
             }
+        }
+
+        var output = document.getElementById('output');
+        function setOutputText() {
+            var text = isLasering ? 'EVIL' : 'Good';
+            output.innerText = text;
+            output.className = text.toLowerCase();
         }
 
         function startLasers() {
