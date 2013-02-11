@@ -2,9 +2,7 @@
 
 ## Game
 
-* Images for player, enemies
-* Auto-spawn enemies
-* Enemy movement
+* Auto-spawn enemies (half done, needs to be smarter)
 * Enemy shooting
 * Enemy death
 * Player death

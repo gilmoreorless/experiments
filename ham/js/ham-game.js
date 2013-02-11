@@ -71,6 +71,7 @@
 
         game.state.kills++;
         HAM.trigger('state.kills', game.state.kills);
+        HAM.sfx.play('hit');
     }
 
     var game = HAM.game = {
@@ -304,13 +305,15 @@
 
         getVideo: function (callback) {
             if (this.inputStream) {
-                callback(this.inputStream);
+                callback && callback(this.inputStream);
                 return;
             }
             var that = this;
-            HAM.once('input.start', function () {
-                callback(that.inputStream);
-            });
+            if (callback) {
+                HAM.once('input.start', function () {
+                    callback(that.inputStream);
+                });
+            }
             if (!_gettingMedia) {
                 this.getUserMedia();
             }
@@ -318,16 +321,25 @@
 
         getAudio: function (callback) {
             if (this.audioSource) {
-                callback(this.audioSource);
+                callback && callback(this.audioSource);
                 return;
             }
             var that = this;
-            HAM.once('input.start', function () {
-                callback(that.audioSource);
-            });
+            if (callback) {
+                HAM.once('input.start', function () {
+                    callback(that.audioSource);
+                });
+            }
             if (!_gettingMedia) {
                 this.getUserMedia();
             }
+        },
+
+        stop: function () {
+            this.inputStream = null;
+            this.audioSource.disconnect();
+            this.audioSource = null;
+            HAM.trigger('input.stop');
         },
 
         keyMap: {
@@ -359,24 +371,64 @@
             context: null
         },
 
+        tracker: null,
+
         init: function () {
             var video = document.createElement('video');
             var canvas = document.createElement('canvas');
-            video.width  = canvas.width  = 320;
-            video.height = canvas.height = 240;
+            video.width  = canvas.width  = 480;
+            video.height = canvas.height = 360;
             this.dom.video = video;
             this.dom.canvas = canvas;
             this.dom.context = canvas.getContext('2d');
+            this.tracker = new headtrackr.Tracker({
+                headPosition: false,
+                ui: false,
+                calcAngles: false
+            });
+            this.start();
+        },
+
+        start: function () {
+            var video = this.dom.video;
             HAM.input.getVideo(function (stream) {
                 setStreamSrc(video, stream);
             });
         },
 
-        calibrate: function () {},
+        stop: function () {
+            this.dom.video.pause();
+            this.dom.video.src = this.dom.video.currentSrc = null;
+            if (this.dom.video.mozStreamSrc) {
+                this.dom.video.mozStreamSrc = null;
+            }
+            HAM.input.stop();
+        },
 
-        startTracking: function () {},
+        calibrate: function () {
+            this.tracker.init(this.dom.video, this.dom.canvas, false);
+        },
 
-        stopTracking: function () {}
+        startTracking: function () {
+            this.tracker.start();
+            document.addEventListener('facetrackingEvent', this._trackingEventHandler, false);
+        },
+
+        stopTracking: function () {
+            this.tracker.stop();
+            document.removeEventListener('facetrackingEvent', this._trackingEventHandler, false);
+        },
+
+        _trackingEventHandler: function (e) {
+            if (!HAM.game.state.started) {
+                return;
+            }
+            if (e.detection === 'CS') {
+                var y = e.y + e.height / 2;
+                console.log([e.x, e.y, e.width, e.height, '=', y].join())
+                HAM.game.setPlayerY(y);
+            }
+        }
     };
 
 
@@ -534,6 +586,7 @@
                 loop: true
             });
             this.add('fire');
+            this.add('hit');
             HAM.input.getAudio(function (audioSource) {
                 this.recorder = new Recorder(audioSource, {
                     workerPath: '../common/js/recorderWorker.js'
@@ -568,8 +621,5 @@
 
 
     HAM.init();
-
-    // DEBUG
-    window.end = HAM.game.finish;
 
 })(this);

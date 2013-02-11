@@ -1,3 +1,7 @@
+.hidden {
+    display: none;
+}
+
 /*** GAME ***/
 
 .main {
@@ -8,12 +12,41 @@
     display: table-cell;
     vertical-align: top;
 }
+.main > .sidebar {
+    padding-top: 50px;
+}
 #playing-area {
     width: 482px;
 }
+.main-canvas {
+    border: 1px solid #333;
+    height: 360px;
+    position: relative;
+    width: 480px;
+}
+.main-canvas > canvas,
+.main-canvas > video {
+    left: 0;
+    position: absolute;
+    top: 0;
+}
 #game {
     background: #fff;
-    border: 1px solid #333;
+}
+
+
+/*** WEBCAM ***/
+
+.sidebar.left {
+    padding-right: 10px;
+}
+.sidebar.left button {
+    clear: right;
+    float: right;
+}
+.sidebar.left button ~ button {
+    margin-left: 0;
+    margin-top: 5px;
 }
 
 

@@ -7,20 +7,29 @@
     <link rel="stylesheet" href="css/ham-ui.css">
 </head>
 <body class="centre">
-    <div id="game-controls" class="controls"></div>
     <div class="main">
-        <div id="playing-area">
-            <canvas id="game"></canvas>
+        <div id="input-controls" class="sidebar left">
+            <!-- <h3>Input</h3> -->
         </div>
-        <div id="audio-controls"></div>
+        <div id="playing-area">
+            <div id="game-controls" class="controls"></div>
+            <div class="main-canvas">
+                <canvas id="game"></canvas>
+            </div>
+        </div>
+        <div id="audio-controls" class="sidebar right">
+            <!-- <h3>Sound Effects</h3> -->
+        </div>
     </div>
 
     <script src="../common/js/shimShiminy.js"></script>
     <script src="../common/js/recorder.js"></script>
+    <script src="../common/js/headtrackr.min.js"></script>
     <script src="../common/js/put.js"></script>
     <script src="../common/js/eve.js"></script>
     <script src="js/ham-game.js"></script>
     <script src="js/ui-game.js"></script>
+    <script src="js/ui-webcam.js"></script>
     <script src="js/ui-audio.js"></script>
     <script>
         // Debug

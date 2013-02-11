@@ -22,10 +22,11 @@
     // Convenience method for setting user media source on a <video>
     window.setStreamSrc = function (video, stream) {
         if (navigator.mozGetUserMedia) {
-            video.mozStreamSrc = stream;
+            video.mozSrcObject = stream;
         } else {
             video.src = window.URL && window.URL.createObjectURL ? window.URL.createObjectURL(stream) : stream;
         }
+        video.play();
     };
 
     // AudioContext normalisation
