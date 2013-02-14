@@ -47,13 +47,15 @@
         var divZoneWidth = 20;    // Divide width by this number to get edge zone width
         var divBlockWidth = 20;   // Divide width by this number to get detection block width (40?)
         var divBlockHeight = 16;  // Divide height by this number to get detection block height (32?)
-        var divCalibHeight = 2;   // Divide height by this number to get calibration block height (centred)
+        var divCalibHeight = 3;   // Divide height by this number to get calibration block height (centred)
         var sourceMethod = 1;     // 1 = Webcam; 2 = Image
         var interpFrames = 3;     // Number of frames to remember for interpolation, 0 to disable
         var frequencyRange = [300, 1000];  // Hz
-        var DEBUG = 1;            // 0 = Off; 1 = Values; 2 = Blocks; 3 = HSL (separate canvases)
+        // var DEBUG = 1;            // 0 = Off; 1 = Values; 2 = Blocks; 3 = HSL (separate canvases)
+        var DEBUG = 3;            // 0 = Off; 1 = Values; 2 = Blocks; 3 = HSL (separate canvases)
         var DETECT_METHOD = 2;    // 1 = HSL; 2 = Histogram
         var histBitShift = 4;
+        var histDetectThreshold = 0.6;
 
         /**
 
@@ -406,13 +408,12 @@
                 var pixels = imageData.data;
                 var newPixels = newData.data;
                 var w = imageData.width;
-                var y = imageData.height;
                 var posData = this.positive;
                 var pmin = posData.min;
                 var pmax = posData.max;
                 var pav = posData.avg;
                 var psd = posData.stddev;
-                var i, x, rgb, hsl;
+                var i, x, y, rgb, hsl;
                 if (DEBUG >= 3) {
                     var debugData = [
                         d.hue.ctx.createImageData(imageData.width, imageData.height),
@@ -430,24 +431,41 @@
                     var hist = this.getHistogram(imageData);
                     var projData = getProjectionData.call(this, imageData, getWeights(this.hist, hist));
                     d.hist.ctx.putImageData(projData, 0, 0);
+                    if (DETECT_METHOD == 2) {
+                        y = imageData.height;
+                        while (y--) {
+                            x = w;
+                            while (x--) {
+                                i = (y * w + x) * 4;
+                                rgb = projData.data[i] >= (histDetectThreshold * 255) ? 255 : 0;
+                                newPixels[i]     = rgb;
+                                newPixels[i + 1] = rgb;
+                                newPixels[i + 2] = rgb;
+                                newPixels[i + 3] = 255;
+                            }
+                        }
+                    }
                 }
                 // HSL method
+                y = imageData.height;
                 while (y--) {
                     x = w;
                     while (x--) {
                         i = (y * w + x) * 4;
                         rgb = [0, 0, 0];
                         hsl = rgb2hsl([pixels[i], pixels[i + 1], pixels[i + 2]]);
-                        if (
-                            hsl[0] >= pav[0] - psd[0] && hsl[0] <= pav[0] + psd[0] &&
-                            hsl[2] >= pav[2] - psd[2] && hsl[2] <= pav[2] + psd[2]
-                        ) {
-                            rgb = [255, 255, 255];
+                        if (DETECT_METHOD == 1) {
+                            if (
+                                hsl[0] >= pav[0] - psd[0] && hsl[0] <= pav[0] + psd[0] &&
+                                hsl[2] >= pav[2] - psd[2] && hsl[2] <= pav[2] + psd[2]
+                            ) {
+                                rgb = [255, 255, 255];
+                            }
+                            newPixels[i]     = rgb[0];
+                            newPixels[i + 1] = rgb[1];
+                            newPixels[i + 2] = rgb[2];
+                            newPixels[i + 3] = 255;
                         }
-                        newPixels[i]     = rgb[0];
-                        newPixels[i + 1] = rgb[1];
-                        newPixels[i + 2] = rgb[2];
-                        newPixels[i + 3] = 255;
                         if (DEBUG >= 3) {
                             for (var i2 = 0; i2 < 3; i2++) {
                                 if (hsl[i2] >= pmin[i2] && hsl[i2] <= pmax[i2]) { // min/max
@@ -483,8 +501,11 @@
                     var hist = this.getHistogram(imageData);
                     var weights = getWeights(this.hist, hist);
                 }
+                var groupStartRow, prevRowValid = false, xMin, xMax, gxMin, gxMax;
                 while (y--) {
                     x = w;
+                    xMin = w;
+                    xMax = 0;
                     valid = 0;
                     while (x--) {
                         i = (y * w + x) * 4;
@@ -496,6 +517,8 @@
                                 hsl[2] >= pav[2] - psd[2] && hsl[2] <= pav[2] + psd[2]
                             ) {
                                 valid++;
+                                (x < xMin) && (xMin = x);
+                                (x > xMax) && (xMax = x);
                             }
                         }
                         // Histogram method
@@ -504,14 +527,32 @@
                             g = pixels[i + 1] >> histBitShift;
                             b = pixels[i + 2] >> histBitShift;
                             histMatch = weights[256 * r + 16 * g + b];
-                            if (histMatch > 0.8) {
+                            if (histMatch > histDetectThreshold) {
                                 valid++;
+                                (x < xMin) && (xMin = x);
+                                (x > xMax) && (xMax = x);
                             }
                         }
                     }
-                    if (valid >= w * 0.6) {
-                        foundRow = y;
-                        break;
+                    // if (valid >= w * 0.6) {
+                    //     foundRow = y;
+                    //     break;
+                    // }
+                    if (valid >= w * 0.5) {
+                        if (!prevRowValid) {
+                            prevRowValid = true;
+                            groupStartRow = y;
+                            gxMin = w;
+                            gxMax = 0;
+                        }
+                        (xMin < gxMin) && (gxMin = xMin);
+                        (xMax > gxMax) && (gxMax = xMax);
+                        if (groupStartRow - y >= 2) { // && gxMin etc
+                            foundRow = groupStartRow;
+                            break;
+                        }
+                    } else if (prevRowValid) {
+                        prevRowValid = false;
                     }
                 }
                 if (foundRow) {
