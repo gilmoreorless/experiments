@@ -27,7 +27,7 @@
     };
 
     ACproto.updateButtons = function () {
-        if (HAM.game.started) {
+        if (HAM.game.state.started) {
             return;
         }
         var hasInput = !!HAM.input.inputStream;

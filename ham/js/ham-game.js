@@ -45,15 +45,26 @@
     }
 
     var lastEnemySpawnTime = 0;
-    var enemySpawnRate = 5000; // Milliseconds
+    var enemySpawnRate = [2000, 5000]; // Milliseconds [min, max]
+    var currentSpawnGap;
+
+    function calculateSpawnRate() {
+        var min = enemySpawnRate[0];
+        var max = enemySpawnRate[1];
+        currentSpawnGap = Math.random() * (max - min) + min;
+    }
 
     function shouldSpawnEnemy() {
         var now = Date.now();
+        if (!currentSpawnGap) {
+            calculateSpawnRate();
+        }
         // TODO: Use a formula that increases spawn rate over time
         var timeSinceStart = now - game.state.startTime;
         var timeSinceLastEnemy = now - (lastEnemySpawnTime || game.state.startTime);
-        if (timeSinceLastEnemy >= enemySpawnRate) {
+        if (timeSinceLastEnemy >= currentSpawnGap) {
             lastEnemySpawnTime = now;
+            calculateSpawnRate();
             return true;
         }
         return false;
@@ -393,6 +404,7 @@
             var video = this.dom.video;
             HAM.input.getVideo(function (stream) {
                 setStreamSrc(video, stream);
+                video.play();
             });
         },
 
