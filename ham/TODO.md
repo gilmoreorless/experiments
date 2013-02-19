@@ -2,16 +2,13 @@
 
 ## Game
 
-* Auto-spawn enemies (half done, needs to be smarter)
 * Enemy shooting
 * Enemy death
 * Player death
 
 ## Webcam
 
-* Init
 * Calibration
-* Tracking hooked into player movement
 
 ## Sound
 

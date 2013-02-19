@@ -347,6 +347,7 @@
         },
 
         stop: function () {
+            this.inputStream.stop && this.inputStream.stop();
             this.inputStream = null;
             this.audioSource.disconnect();
             this.audioSource = null;
@@ -383,12 +384,17 @@
         },
 
         tracker: null,
+        smoother: null,
+        isTracking: false,
+        rafId: null,
+        videoYRatio: 1,
 
         init: function () {
             var video = document.createElement('video');
             var canvas = document.createElement('canvas');
-            video.width  = canvas.width  = 480;
-            video.height = canvas.height = 360;
+            video.width  = canvas.width  = 320; // 480;
+            video.height = canvas.height = 240; // 360;
+            this.videoYRatio = HAM.game.canvas.height / video.height;
             this.dom.video = video;
             this.dom.canvas = canvas;
             this.dom.context = canvas.getContext('2d');
@@ -397,6 +403,10 @@
                 ui: false,
                 calcAngles: false
             });
+            // this.tracker = new headtrackr.camshift.Tracker({
+            //     calcAngles: false
+            // });
+            this.smoother = new headtrackr.Smoother(0.35, 35);
             this.start();
         },
 
@@ -411,34 +421,64 @@
         stop: function () {
             this.dom.video.pause();
             this.dom.video.src = this.dom.video.currentSrc = null;
-            if (this.dom.video.mozStreamSrc) {
-                this.dom.video.mozStreamSrc = null;
+            if (navigator.mozGetUserMedia) {
+                this.dom.video.mozSrcObject = null;
             }
-            HAM.input.stop();
+            if (this.isTracking) {
+                this.stopTracking();
+            }
+            // HAM.input.stop();
         },
 
-        calibrate: function () {
+        calibrate: function (x, y, w, h) {
             this.tracker.init(this.dom.video, this.dom.canvas, false);
+            // this.tracker.initTracker(this.dom.canvas, new headtrackr.camshift.Rectangle(x, y, w, h));
         },
 
         startTracking: function () {
+            this.isTracking = true;
+            HAM.trigger('video.tracking.start');
+
             this.tracker.start();
             document.addEventListener('facetrackingEvent', this._trackingEventHandler, false);
+            // this._trackingTick();
         },
 
         stopTracking: function () {
+            this.isTracking = false;
+            HAM.trigger('video.tracking.stop');
+
             this.tracker.stop();
             document.removeEventListener('facetrackingEvent', this._trackingEventHandler, false);
+            // if (this.rafId) {
+            //     cancelAnimationFrame(this.rafId);
+            //     this.rafId = null;
+            // }
         },
 
+        // _trackingTick: function () {
+        //     this.rafId = requestAnimationFrame(this._trackingTick.bind(this));
         _trackingEventHandler: function (e) {
-            if (!HAM.game.state.started) {
-                return;
-            }
-            if (e.detection === 'CS') {
-                var y = e.y + e.height / 2;
-                console.log([e.x, e.y, e.width, e.height, '=', y].join())
-                HAM.game.setPlayerY(y);
+            var result = e;
+            var vid = HAM.video;
+
+            // var dom = vid.dom;
+            // dom.context.drawImage(dom.video, 0, 0, dom.canvas.width, dom.canvas.height);
+            // vid.tracker.track(dom.canvas);
+            // var result = vid.tracker.getTrackObj();
+            // if (!vid.smoother.initialized) {
+            //     vid.smoother.init(result);
+            // }
+            // result = vid.smoother.smooth(result);
+
+            if (result.width && result.height) {
+                if (HAM.game.state.started) {
+                    console.log([result.x, result.y, result.width, result.height].join())
+                    HAM.game.setPlayerY(result.y * vid.videoYRatio);
+                }
+                HAM.trigger('video.tracking.result', result);
+            } else {
+                HAM.trigger('video.tracking.lost', result);
             }
         }
     };

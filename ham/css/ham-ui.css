@@ -24,11 +24,10 @@
     position: relative;
     width: 480px;
 }
-.main-canvas > canvas,
-.main-canvas > video {
-    left: 0;
+.main-canvas > .calibration {
+    left: 80px;
     position: absolute;
-    top: 0;
+    top: 60px;
 }
 #game {
     background: #fff;
@@ -47,6 +46,12 @@
 .sidebar.left button ~ button {
     margin-left: 0;
     margin-top: 5px;
+}
+.sidebar .debug {
+    clear: right;
+    float: right;
+    margin-top: 20px;
+    max-width: 160px;
 }
 
 
