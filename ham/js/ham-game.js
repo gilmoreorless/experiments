@@ -183,6 +183,8 @@
                 game.finish();
             }
 
+            HAM.input.runKeyActions();
+
             var i, j, enemy, shot, x, y, w2, h2, hit, values;
             var gw = game.canvas.width;
             var gh = game.canvas.height;
@@ -272,11 +274,11 @@
 
         action: {
             up: actionWrapper(function () {
-                game.setPlayerY(game.state.player.y - 10);
+                game.setPlayerY(game.state.player.y - 2);
             }),
 
             down: actionWrapper(function () {
-                game.setPlayerY(game.state.player.y + 10);
+                game.setPlayerY(game.state.player.y + 2);
             }),
 
             fire: actionWrapper(function () {
@@ -360,15 +362,31 @@
             32: 'fire'   // Space
         },
 
+        currentKeyDown: {},
+
         initKeyboard: function () {
             document.addEventListener('keydown', this.keyListener, false);
+            document.addEventListener('keyup', this.keyListener, false);
         },
 
         keyListener: function (e) {
             var action = HAM.input.keyMap[e.keyCode];
             if (action) {
                 e.preventDefault();
-                HAM.game.action[action]();
+                if (action == 'up' || action == 'down') {
+                    HAM.input.currentKeyDown[e.keyCode] = e.type === 'keydown';
+                } else if (e.type === 'keydown') {
+                    HAM.game.action[action]();
+                }
+            }
+        },
+
+        runKeyActions: function () {
+            var keys = HAM.input.currentKeyDown;
+            for (var k in keys) {
+                if (keys.hasOwnProperty(k) && keys[k]) {
+                    HAM.game.action[HAM.input.keyMap[k]]();
+                }
             }
         }
     };
