@@ -155,7 +155,7 @@
         function setup() {
             analyser.fftSize = 64; // Must be a power of 2, >= 32
             // analyser.fftSize = 1024; // Must be a power of 2, >= 32
-            byteData = new Uint8Array(analyser.fftSize / 2);
+            byteData = new Uint8Array(analyser.frequencyBinCount);
 
             document.getElementById('actions').addEventListener('click', actionClick, false);
             document.getElementById('input-options').addEventListener('click', optionClick, false);
