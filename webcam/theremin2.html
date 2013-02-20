@@ -51,8 +51,8 @@
         var sourceMethod = 1;     // 1 = Webcam; 2 = Image
         var interpFrames = 3;     // Number of frames to remember for interpolation, 0 to disable
         var frequencyRange = [300, 1000];  // Hz
-        // var DEBUG = 1;            // 0 = Off; 1 = Values; 2 = Blocks; 3 = HSL (separate canvases)
-        var DEBUG = 3;            // 0 = Off; 1 = Values; 2 = Blocks; 3 = HSL (separate canvases)
+        var DEBUG = 1;            // 0 = Off; 1 = Values; 2 = Blocks; 3 = HSL (separate canvases)
+        // var DEBUG = 3;            // 0 = Off; 1 = Values; 2 = Blocks; 3 = HSL (separate canvases)
         var DETECT_METHOD = 2;    // 1 = HSL; 2 = Histogram
         var histBitShift = 4;
         var histDetectThreshold = 0.6;
@@ -603,8 +603,7 @@
             function initCalibration() {
                 console.info('initCalibration()');
                 overlayCtx.clearRect(0, 0, width, height);
-                // TODO: Show image overlay
-                message.innerHTML = 'DO STUFF';
+                message.innerHTML = 'Place your hands to match the picture';
                 countdownSecs = 4;
                 doCountdown();
             }
