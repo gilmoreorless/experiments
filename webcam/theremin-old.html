@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Webcam Experiments - Theremin</title>
+    <style>
+        /*#debug {display: none;}*/
+    </style>
+</head>
+<body>
+    <div id="controls">
+        <button id="btnStart">Start</button> <button id="btnStop">Stop</button><br />
+        <label><input type="checkbox" name="mirror" checked> Mirror image</label>
+    </div>
+    <canvas id="output"></canvas>
+    <div id="debug">
+        Video stream:<br />
+        <video id="webcam" autoplay width="640" height="480"></video>
+    </div>
+    <script src="../common/js/shimShiminy.js"></script>
+    <script src="../common/js/hog-processing.js"></script>
+    <script>
+        /* "Constants" */
+        var DETECTION_METHOD_MOVEMENT = 1;
+        var DETECTION_METHOD_EDGES = 2;
+
+        /* Config */
+        var fps = 10;             // Video frames per second (int)
+        var minMagnitude = 10;     // Minimum gradient magnitude for edge detection (percentage)
+        var minDiff = 30;         // Movement diff stuff
+        var detectionWidth = 40;  // How far in from the edge to look for edges
+        var blockWidth = 10;       // How many pixels to jump inwards for each edge detection
+        var sourceMethod = 1;     // 1 = Webcam; 2 = Image
+        var detectionMethod = DETECTION_METHOD_EDGES;  // 1 = Movement only; 2 = Edges only; 3 = Both
+        var frequencyRange = [0, 1500];  // Hz
+        var DEBUG = 2;            // 0 = Off; 1 = Detection zones; 2 = Movement / Edges
+
+        /**
+
+        PROCESS:
+
+        # Define detection zones at left/right edges of image - param to change width
+        # Define {blockWidth} as the width (in pixels, maybe 5 or 10) of each detection column within the zone
+        # For each zone:
+            # Starting with outer boundary (x = 0 or width), check pixels from bottom to top looking for edge
+                * If edge is found, follow it inwards for {blockWidth} pixels
+                    * If edge is present for all of {blockWidth}, set {foundValue} and move to next column
+                    * If edge is not wide enough, continue checking upwards
+                * If no edges found, move inwards {blockWidth} pixels and try again
+                * If {foundValue} has been set, use that as upper limit of {y} checking
+            # Set related value to {foundValue} or 0
+
+        NOTES:
+
+        * Detect pure edge? Just movement? Combination (find all edges on first load, then diff against that known set)?
+
+        */
+
+        /*** Boilerplate ***/
+
+        var video = document.getElementById('webcam');
+        var output = document.getElementById('output');
+        var outCtx = output.getContext('2d');
+        var audioCtx = new webkitAudioContext();
+        var oscillator = audioCtx.createOscillator();
+        var gainNode = audioCtx.createGainNode();
+        var prevDataCache = {};
+        var vectorCache = {};
+        var width, height, timer;
+
+        function drawVideo() {
+            outCtx.drawImage(video, 0, 0, width, height);
+            doStuff();
+            timer = setTimeout(drawVideo, 1000 / fps);
+        }
+
+        function startInput() {
+            width  = output.width  = video.width;
+            height = output.height = video.height;
+            minMagnitude > 1 && (minMagnitude /= 100);
+            if (sourceMethod === 1) {
+                // Only works in Opera, Chrome and Firefox Nightlies (with a flag) right now
+                navigator.getUserMedia({video: true}, function (stream) {
+                    setStreamSrc(video, stream);
+                    outCtx.translate(width, 0);
+                    outCtx.scale(-1, 1);
+                    setTimeout(drawVideo, 10);
+                }, function () {
+                    console.error('Oh noes!');
+                });
+            } else if (sourceMethod === 2) {
+                var img = new Image();
+                img.onload = function () {
+                    outCtx.drawImage(img, 0, 0, width, height);
+                    doStuff();
+                }
+                img.src = '../common/img/ref-theremin.jpg';
+            }
+
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            setVolume(0);
+            oscillator.noteOn(0);
+        }
+        setTimeout(startInput);
+
+        function stopInput() {
+            video.src = '';
+            oscillator.noteOff(0);
+            if (timer) {
+                clearTimeout(timer);
+            }
+        }
+
+        document.getElementById('btnStart').addEventListener('click', startInput, false);
+        document.getElementById('btnStop').addEventListener('click', stopInput, false);
+
+        /*** Actual experiment ***/
+
+        function setVolume(value) {
+            console.log('Volume = ' + value + ' (maps to ' + (value * value) + ')');
+            gainNode.gain.value = value * value;
+        }
+
+        function setPitch(value) {
+            var newValue = value * value;
+            var freq = frequencyRange[0] + newValue * (frequencyRange[1] - frequencyRange[0]);
+            console.log('Pitch = ' + value + ' (maps to ' + newValue + ') (' + freq + ' Hz)');
+            oscillator.frequency.value = freq;
+        }
+
+        function getZoneValue(side) {
+            var value = 0;
+            var isLeft = side === 'left';
+            var direction = isLeft ? 1 : -1;
+            var x = isLeft ? 0 : width;
+            var baseX = isLeft ? x : x - detectionWidth - 1;
+            var checkedWidth = 0;
+            var foundY = 0;
+            var lastData = prevDataCache[side];
+
+            var srcData = outCtx.getImageData(baseX, 0, detectionWidth, height);
+            if (!lastData) {
+                lastData = prevDataCache[side] = srcData;
+                return;
+            }
+            if (!vectorCache[side]) {
+                vectorCache[side] = [];
+            }
+            if (detectionMethod & DETECTION_METHOD_EDGES) {
+                vectors = processing.gradientVectors(srcData);
+            }
+
+            if (DEBUG) {
+                var dbgData = outCtx.createImageData(srcData.width, srcData.height);
+                var dbgDataD = dbgData.data;
+                var dbgX, dbgY, dbgI, dbgP;
+                if (DEBUG >= 2) {
+                    if (detectionMethod & DETECTION_METHOD_MOVEMENT) {
+                        for (dbgY = 0; dbgY < srcData.height; dbgY++) {
+                            for (dbgX = 0; dbgX < srcData.width; dbgX++) {
+                                dbgP = getPixelDiff(srcData, lastData, dbgX, dbgY);
+                                dbgI = (dbgY * srcData.width + dbgX) * 4;
+                                if (dbgP > minDiff) {
+                                    dbgP = 255;
+                                }
+                                dbgDataD[dbgI] = dbgP;
+                                dbgDataD[dbgI + 1] = dbgP;
+                                dbgDataD[dbgI + 2] = dbgP;
+                                dbgDataD[dbgI + 3] = 255;
+                            }
+                        }
+                    }
+                    if (detectionMethod & DETECTION_METHOD_EDGES) {
+                        for (dbgY = 0; dbgY < srcData.height; dbgY++) {
+                            for (dbgX = 0; dbgX < srcData.width; dbgX++) {
+                                var dbgI = (dbgY * 4) * srcData.width + dbgX * 4;
+                                var dbgMag = Math.abs(vectors[dbgY][dbgX].mag);
+                                if (dbgMag < minMagnitude) {
+                                    dbgMag = 0;
+                                } else {
+                                    dbgMag = 1;
+                                }
+                                dbgMag *= 255;
+
+                                dbgDataD[dbgI] = dbgMag;
+                                dbgDataD[dbgI + 1] = dbgMag;
+                                dbgDataD[dbgI + 2] = dbgMag;
+                                dbgDataD[dbgI + 3] = 255;
+                            }
+                        }
+                    }
+                }
+                outCtx.save();
+                outCtx.fillStyle = 'rgba(255, 0, 0, 0.5)';
+                outCtx.fillRect(isLeft ? x : x - detectionWidth, 0, detectionWidth + 1, height);
+                outCtx.restore();
+                outCtx.putImageData(dbgData, isLeft ? x : x - detectionWidth, 0);
+            }
+
+            x += direction * 3;
+
+            while (checkedWidth <= detectionWidth) {
+                foundY = findColumnHit(srcData, side, x, foundY, baseX);
+                // console.log('checking column ' + x + ': y = ' + foundY);
+                x += blockWidth * direction;
+                checkedWidth += blockWidth;
+            }
+
+            if (foundY) {
+                value = (height - foundY) / height;
+            }
+            prevDataCache[side] = srcData;
+            return value;
+        }
+
+        function findColumnHit(srcData, side, x, limitY, baseX) {
+            var y = height - 10;
+            var data1 = srcData;
+            var data2 = prevDataCache[side];
+            var diff, vector;
+            while (y > limitY) {
+                if (detectionMethod & DETECTION_METHOD_MOVEMENT) {
+                    diff = getPixelDiff(data1, data2, x, y);
+                    if (diff > minDiff) {
+                        return y;
+                    }
+                }
+                if (detectionMethod & DETECTION_METHOD_EDGES) {
+                    vector = getPixelVector(vectorCache[side], data1, x - baseX, y);
+                    // TODO: More robust edge checking
+                    if (vector.mag > minMagnitude) {
+                        return y;
+                    }
+                }
+                y--;
+            }
+            return y;
+        }
+
+        function getPixelDiff(data1, data2, x, y) {
+            if (data1.data.length != data2.data.length) {
+                return 0;
+            }
+            var i = y * data1.width + x;
+            var d1 = data1.data;
+            var d2 = data2.data;
+            var rd = Math.abs(d2[4 * i] - d1[4 * i]);
+            var gd = Math.abs(d2[4 * i + 1] - d1[4 * i + 1]);
+            var bd = Math.abs(d2[4 * i + 2] - d1[4 * i + 2]);
+            return (rd + gd + bd) / 3;
+        }
+
+        function getPixelVector(cache, data, x, y) {
+            cache[y] || (cache[y] = []);
+            if (y > 0 && cache[y - 1] === undefined) {
+                cache[y - 1] = [];
+            }
+            if (y < data.height - 1 && cache[y + 1] === undefined) {
+                cache[y + 1] = [];
+            }
+            if (cache[y][x] === undefined) {
+                var prevX = x === 0 ? 0 : greyscalePixel(data, x - 1, y);
+                var nextX = x === data.width - 1 ? 0 : greyscalePixel(data, x + 1, y);
+                var prevY = y === 0 ? 0 : greyscalePixel(data, x, y - 1);
+                var nextY = y === data.height - 1 ? 0 : greyscalePixel(data, x, y + 1);
+                // kernel [-1, 0, 1]
+                var gradX = -prevX + nextX;
+                var gradY = -prevY + nextY;
+                cache[y][x] = {
+                    mag: Math.sqrt(gradX * gradX + gradY * gradY)
+                    // orient: Math.atan2(gradY, gradX)
+                };
+            }
+            return cache[y][x];
+        }
+
+        function greyscalePixel(data, x, y) {
+            var i = (y * data.width + x) * 4;
+            var pixels = data.data;
+            var r = pixels[i];
+            var g = pixels[i + 1];
+            var b = pixels[i + 2];
+            var a = pixels[i + 3];
+            return a === 0 ? 1 : (r * 299/1000 + g * 587/1000 + b * 114/1000) / 255;
+        }
+
+        function findNextEdgePixel(vectors, x, y, dir) {
+            // TODO: Use dir properly, it's assumed to be left->right at the moment
+            var max = 0;
+            var x1, x2, y1, y2, ix, iy, nx, ny;
+
+            // x1 = x > 1 ? x - 1 : x;
+            // x2 = x < (vectors[0].length - 2) ? x + 1 : x;
+            y1 = y > 1 ? y - 1 : y;
+            y2 = y < (vectors.length - 2) ? y + 1 : y;
+
+            ix = x + 1;
+            for (iy = y1; iy <= y2; iy++) {
+                if (vectors[iy] && vectors[iy][ix] && vectors[iy][ix].mag > max) {
+                    max = vectors[iy][ix].mag;
+                    nx = ix;
+                    ny = iy;
+                }
+            }
+            if (max <= minMagnitude) {
+                return false;
+            }
+            return {x: nx, y: ny};
+        }
+
+        function processEdgePixels(zone) {
+            var zx = Math.round(zone.x * scaleX);
+            var zy = Math.round(zone.y * scaleY);
+            var zw = Math.round(zone.w * scaleX);
+            var zh = Math.round(zone.h * scaleY);
+            var azx = zx - 1;
+            var azy = zy - 1;
+            var azw = zw + 2;
+            var azh = zh + 2;
+            var imageData = outCtx.getImageData(azx, azy, azw, azh);
+            var pixels = imageData.data;
+            // console.log(pixels);
+
+            // STEP: Get lumas/gradients
+            var vectors = processing.gradientVectors(imageData);
+
+            // STEP: Find edges
+            // TODO: Assuming top/bottom zones for now, need to account for 90° shift for left/right
+            var edgeMatched = false;
+            var curEdgeLength = 0;
+
+            var total = zw * zh;
+            var checkedCache = new Array(azw);
+            var checkedCount = 0;
+            var unfinished = true;
+            var finding = false;
+            var ix = 1;
+            var iy = 0;
+            var x, y, xx, yy, nextFound, vector;
+
+            //*
+            while (unfinished) {
+                if (!finding) {
+                    iy++;
+                    if (iy > zh) {
+                        iy = 1;
+                        ix++;
+                        if (ix > zw) {
+                            unfinished = false;
+                            continue;
+                        }
+                    }
+                    x = ix;
+                    y = iy;
+                }
+
+                if (!checkedCache[x]) {
+                    checkedCache[x] = new Array(azh);
+                }
+                if (!checkedCache[x][y]) {
+                    checkedCache[x][y] = true;
+                    checkedCount++;
+
+                    var i = (y * (zw + 2) + x) * 4;
+                    var mag = vectors[y][x].mag;
+                    if (mag < minMagnitude) {
+                        mag = 0;
+                    }
+                    pixels[i] = pixels[i + 1] = pixels[i + 2] = 255-Math.round(mag * 255);
+
+                    if (vectors[y][x].mag > minMagnitude) {
+                        if (!finding) {
+                            finding = true;
+                            curEdgeLength = 1;
+                        }
+                        nextFound = findNextEdgePixel(vectors, x, y);
+                        if (!nextFound) {
+                            finding = false;
+                        } else {
+                            curEdgeLength++;
+                            xx = nextFound.x;
+                            yy = nextFound.y;
+                            if (!checkedCache[xx] || !checkedCache[xx][yy]) {
+                                x = xx;
+                                y = yy;
+                            } else {
+                                // If we've hit a pixel we've found before, stop finding this edge
+                                finding = false;
+                            }
+                        }
+                        if (curEdgeLength / zw > minEdgePerc) {
+                            edgeMatched = true;
+                        }
+                    } else {
+                        finding = false;
+                    }
+                } else {
+                    finding = false;
+                }
+
+                if (checkedCount == total || edgeMatched) {
+                    unfinished = false;
+                }
+            }
+            //*/
+
+            /*
+            for (x = 1; x < zw + 1; x++) {
+                for (y = 1; y < zh + 1; y++) {
+                    vector = vectors[y][x];
+                    // if (vector.mag > minMagnitude) {
+                        // Do something here
+                        var i = (y * (zw + 2) + x) * 4;
+                        // pixels[i] = pixels[i + 1] = pixels[i + 2] = 255-Math.round(vector.mag * 255);
+                        pixels[i] = pixels[i + 1] = pixels[i + 2] = 255-Math.round((vector.orient + Math.PI) / (2 * Math.PI) * 255);
+                        // pixels[i] = pixels[i + 1] = pixels[i + 2] = Math.round((Math.abs(vector.orient)) / (Math.PI) * 255);
+                    // }
+                }
+            }
+            //*/
+            outCtx.putImageData(imageData, azx, azy);
+
+            return edgeMatched;
+        }
+
+        function doStuff() {
+            setVolume(getZoneValue('left'));
+            // setPitch(getZoneValue('right'));
+        }
+    </script>
+</body>
+</html>
