@@ -41,7 +41,7 @@
         function startInput() {
             // Only works in Opera Labs and Chrome (with a flag) right now
             navigator.getUserMedia({video: true}, function (stream) {
-                video.src = getStreamSrc(stream);
+                setStreamSrc(video, stream);
 
                 width  = source.width  = output.width  = video.width;
                 height = source.height = output.height = video.height;

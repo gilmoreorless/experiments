@@ -80,7 +80,7 @@
             if (sourceMethod === 1) {
                 // Only works in Opera, Chrome and Firefox Nightlies (with a flag) right now
                 navigator.getUserMedia({video: true}, function (stream) {
-                    video.src = getStreamSrc(stream);
+                    setStreamSrc(video, stream);
                     outCtx.translate(width, 0);
                     outCtx.scale(-1, 1);
                     setTimeout(drawVideo, 10);
