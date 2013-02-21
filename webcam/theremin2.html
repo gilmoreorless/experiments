@@ -23,7 +23,7 @@
             <button id="btnStop">Stop Webcam</button>
             <button id="btnCalibrate">Start Calibration</button>
         </div>
-        <div class="control-row"><label><input type="checkbox" name="mirror" checked disabled> Mirror image</label></div>
+        <div class="control-row"><label><input type="checkbox" name="mirror" id="mirror" checked disabled> Mirror image</label></div>
     </div>
     <div id="message">Start webcam, then press “Start Calibration” to begin.</div>
     <div id="debug-edge-left" class="debug-edge"></div>
@@ -97,6 +97,7 @@
         var width, height, colLeft, colRight;
         var debugCanvas = {};
         var hasStream = false;
+        var isMirrored = true;
 
         function startInput() {
             width  = processing.width  = overlay.width  = video.width;
@@ -142,6 +143,7 @@
         var btnStart = document.getElementById('btnStart');
         var btnStop = document.getElementById('btnStop');
         var btnCalibrate = document.getElementById('btnCalibrate');
+        var mirror = document.getElementById('mirror');
 
         function stopInput() {
             hasStream = false;
@@ -162,9 +164,15 @@
             btnCalibrate.disabled = !hasStream;
         }
 
+        function setMirroring() {
+            isMirrored = mirror.checked;
+            document.body.classList[isMirrored ? 'add' : 'remove']('mirror');
+        }
+
         btnStart.addEventListener('click', startInput, false);
         btnStop.addEventListener('click', stopInput, false);
         btnCalibrate.addEventListener('click', startCalibration, false);
+        mirror.addEventListener('click', setMirroring, false);
         setButtonStates();
 
         /*** Actual experiment ***/
