@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Audio Experiments - “Chuckles” Demonstration</title>
+    <link rel="stylesheet" href="../main.css">
+    <style>
+        body {margin: 10px 20px; width: auto;}
+        .container {display: table; width: 100%;}
+        .group {display: table-row;}
+        .group > .item {display: table-cell; vertical-align: top}
+        .controls h2 {font-size: 140%; margin: 0;}
+        .controls h2 + .control-row {margin-top: 10px;}
+        .hidden {visibility: hidden;}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="group">
+            <div class="item">
+                <div id="controls-input" class="controls hidden">
+                    <h2>Input</h2>
+                    <div class="control-row">
+                        <button id="btnStart">Start Mic</button> <button id="btnStop">Stop Mic</button>
+                    </div>
+                    <div class="control-row">Mouth Pos: <input type="range" id="mouthpos" value="0" min="0" max="1" step="0.01"></div>
+                </div>
+            </div>
+            <div class="item" id="image-container">
+                <canvas id="subject"></canvas>
+            </div>
+            <div class="item">
+                <div id="controls-mode" class="controls">
+                    <h2>Display</h2>
+                    <div id="chuckles-mode" class="control-row">
+                        <div class="control-row"><button data-mode="normal" class="active">Normal</button></div>
+                        <div class="control-row"><button data-mode="drawing">Drawing (define new “mouth”)</button></div>
+                        <div class="control-row"><button data-mode="dragging">Dragging (move the “mouth”)</button></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="../common/js/shimShiminy.js"></script>
+    <script src="../common/js/chuckles.js"></script>
+    <script>
+
+        var dom = {
+            canvas:   document.getElementById('subject'),
+            // Input
+            inputBlock: document.getElementById('controls-input'),
+            mouthpos: document.getElementById('mouthpos'),
+            micStart: document.getElementById('btnStart'),
+            micStop:  document.getElementById('btnStop'),
+            // Modes
+            modeDiv:  document.getElementById('chuckles-mode'),
+            modeBtns: document.querySelectorAll('#chuckles-mode button'),
+        };
+        dom.ctx = dom.canvas.getContext('2d');
+        dom.modeBtnDrag = dom.modeDiv.querySelector('[data-mode=dragging]');
+
+        var audioCtx = new AudioContext();
+        var width, height, streamSrc, dummy;
+
+        var state = {
+            hasImage: false,
+            hasMouth: false,
+            hasPos: false,
+            hasMic: false,
+        };
+
+        function setup() {
+            dom.canvas.width = width || 365;
+            dom.canvas.height = height || 400;
+
+            dummy = new Chuckles({
+                canvas: dom.canvas,
+                image: '../common/img/mad.png',
+                fillStyle: '#000',
+                // steps: 5,
+            });
+            setState('hasImage', true);
+            dummy.bindInput(dom.mouthpos);
+
+            dom.canvas.addEventListener('mouseup', checkChuck, false);
+            dom.micStart.addEventListener('click', startInput, false);
+            dom.micStop.addEventListener('click', stopInput, false);
+            dom.modeDiv.addEventListener('click', setMode, false);
+        }
+
+        function setState(type, val) {
+            console.log('setState', type, val);
+            var oldState = state[type];
+            state[type] = val;
+            if (oldState !== val) {
+                refreshState();
+            }
+        }
+
+        function refreshState() {
+            if (state.hasImage && state.hasMouth && state.hasPos) {
+                dom.inputBlock.classList.remove('hidden');
+            } else {
+                dom.inputBlock.classList.add('hidden');
+            }
+            dom.modeBtnDrag.disabled = !state.hasMouth;
+        }
+
+        function checkChuck() {
+            setTimeout(function () {
+                setState('hasMouth', dummy.segmentPath.length > 0);
+                setState('hasPos', dummy.movement.x !== 0 && dummy.movement.y !== 0);
+            });
+        }
+
+        function setMode(e) {
+            if (e.target.nodeName.toLowerCase() === 'button') {
+                var mode = (e.target.dataset || {}).mode;
+                if (mode) {
+                    dummy.setMode(mode);
+                    e.target.classList.add('active');
+                    var modeButtons = dom.modeBtns;
+                    for (var i = 0, ii = modeButtons.length; i < ii; i++) {
+                        if (modeButtons[i] !== e.target) {
+                            modeButtons[i].classList.remove('active');
+                        }
+                    }
+                }
+            }
+        }
+
+        function startInput() {
+            navigator.getUserMedia({audio: true}, function (stream) {
+                streamSrc = audioCtx.createMediaStreamSource(stream);
+                dummy.bindInput(streamSrc);
+            }, function () {
+                console.error('Oh noes!');
+            });
+        }
+
+        function stopInput() {
+            streamSrc.stop && streamSrc.stop();
+            dummy.unbindInput(streamSrc);
+            streamSrc = null;
+        }
+
+        setup();
+    </script>
+</body>
+</html>
