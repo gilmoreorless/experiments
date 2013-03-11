@@ -50,6 +50,27 @@
                                   function (id) {
                                       return clearTimeout(id);
                                   };
+
+    // Custom method to check support for certain features
+    // Possible options: {audio:true, video:true, webAudio:true}
+    window.hasFeatureSupport = function (features) {
+        features || (features = {});
+        var hasGUM = !!navigator.getUserMedia;
+        var canGetMic = hasGUM && (function () {
+            // Yeah, user agent sniffing is bad, but there's no other way
+            var supported = {Chrome: 24, Firefox: 18};
+            var matcher = /(Chrome|Firefox)\/(\d+)/;
+            var match = matcher.exec(navigator.userAgent);
+            if (!match) return false;
+            var minVersion = supported[match[1]];
+            return minVersion <= +match[2];
+        })();
+        return !(
+            (features.webAudio && !window.AudioContext) ||
+            (features.video && !hasGUM) ||
+            (features.audio && !canGetMic)
+        );
+    };
 })(this);
 
 /**

@@ -6,6 +6,10 @@
     <link rel="stylesheet" href="../main.css">
     <style>
         body {margin: 10px 20px; width: auto;}
+        .desc {font-size: 100%; text-align: center;}
+        .desc p {margin: .25em 0;}
+        .desc .error {color: #900;}
+        #context {background-color: #b4d0db; border-radius: 10px; margin: 1em 0 1.5em; padding: .5em;}
         .container {display: table; width: 100%;}
         .group {display: table-row;}
         .group > .item {display: table-cell; vertical-align: top}
@@ -38,6 +42,13 @@
     </style>
 </head>
 <body>
+    <div class="desc">
+        <p>
+            A demonstration page for <a href="https://github.com/gilmoreorless/chuckles">Chuckles</a>.
+            Currently Google Chrome is the only browser to support all the features required for this demo.
+        <p>For live microphone input, make sure the “Web Audio Input” feature is enabled at <code>chrome://flags</code>
+        <p id="context">Drag and drop an image onto this page to begin.
+    </div>
     <div class="container">
         <div class="group">
             <div class="item">
@@ -58,7 +69,7 @@
                 </div>
             </div>
             <div class="item">
-                <div id="controls-mode" class="controls">
+                <div id="controls-mode" class="controls hidden">
                     <h2>Display</h2>
                     <div id="chuckles-mode" class="control-row">
                         <div class="control-row"><button data-mode="normal" class="active">Normal</button></div>
@@ -77,6 +88,7 @@
         /*** Setup ***/
 
         var dom = {
+            message: document.getElementById('context'),
             // Drop target
             imageCol: document.getElementById('image-container'),
             noImage: null,
@@ -105,11 +117,17 @@
         var audioCtx = new AudioContext();
         var width, height, streamSrc, dummy;
 
-        var state = {
-            hasImage: false,
-            hasMouth: false,
-            hasPos: false,
-            hasMic: false,
+        var possibleStates = ['hasImage', 'hasMouth', 'hasPos', 'hasMic'];
+        var state = {};
+        possibleStates.forEach(function (s) {
+            state[s] = false;
+        });
+
+        var stateMessages = {
+            hasImage: 'Select “Drawing Mode” and draw on the image to make a new “mouth” region.',
+            hasMouth: 'Select “Dragging Mode” and move the “mouth” to a new position.',
+            hasPos: 'Change the “Mouth Pos” input to move the image. Press “Start Mic” to enable live microphone input.',
+            hasMic: 'Speak to make the image move.'
         };
 
         function setup() {
@@ -130,7 +148,6 @@
         /*** Display state management ***/
 
         function setState(type, val) {
-            console.log('setState', type, val);
             var oldState = state[type];
             state[type] = val;
             if (oldState !== val) {
@@ -148,6 +165,15 @@
                 dom.inputBlock.classList.add('hidden');
             }
             dom.modeBtnDrag.disabled = !state.hasMouth;
+
+            // Message
+            var i = possibleStates.length;
+            while (i--) {
+                if (state[possibleStates[i]]) {
+                    dom.message.innerHTML = stateMessages[possibleStates[i]];
+                    break;
+                }
+            }
         }
 
         function checkChuck() {
@@ -201,7 +227,6 @@
         }
 
         function highlightDropZone(e) {
-            console.log(e.type, e);
             var shouldHighlight = false;
             if (e.type === 'dragenter') {
                 var items = e.dataTransfer.items;
@@ -222,13 +247,11 @@
         }
 
         function dropFile(e) {
-            console.log(e.type, e);
             e.preventDefault();
             highlightDropZone(e);
             var file;
             for (var i = 0, ii = e.dataTransfer.files.length; i < ii; i++) {
                 file = e.dataTransfer.files[i];
-                console.log(file);
                 if (reImageType.test(file.type)) {
                     useFile(file);
                     break;
@@ -254,7 +277,7 @@
 
         function initChuckles(img) {
             dom.canvas.width = width = img.width;
-            dom.canvas.height = height = img.height;
+            dom.canvas.height = height = img.height + 50; // Allow some room for mouth dragging
 
             dummy = new Chuckles({
                 canvas: dom.canvas,
@@ -275,8 +298,9 @@
             navigator.getUserMedia({audio: true}, function (stream) {
                 streamSrc = audioCtx.createMediaStreamSource(stream);
                 dummy.bindInput(streamSrc);
+                setState('hasMic', true);
             }, function () {
-                console.error('Oh noes!');
+                dom.message.innerHTML = '<span class="error">There was an error getting live microphone input.</span>';
             });
         }
 
@@ -284,6 +308,7 @@
             streamSrc.stop && streamSrc.stop();
             dummy.unbindInput(streamSrc);
             streamSrc = null;
+            setState('hasMic', false);
         }
 
         setup();
