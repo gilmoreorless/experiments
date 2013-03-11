@@ -9,9 +9,32 @@
         .container {display: table; width: 100%;}
         .group {display: table-row;}
         .group > .item {display: table-cell; vertical-align: top}
+        .controls {padding-top: 0;}
         .controls h2 {font-size: 140%; margin: 0;}
         .controls h2 + .control-row {margin-top: 10px;}
         .hidden {visibility: hidden;}
+        #controls-input {float: right; padding-right: 20px;}
+        #controls-mode {padding-left: 20px;}
+        #image-container {width: 300px;}
+        #image-container .hidden {display: none;}
+        .no-image {display: table;}
+        #drop-target {
+            border: 10px double #6EA4B9;
+            border-radius: 30px;
+            box-sizing: border-box;
+            box-shadow: inset 0 0 30px #6EA4B9;
+            display: table-cell;
+            font-size: 150%;
+            height: 300px;
+            text-align: center;
+            text-shadow: 1px 1px 3px #fff;
+            vertical-align: middle;
+            width: 300px;
+        }
+        #drop-target.highlight {
+            border-color: #393;
+            box-shadow: inset 0 0 30px #393;
+        }
     </style>
 </head>
 <body>
@@ -27,7 +50,12 @@
                 </div>
             </div>
             <div class="item" id="image-container">
-                <canvas id="subject"></canvas>
+                <div class="no-image">
+                    <div id="drop-target">Drop image here</div>
+                </div>
+                <div class="has-image hidden">
+                    <canvas id="subject"></canvas>
+                </div>
             </div>
             <div class="item">
                 <div id="controls-mode" class="controls">
@@ -46,18 +74,32 @@
     <script src="../common/js/chuckles.js"></script>
     <script>
 
+        /*** Setup ***/
+
         var dom = {
+            // Drop target
+            imageCol: document.getElementById('image-container'),
+            noImage: null,
+            hasImage: null,
+            dropZone: document.getElementById('drop-target'),
+            // Main image
             canvas:   document.getElementById('subject'),
+            ctx: null,
             // Input
             inputBlock: document.getElementById('controls-input'),
             mouthpos: document.getElementById('mouthpos'),
             micStart: document.getElementById('btnStart'),
             micStop:  document.getElementById('btnStop'),
             // Modes
+            modeBlock: document.getElementById('controls-mode'),
             modeDiv:  document.getElementById('chuckles-mode'),
-            modeBtns: document.querySelectorAll('#chuckles-mode button'),
+            modeBtns: null,
+            modeBtnDrag: null
         };
+        dom.noImage = dom.imageCol.querySelector('.no-image');
+        dom.hasImage = dom.imageCol.querySelector('.has-image');
         dom.ctx = dom.canvas.getContext('2d');
+        dom.modeBtns = dom.modeDiv.querySelectorAll('button');
         dom.modeBtnDrag = dom.modeDiv.querySelector('[data-mode=dragging]');
 
         var audioCtx = new AudioContext();
@@ -71,23 +113,21 @@
         };
 
         function setup() {
-            dom.canvas.width = width || 365;
-            dom.canvas.height = height || 400;
-
-            dummy = new Chuckles({
-                canvas: dom.canvas,
-                image: '../common/img/mad.png',
-                fillStyle: '#000',
-                // steps: 5,
-            });
-            setState('hasImage', true);
-            dummy.bindInput(dom.mouthpos);
-
+            dom.dropZone.addEventListener('dragenter', highlightDropZone, false);
+            dom.dropZone.addEventListener('dragleave', highlightDropZone, false);
+            dom.dropZone.addEventListener('dragover', preventDefault, false);
+            dom.dropZone.addEventListener('drop', dropFile, false);
             dom.canvas.addEventListener('mouseup', checkChuck, false);
             dom.micStart.addEventListener('click', startInput, false);
             dom.micStop.addEventListener('click', stopInput, false);
-            dom.modeDiv.addEventListener('click', setMode, false);
+            dom.modeDiv.addEventListener('click', modeButtonClick, false);
+            dom.mouthpos.addEventListener('focus', inputFocus, false);
+
+            refreshState();
         }
+
+
+        /*** Display state management ***/
 
         function setState(type, val) {
             console.log('setState', type, val);
@@ -99,6 +139,9 @@
         }
 
         function refreshState() {
+            dom.noImage.classList[state.hasImage ? 'add' : 'remove']('hidden');
+            dom.hasImage.classList[state.hasImage ? 'remove' : 'add']('hidden');
+            dom.modeBlock.classList[state.hasImage ? 'remove' : 'add']('hidden');
             if (state.hasImage && state.hasMouth && state.hasPos) {
                 dom.inputBlock.classList.remove('hidden');
             } else {
@@ -114,23 +157,121 @@
             });
         }
 
-        function setMode(e) {
+        function modeButtonClick(e) {
             if (e.target.nodeName.toLowerCase() === 'button') {
                 var mode = (e.target.dataset || {}).mode;
                 if (mode) {
-                    dummy.setMode(mode);
-                    e.target.classList.add('active');
-                    var modeButtons = dom.modeBtns;
-                    for (var i = 0, ii = modeButtons.length; i < ii; i++) {
-                        if (modeButtons[i] !== e.target) {
-                            modeButtons[i].classList.remove('active');
-                        }
-                    }
+                    setChucklesMode(mode, e.target);
                 }
             }
         }
 
+        function setChucklesMode(mode, button) {
+            dummy.setMode(mode);
+            var modeButtons = dom.modeBtns;
+            if (!button) {
+                button = dom.modeDiv.querySelector('[data-mode=' + mode + ']');
+            }
+            button.classList.add('active');
+            for (var i = 0, ii = modeButtons.length; i < ii; i++) {
+                if (modeButtons[i] !== button) {
+                    modeButtons[i].classList.remove('active');
+                }
+            }
+        }
+
+        function inputFocus() {
+            setChucklesMode('normal');
+        }
+
+        function setColumnWidth() {
+            if (!width) {
+                return;
+            }
+            dom.imageCol.style.width = width + 'px';
+        }
+
+
+        /*** Drag/drop ***/
+
+        var reImageType = /^image\/(gif|png|jpe?g)$/;
+
+        function preventDefault(e) {
+            e.preventDefault();
+        }
+
+        function highlightDropZone(e) {
+            console.log(e.type, e);
+            var shouldHighlight = false;
+            if (e.type === 'dragenter') {
+                var items = e.dataTransfer.items;
+                if (items && items.length) {
+                    var i = items.length;
+                    while (i--) {
+                        if (reImageType.test(items[i].type)) {
+                            shouldHighlight = true;
+                            break;
+                        }
+                    }
+                }
+            }
+            dom.dropZone.classList[shouldHighlight ? 'add' : 'remove']('highlight');
+            if (shouldHighlight) {
+                e.preventDefault();
+            }
+        }
+
+        function dropFile(e) {
+            console.log(e.type, e);
+            e.preventDefault();
+            highlightDropZone(e);
+            var file;
+            for (var i = 0, ii = e.dataTransfer.files.length; i < ii; i++) {
+                file = e.dataTransfer.files[i];
+                console.log(file);
+                if (reImageType.test(file.type)) {
+                    useFile(file);
+                    break;
+                }
+            }
+        }
+
+        function useFile(file) {
+            var reader = new FileReader();
+            reader.onload = function (e) {
+                var dataUrl = e.target.result;
+                var img = new Image();
+                img.onload = function () {
+                    initChuckles(img);
+                };
+                img.src = dataUrl;
+            };
+            reader.readAsDataURL(file);
+        }
+
+
+        /*** Main image setup ***/
+
+        function initChuckles(img) {
+            dom.canvas.width = width = img.width;
+            dom.canvas.height = height = img.height;
+
+            dummy = new Chuckles({
+                canvas: dom.canvas,
+                image: img,
+                fillStyle: '#000',
+                // steps: 5,
+            });
+            dummy.bindInput(dom.mouthpos);
+            setColumnWidth();
+            setState('hasImage', true);
+        }
+
+
+        /*** Microphone input ***/
+
         function startInput() {
+            setChucklesMode('normal');
             navigator.getUserMedia({audio: true}, function (stream) {
                 streamSrc = audioCtx.createMediaStreamSource(stream);
                 dummy.bindInput(streamSrc);
