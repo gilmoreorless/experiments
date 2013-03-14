@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf8">
+    <title>Web Speech Experiments - Word Analysis</title>
+    <link rel="stylesheet" href="../main.css">
+    <style>
+        body {
+            height: 100%;
+            margin: 0;
+            width: auto;
+        }
+        body.dark {
+            background: #180936;
+            color: #D4E9F2;
+        }
+        #speech {
+            display: table-cell;
+            height: 100%;
+            overflow: auto;
+            padding: 0 10px;
+        }
+        .stats {
+            background: rgba(0, 0, 255, 0.1);
+            display: table-cell;
+            padding: 0 20px;
+            width: 260px;
+        }
+        .stats-inner {
+            position: fixed;
+            top: 0;
+        }
+    </style>
+</head>
+<body class="dark">
+    <div id="speech"></div>
+    <div class="stats">
+        <div class="stats-inner">
+            <div class="stats-block">
+                <h3>Word Frequency</h3>
+                <table id="word-count"></table>
+            </div>
+            <div class="stats-block">
+                <h3>Letter Frequency</h3>
+                <canvas id="letter-count"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <script type="text/x-template" id="tpl-word-row">
+        <tr>
+            <td><%- count %></td>
+            <td><%- word %></td>
+        </tr>
+    </script>
+
+    <script src="../common/js/shimShiminy.js"></script>
+    <script src="../common/js/underscore.js"></script>
+    <script>
+        var processedText = '';
+        var pendingText = '';
+        var addedText = '';
+        var processedWords = [];
+        var letterCounts = {};
+
+        var dom = {
+            speech:  document.getElementById('speech'),
+            words:   document.getElementById('word-count'),
+            letters: document.getElementById('letter-count')
+        };
+        dom.letterCtx = dom.letters.getContext('2d');
+
+        var wordTpl = _.template(document.getElementById('tpl-word-row').innerHTML);
+
+        function setup() {
+            // TODO: Set up speech API here
+            processedText = "CHUCKLES\n\nh3. Background\n\nAbout 18 months ago, I had the idea of using Javascript to take live audio input and use it to animate the mouth of a virtual ventriloquist dummy. The original seed of the idea was to play a prank on someone at [SydJS]. After a bit of research I was disappointed to find out there wasn't any way to do it. The idea was pushed aside, but never completely forgotten.\n\nSince then, there has been an explosion in new web technologies and standards. The ones that really piqued my interest were the Web Audio API and WebRTC.\n\nThe [Web Audio API] provides fine-grained control over sound processing and manipulation in JS.\n[WebRTC] allows for peer-to-peer video communication between browsers, along with the associated access to webcams and microphones. Bingo.\n\nh3. Time to code\n\nAt the time I started playing with WebRTC, the few browsers that had implemented it only supported getting a webcam stream. Microphone support was yet to come. I figured I could still work on getting the idea right using an HTML [range input].\n\nThe first implementation was simple. I found a picture of a ventriloquist dummy online and hard-coded the image and drawing data, then set the position of the dummy’s mouth to be bound to the value of the input.\n\nThen came the part I’d been waiting for: Google Chrome enabled getting microphone data in their Canary build.\n\nAll I had to do was get access to the microphone via the `navigator.getUserMedia()` API, pipe that input into a Web Audio API [AnalyzerNode], then change the position of the dummy’s mouth based on the maximum audio level detected in the microphone. One final adjustment was made to lock the dummy’s mouth movement to regular “steps”, in order to give it a more old-fashioned wooden feel.\n\nAnd thus was born the first demo of the library that has been christened “Chuckles”.\n\n[VIEW BASIC DEMO]\n\nh3. More interaction\n\nWhile the first version worked well enough, it still required hard-coding of all the data. So I built in some new display modes to make it more interactive:\n\n* Normal mode, the default state\n* Drawing mode, where you can draw on the image to define where the “mouth” segment is\n* Dragging mode, where you can drag the “mouth” around to set its position when fully open\n\nA quick addition of drag-and-drop for adding your own image and you too can make your own ventriloquist dummy:\n\n[VIEW FULL DEMO]\n\nh3. Next steps\n\nThe code is on GitHub at [https://github.com/gilmoreorless/chuckles], and there are a few more things I’d like to do with it at some point.\n\n* Better definition for the mouth segment (possibly using a border).\n* Allow transforming the mouth segment using rotate, skew, etc.\n* Define eye regions that can move left/right independently of the mouth.\n\nBut adding those features all depends on whether I can be convinced the idea is actually useful, rather than just being a throw-away demo.\n";
+
+            dom.letters.width = 260;
+            dom.letters.height = 150;
+
+            putText();
+            updateStats();
+        }
+
+
+        /*** Speech handling ***/
+
+        function putText() {
+            var html = ['<p>'];
+            html.push(processedText.replace(/\n{2,}/g, '</p><p>').replace(/\n/g, '<br>'));
+            html.push('</p>');
+
+            dom.speech.innerHTML = html.join('');
+        }
+
+
+        /*** Stats ***/
+
+        function updateStats() {
+            processText();
+            updateWords();
+            updateLetters();
+        }
+
+        function processText() {
+            // Reset letter counts
+            _.each(_.range(97, 123), function (c) {
+                letterCounts[String.fromCharCode(c)] = 0;
+            });
+
+            // Process all the text
+            var splitText = processedText.replace(/[.,!*:\[\]`]/g, ' ').split(/\s+/);
+            var text = _.chain(splitText)
+                .reduce(function (counts, word) {
+                    if (word) {
+                        var lower = word.toLowerCase();
+                        counts[lower] = (counts[lower] || 0) + 1;
+
+                        // Quick letter count while we're here
+                        _.each(lower.split(''), function (letter) {
+                            if (letter in letterCounts) {
+                                letterCounts[letter]++;
+                            }
+                        });
+                    }
+                    return counts;
+                }, {})
+                .map(function (count, word) {
+                    return {
+                        word: word,
+                        count: count
+                    };
+                })
+                .sortBy('count')
+                .reverse()
+                .first(10);
+
+            processedWords = text.value();
+            letterCounts.max = _.reduce(letterCounts, function (max, count) {
+                return Math.max(max, count);
+            }, 0);
+        }
+
+        function updateWords() {
+            var rows = processedWords.map(function (word) {
+                return wordTpl(word);
+            });
+            dom.words.innerHTML = rows.join('');
+        }
+
+        function updateLetters() {
+            var canvasHeight = dom.letters.height;
+            var blockWidth = dom.letters.width / 26;
+            var blockHeight = canvasHeight / letterCounts.max;
+            var ctx = dom.letterCtx;
+
+            ctx.clearRect(0, 0, dom.letters.width, canvasHeight);
+            ctx.save();
+            var i = 1;
+            _.each(letterCounts, function (count, letter) {
+                if (!count) return;
+                var perc = i / 26;
+                var y = canvasHeight - (blockHeight * count);
+
+                ctx.fillStyle = 'hsl(' + ~~(perc * 360) + ',70%,60%)';
+                ctx.fillRect(i * blockWidth, y, blockWidth, canvasHeight);
+                i++;
+            });
+            ctx.restore();
+        }
+
+        setup();
+    </script>
+</body>
+</html>
