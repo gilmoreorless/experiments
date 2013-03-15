@@ -18,14 +18,8 @@
             </div>
             <div class="control-row">Mouth Pos: <input type="range" id="mouthpos" value="0" min="0" max="1" step="0.01"></div>
         </div>
-        <div id="testMode" class="right">
-            <button data-mode="normal">Normal</button>
-            <button data-mode="drawing">Drawing (define new segment)</button>
-            <button data-mode="dragging">Dragging (define new movement)</button>
-        </div>
     </div>
     <canvas id="dummy"></canvas>
-    <canvas id="testDummy"></canvas>
     <script src="../common/js/shimShiminy.js"></script>
     <script src="../common/js/chuckles.js"></script>
     <script>
@@ -33,23 +27,18 @@
 
         var width = 210;
         var height = 270;
-        var SHOW_TEST = false;
 
         /*** Drawing stuff ***/
 
         var canvas = document.getElementById('dummy');
         var ctx = canvas.getContext('2d');
-        var testCanvas = document.getElementById('testDummy');
-        var testCtx = canvas.getContext('2d');
         var mouthpos = document.getElementById('mouthpos');
         var audioCtx = new webkitAudioContext();
-        var streamSrc, dummy, testDummy;
+        var streamSrc, dummy;
 
         function setup() {
             canvas.width = width;
             canvas.height = height;
-            testCanvas.width = 640;
-            testCanvas.height = 480;
 
             dummy = new Chuckles({
                 canvas: canvas,
@@ -78,33 +67,8 @@
             });
             dummy.bindInput(mouthpos);
 
-            if (SHOW_TEST) {
-                testDummy = new Chuckles({
-                    canvas: 'testDummy',
-                    image: '../common/img/catimov.jpg',
-                    // steps: 5,
-                    movement: {x: 20, y: 40}
-                });
-                testDummy.bindInput(mouthpos);
-            }
-
             document.getElementById('btnStart').addEventListener('click', startInput, false);
             document.getElementById('btnStop').addEventListener('click', stopInput, false);
-            if (SHOW_TEST) {
-                document.getElementById('testMode').addEventListener('click', setMode, false);
-            } else {
-                document.getElementById('testMode').style.display = 'none';
-                testCanvas.style.display = 'none';
-            }
-        }
-
-        function setMode(e) {
-            if (e.target.nodeName.toLowerCase() === 'button') {
-                var mode = (e.target.dataset || {}).mode;
-                if (mode) {
-                    testDummy.setMode(mode);
-                }
-            }
         }
 
         function startInput() {
