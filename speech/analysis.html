@@ -67,6 +67,34 @@
             position: absolute;
             -webkit-transition: all 1s;
         }
+        .screen-hog {
+            display: table;
+            height: 100%;
+            left: 0;
+            position: absolute;
+            top: 0;
+            width: 100%;
+        }
+        .dark .screen-hog {
+            background: #180936;
+            color: #D4E9F2;
+        }
+        .screen-hog .message {
+            display: table-cell;
+            font-size: 5em;
+            text-align: center;
+            vertical-align: middle;
+        }
+        .screen-hog .title {
+            color: #999;
+            font-size: 70%;
+        }
+        .screen-hog .outcome {
+            visibility: hidden;
+        }
+        .screen-hog .outcome.visible {
+            visibility: visible;
+        }
     </style>
 </head>
 <body class="dark">
@@ -106,6 +134,7 @@
         var addedText = '';
         var processedWords = [];
         var letterCounts = {};
+        var topWordLimit = 5;
         var recognition;
 
         var dom = {
@@ -121,8 +150,6 @@
         var wordTpl = _.template(document.getElementById('tpl-word-row').innerHTML);
 
         function setup() {
-            // processedText = "CHUCKLES\n\nh3. Background\n\nAbout 18 months ago, I had the idea of using Javascript to take live audio input and use it to animate the mouth of a virtual ventriloquist dummy. The original seed of the idea was to play a prank on someone at [SydJS]. After a bit of research I was disappointed to find out there wasn't any way to do it. The idea was pushed aside, but never completely forgotten.\n\nSince then, there has been an explosion in new web technologies and standards. The ones that really piqued my interest were the Web Audio API and WebRTC.\n\nThe [Web Audio API] provides fine-grained control over sound processing and manipulation in JS.\n[WebRTC] allows for peer-to-peer video communication between browsers, along with the associated access to webcams and microphones. Bingo.\n\nh3. Time to code\n\nAt the time I started playing with WebRTC, the few browsers that had implemented it only supported getting a webcam stream. Microphone support was yet to come. I figured I could still work on getting the idea right using an HTML [range input].\n\nThe first implementation was simple. I found a picture of a ventriloquist dummy online and hard-coded the image and drawing data, then set the position of the dummy’s mouth to be bound to the value of the input.\n\nThen came the part I’d been waiting for: Google Chrome enabled getting microphone data in their Canary build.\n\nAll I had to do was get access to the microphone via the `navigator.getUserMedia()` API, pipe that input into a Web Audio API [AnalyzerNode], then change the position of the dummy’s mouth based on the maximum audio level detected in the microphone. One final adjustment was made to lock the dummy’s mouth movement to regular “steps”, in order to give it a more old-fashioned wooden feel.\n\nAnd thus was born the first demo of the library that has been christened “Chuckles”.\n\n[VIEW BASIC DEMO]\n\nh3. More interaction\n\nWhile the first version worked well enough, it still required hard-coding of all the data. So I built in some new display modes to make it more interactive:\n\n* Normal mode, the default state\n* Drawing mode, where you can draw on the image to define where the “mouth” segment is\n* Dragging mode, where you can drag the “mouth” around to set its position when fully open\n\nA quick addition of drag-and-drop for adding your own image and you too can make your own ventriloquist dummy:\n\n[VIEW FULL DEMO]\n\nh3. Next steps\n\nThe code is on GitHub at [https://github.com/gilmoreorless/chuckles], and there are a few more things I’d like to do with it at some point.\n\n* Better definition for the mouth segment (possibly using a border).\n* Allow transforming the mouth segment using rotate, skew, etc.\n* Define eye regions that can move left/right independently of the mouth.\n\nBut adding those features all depends on whether I can be convinced the idea is actually useful, rather than just being a throw-away demo.\n";
-
             dom.letters.width = 260;
             dom.letters.height = 150;
 
@@ -141,7 +168,7 @@
             recognition.onerror = speechError;
             recognition.onend = speechEnd;
 
-            document.body.addEventListener('click', function (e) {
+            document.addEventListener('click', function (e) {
                 e.preventDefault();
                 startRecog();
             }, false);
@@ -320,7 +347,7 @@
                 })
                 .sortBy('count')
                 .reverse()
-                .first(10);
+                .first(topWordLimit);
 
             processedWords = text.value();
             letterCounts.max = _.reduce(letterCounts, function (max, count) {
@@ -355,6 +382,26 @@
             });
             ctx.restore();
         }
+
+
+        /*** Joke ***/
+
+        function keyListener(e) {
+            if (e.keyCode == 65) { // a
+                showAnalysis();
+            }
+        }
+
+        function showAnalysis() {
+            dom.analysis = put(document.body, 'div.screen-hog');
+            var holder = put(dom.analysis, 'div.message div.title $ <', 'Text analysis…');
+            var outcome = put(holder, 'div.outcome', 'A load of bollocks');
+            setTimeout(function () {
+                outcome.classList.add('visible');
+            }, 2000);
+        }
+
+        document.addEventListener('keydown', keyListener, false);
 
         setup();
     </script>
