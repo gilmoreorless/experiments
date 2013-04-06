@@ -77,7 +77,7 @@
  * Analytics - might as well put this here since this file is included everywhere anyway
  */
 var _gaq = _gaq || [];
-if (~location.hostname.indexOf('github.com')) {
+if (~location.hostname.indexOf('github.io')) {
     _gaq.push(['_setAccount', 'UA-8341018-3']);
     _gaq.push(['_trackPageview']);
 
