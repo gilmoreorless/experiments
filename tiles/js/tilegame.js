@@ -326,6 +326,12 @@
         }
     };
 
+    Tproto.tookAction = function () {
+        this.state.moves++;
+        this.render();
+        this.checkFinished();
+    };
+
     Tproto.moveTile = function (index) {
         var state = this.state;
         var pieces = this.pieces;
@@ -344,9 +350,7 @@
             pieces[empty] = temp;
             state.emptyIndex = index;
             state.selectedIndex = -1;
-            state.moves++;
-            this.render();
-            this.checkFinished();
+            this.tookAction();
         }
     };
 
@@ -378,7 +382,7 @@
             }
             piece.rotate = 0;
         }
-        this.render();
+        this.tookAction();
     };
 
     Tproto.flipSelectedTile = function (direction) {
@@ -401,7 +405,7 @@
         if (piece.flip) {
             piece.flip = piece.flip === 'h' ? 'v' : 'h';
         }
-        this.render();
+        this.tookAction();
     };
 
     Tproto.rotateSelectedTile = function (rotation) {
