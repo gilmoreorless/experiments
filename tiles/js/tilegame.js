@@ -114,8 +114,10 @@
         sourceCanvas.width = canvas.width;
         sourceCanvas.height = canvas.height;
 
-        // TEMP for debugging
-        // document.body.appendChild(sourceCanvas);
+        // Fix to make mouse x/y event handling easier in Firefox
+        if (!/absolute|relative|fixed/.test(canvas.style.position)) {
+            canvas.style.position = 'relative';
+        }
 
         // Register click handler
         var handler = this.clickHandler.bind(this);
@@ -307,8 +309,9 @@
         if (this.state.finished) {
             return;
         }
-        var x = e.offsetX;
-        var y = e.offsetY;
+        var useOffset = e.hasOwnProperty('offsetX');
+        var x = useOffset ? e.offsetX : e.layerX;
+        var y = useOffset ? e.offsetY : e.layerY;
         var col = ~~(x / this.options.colWidth);
         var row = ~~(y / this.options.rowHeight);
         var index = row * this.options.cols + col;
