@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Daylight savings time around the world</title>
+    <!-- <link rel="stylesheet" href="../main.css"> -->
+
+    <style>
+        ul, li {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+        }
+        li {
+            background: #ccf;
+            border-bottom: 1px solid #999;
+            display: block;
+            height: 18px;
+            width: 615px;
+        }
+        li .zoneid {
+            display: block;
+            float: left;
+            width: 250px;
+            background: green;
+        }
+        li .changes {
+            display: inline-block;
+            height: 18px;
+            position: relative;
+            width: 365px;
+        }
+        li .changes .dst {
+            background: #fcc;
+            position: absolute;
+            top: 0;
+        }
+    </style>
+</head>
+<body>
+<ul id="zones"></ul>
+
+<script src="../common/js/d3.js"></script>
+<script src="../common/js/underscore.js"></script>
+<script src="../common/js/moment.js"></script>
+<script src="../common/js/shimShiminy.js"></script>
+<script>
+function offsetNum(str) {
+    var parts = str.split(':');
+    var num = +parts[0];
+    if (parts[1]) {
+        var extra = +parts[1] / 60;
+        num = num > 0 ? num + extra : num - extra;
+    }
+    return num;
+}
+
+d3.json('tzinfo.json', function (tzdata) {
+    var zones = [];
+    var rules = {};
+    _.each(tzdata.zones, function (data, id) {
+        var zone = _.last(data);
+        var info = zone.split(' ');
+        var rule = info[1];
+        zones.push({
+            id: id,
+            offset: offsetNum(info[0]),
+            offsetStr: info[0],
+            rule: rule
+        });
+        if (rule != '-') {
+            rules[rule] = {
+                name: rule,
+                change: []
+            };
+        }
+    });
+    _.each(rules, function (data, name) {
+        var rule = tzdata.rules[name];
+        if (!rule) {
+            console.error('NO RULE FOR ' + name);
+        }
+        // Special hard-coded 2013 case for crazy rules of Morocco
+        if (name == 'Morocco') {
+            rule = [
+                "2012 2019 3 0 8 2 0 1 S",
+                "2013 2013 6 9 7 3 0 0",
+                "2013 2013 7 8 7 2 0 1 S",
+                "2012 9999 8 0 8 3 0 0",
+            ];
+        }
+        var i = rule.length;
+        var info;
+        while (i--) {
+            info = rule[i].split(' ');
+            if (info[1] != '9999' && name != 'Morocco') {
+                break;
+            }
+            data.change.push(_.rest(info, 2));
+        }
+    });
+
+    var year = new Date().getFullYear();
+    _.each(zones, function (zone) {
+        var rule = rules[zone.rule];
+        if (rule) {
+            _.each(rule.change, function (change) {
+                var month = +change[0];
+                var day = +change[1];
+                var save = +change[5];
+                var isDST = save > 0;
+                var prop = isDST ? 'dstStart' : 'dstEnd';
+                // Special case for Morocco again
+                if (zone[prop]) {
+                    prop += '2';
+                }
+
+                var date = moment([year, month, day || 1]);
+                if (day === 0) { // "last Sunday of the month"
+                    date = date.endOf('month').startOf('week');
+                }
+                zone[prop] = date;
+                zone[prop + 'Value'] = [month, date.date(), save];
+            });
+        }
+
+        var sortValue = 1300100; // mmdd1oo
+        if (zone.dstStartValue) {
+            sortValue = zone.dstStartValue[0] * 100000 +
+                zone.dstStartValue[1] * 1000 + 100;
+        }
+        sortValue += zone.offset;
+        zone.sortValue = sortValue;
+    });
+    zones = _.sortBy(zones, 'sortValue');
+    // console.log(rules);
+    // console.log(tzdata.rules);
+    // console.log(zones);
+    var tmpZone = _.find(zones, function (z) { return z.id == 'Africa/Casablanca' })
+    console.log(tmpZone, rules[tmpZone.rule]);
+
+    var yearWidth = 365;
+
+    var list = d3.select('#zones')
+        .data(zones)
+        .enter().append('li')
+
+    list.append('span').attr('class', 'zoneid').text(function (d) { return d.id });
+
+    var dst = list.append('div')
+        .attr('class', 'changes')
+        .filter(function (d) { return !!d.dstStart })
+
+    dst.append('div')
+        .attr('class', 'dst')
+        .style('left', function (d) {
+            return d.dstStart.dayOfYear() + 'px';
+        })
+        .style('width', function (d) {
+            var start = d.dstStart.dayOfYear();
+            var diff;
+            if (d.dstEnd) {
+                var end = d.dstEnd.dayOfYear();
+                if (end > start) {
+                    diff = (end - start) % 365;
+                }
+            }
+            if (!diff) {
+                diff = 365 - start;
+            }
+            return diff + 'px'
+        })
+        .text(function (d) {
+            return ~~(d.sortValue / 1000)
+        })
+
+    dst.filter(function (d) {
+        return d.dstEnd && d.dstEnd.dayOfYear() < d.dstStart.dayOfYear();
+    })
+    .append('div')
+        .attr('class', 'dst')
+        .style('width', function (d) {
+            return d.dstEnd.dayOfYear() + 'px';
+        })
+        .text('hi')
+
+    // YET MORE MOROCCO SPECIAL CODE
+    var morocco = dst.filter(function (d) { return d.id == 'Africa/Casablanca' })
+
+    morocco.append('div')
+        .attr('class', 'dst')
+        .style('left', function (d) {
+            return d.dstStart2.dayOfYear() + 'px';
+        })
+        .style('width', function (d) {
+            var start = d.dstStart2.dayOfYear();
+            var diff;
+            if (d.dstEnd) {
+                var end = d.dstEnd2.dayOfYear();
+                if (end > start) {
+                    diff = (end - start) % 365;
+                }
+            }
+            if (!diff) {
+                diff = 365 - start;
+            }
+            return diff + 'px';
+        })
+        .text(function (d) {
+            var sortValue = d.dstStart2Value[0] * 100000 + d.dstStart2Value[1] * 1000 + 100;
+            return ~~(sortValue / 1000);
+        })
+
+    // morocco.append('div')
+    //     .attr('class', 'dst')
+    //     .style('width', function (d) {
+    //         return d.dstEnd2.dayOfYear() + 'px';
+    //     })
+    //     .text('hi')
+});
+</script>
+</body>
+</html>
