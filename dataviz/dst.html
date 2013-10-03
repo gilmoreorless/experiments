@@ -6,6 +6,38 @@
     <link rel="stylesheet" href="../main.css">
 
     <style>
+        body {
+            margin-top: 0;
+        }
+        .controls {
+            background: #fff;
+            border-radius: 0 5px 5px 0;
+            left: 0;
+            position: fixed;
+            text-align: left;
+            top: 40px;
+        }
+        .controls label {
+            display: block;
+        }
+        svg {
+            display: block;
+            margin: 0 auto;
+        }
+        #titles-container {
+            background: #D4E9F2;
+            background: linear-gradient(to bottom, #D4E9F2 0, #D4E9F2 27px, rgba(0, 0, 0, 0) 100%);
+            font-size: 12px;
+            padding-top: 10px;
+            position: fixed;
+            width: 960px;
+        }
+        .month-name text {
+            text-anchor: middle;
+        }
+        #zones-container {
+            padding-top: 33px;
+        }
         .changes rect {
             fill: hsl(20, 60%, 70%);
             stroke: none;
@@ -18,11 +50,26 @@
         .changes .dst:hover {
             fill: hsl(35, 100%, 80%);
         }
+        .month-line {
+            stroke: rgba(0, 0, 0, 0.2);
+            stroke-width: 1;
+            stroke-dasharray: 5, 5;
+        }
     </style>
 </head>
 
 <body class="centre">
-<svg id="zones"></svg>
+<div id="controls" class="controls">
+    Sort By:
+    <label><input type="radio" name="sort" value="dstStart" checked> DST start date</label>
+    <label><input type="radio" name="sort" value="offset"> GMT offset</label>
+</div>
+<div id="titles-container">
+    <svg id="titles"></svg>
+</div>
+<div id="zones-container">
+    <svg id="zones"></svg>
+</div>
 
 <script src="../common/js/d3.js"></script>
 <script src="../common/js/underscore.js"></script>
@@ -45,7 +92,7 @@ d3.json('tzinfo.json', function (tzdata) {
 
     var labelPadding = 3;
     var labelHeight = 20;
-    var labelWidth = 250;
+    var labelWidth = 270;
     var yearWidth = 365;
     var gmtOffsetWidth = 50;
 
@@ -53,6 +100,7 @@ d3.json('tzinfo.json', function (tzdata) {
 
     var zones = [];
     var rules = {};
+    var year = new Date().getFullYear();
 
     _.each(tzdata.zones, function (data, id) {
         var zone = _.last(data);
@@ -89,14 +137,12 @@ d3.json('tzinfo.json', function (tzdata) {
         var info;
         while (i--) {
             info = rule[i].split(' ');
-            if (info[1] != '9999' && name != 'Morocco') {
-                break;
+            if (info[1] == '9999' || name == 'Morocco') {
+                data.change.push(_.rest(info, 2));
             }
-            data.change.push(_.rest(info, 2));
         }
     });
 
-    var year = new Date().getFullYear();
     _.each(zones, function (zone) {
         var rule = rules[zone.rule];
         if (rule) {
@@ -132,15 +178,21 @@ d3.json('tzinfo.json', function (tzdata) {
     // console.log(rules);
     // console.log(tzdata.rules);
     // console.log(zones);
-    var tmpZone = _.find(zones, function (z) { return z.id == 'Africa/Casablanca' })
-    console.log(tmpZone, rules[tmpZone.rule]);
+    // var tmpZone = _.find(zones, function (z) { return z.id == 'Africa/Casablanca' })
+    // console.log(tmpZone, rules[tmpZone.rule]);
 
 
     /*** Display ***/
 
+    var sortMode = 'dstStart';
+
     var dateX = window.dateX = d3.scale.linear()
         .domain([1, 365])
         .range([1, yearWidth])
+
+    var zoneY = function (d, i) {
+        return 'translate(0,' + (i * (labelHeight + labelPadding) + labelPadding) + ')';
+    }
 
     function dstPathBlock(x1, x2) {
         x1 = dateX(x1);
@@ -174,14 +226,40 @@ d3.json('tzinfo.json', function (tzdata) {
         }
     }
 
-    var list = d3.select('#zones')
+    var titles = d3.select('#titles')
         .attr('width', labelWidth + yearWidth + gmtOffsetWidth)
-        .attr('height', (labelHeight + labelPadding) * zones.length)
-        .selectAll('g')
+        .attr('height', labelHeight + labelPadding)
+
+    titles.append('text')
+        .attr('y', labelHeight * .8)
+        .text('Zone ID')
+        .style('font-style', 'italic')
+
+    var months = [];
+    for (var m = 0; m < 12; m++) {
+        months.push(moment([year, m, 1]));
+    }
+
+    titles.append('g')
+        .attr('transform', 'translate(' + labelWidth + ',0)')
+    .selectAll('.month-name')
+        .data(months)
+        .enter().append('g')
+            .classed('month-name', true)
+            .attr('transform', function (d) { return 'translate(' + dateX(d.dayOfYear()) + ',0)' })
+            .append('text')
+                .attr('y', labelHeight * .8)
+                .text(function (d) { return d.format('MMM').substr(0, 1) })
+
+    var svg = d3.select('#zones')
+        .attr('width', labelWidth + yearWidth + gmtOffsetWidth)
+        .attr('height', (labelHeight + labelPadding) * zones.length + labelPadding)
+
+    var list = svg.selectAll('.zone-data')
         .data(zones)
         .enter().append('g')
             .classed('zone-data', true)
-            .attr('transform', function (d, i) { return 'translate(0,' + (i * (labelHeight + labelPadding)) + ')' })
+            .attr('transform', zoneY)
 
     list.append('g').classed('zone-id', true)
         .append('text')
@@ -220,6 +298,40 @@ d3.json('tzinfo.json', function (tzdata) {
         //     var sortValue = d.dstStart2Value[0] * 100000 + d.dstStart2Value[1] * 1000 + 100;
         //     return ~~(sortValue / 1000);
         // })
+
+    svg.selectAll('.month-line')
+        .data(months)
+        .enter().append('line')
+            .classed('month-line', true)
+            .attr('x1', 0).attr('x2', 0)
+            .attr('y1', labelPadding).attr('y2', svg.attr('height') - labelPadding)
+            .attr('transform', function (d) { return 'translate(' + (labelWidth + dateX(d.dayOfYear())) + ',0)' })
+
+    function setSortMode(mode) {
+        sortMode = mode;
+        list.sort(function (a, b) {
+            var prop = 'sortValue';
+            if (sortMode === 'offset' && a.offset != b.offset) {
+                prop = 'offset';
+            }
+            return a[prop] - b[prop];
+        });
+        moveZones();
+    }
+
+    function moveZones() {
+        list.transition()
+            .duration(1000)
+            .attr('transform', zoneY)
+    }
+
+    /*** Interactive controls ***/
+
+    document.getElementById('controls').addEventListener('change', function (e) {
+        if (e.target.nodeName == 'INPUT') {
+            setSortMode(e.target.value);
+        }
+    }, false)
 });
 </script>
 </body>
