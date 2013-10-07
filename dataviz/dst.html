@@ -24,6 +24,9 @@
             display: block;
             margin: 0 auto;
         }
+        text {
+            font-size: 14px;
+        }
         #titles-container {
             background: #D4E9F2;
             background: linear-gradient(to bottom, #D4E9F2 0, #D4E9F2 27px, rgba(0, 0, 0, 0) 100%);
@@ -49,6 +52,10 @@
         }
         .changes .dst:hover {
             fill: hsl(35, 100%, 80%);
+        }
+        .gmt-offset text {
+            font-size: 12px;
+            font-family: monospace;
         }
         .month-line {
             stroke: rgba(0, 0, 0, 0.2);
@@ -86,7 +93,17 @@ function offsetNum(str) {
     return num;
 }
 
-d3.json('tzinfo.json', function (tzdata) {
+function offsetStr(num) {
+    var hours = num | 0;
+    var mins = (num % 1) * 60;
+    var str = hours < 0 ? '-' : '+';
+    hours = Math.abs(hours);
+    str += ('0' + hours).slice(-2);
+    str += ':' + ('0' + mins).slice(-2);
+    return str;
+}
+
+d3.json('moment-timezone.json', function (tzdata) {
 
     /*** Config ***/
 
@@ -94,7 +111,7 @@ d3.json('tzinfo.json', function (tzdata) {
     var labelHeight = 20;
     var labelWidth = 270;
     var yearWidth = 365;
-    var gmtOffsetWidth = 50;
+    var gmtOffsetWidth = 80;
 
     /*** Data preparation ***/
 
@@ -106,10 +123,11 @@ d3.json('tzinfo.json', function (tzdata) {
         var zone = _.last(data);
         var info = zone.split(' ');
         var rule = info[1];
+        var offset = offsetNum(info[0]);
         zones.push({
             id: id,
-            offset: offsetNum(info[0]),
-            offsetStr: info[0],
+            offset: offset,
+            offsetStr: offsetStr(offset),
             rule: rule
         });
         if (rule != '-') {
@@ -127,10 +145,10 @@ d3.json('tzinfo.json', function (tzdata) {
         // Special hard-coded 2013 case for crazy rules of Morocco
         if (name == 'Morocco') {
             rule = [
-                "2012 2019 3 0 8 2 0 1 S",
-                "2013 2013 6 9 7 3 0 0",
                 "2013 2013 7 8 7 2 0 1 S",
-                "2012 9999 8 0 8 3 0 0",
+                "2013 9999 9 0 8 3 0 0",
+                "2012 2019 2 0 8 2 0 1 S",
+                "2013 2013 6 9 7 3 0 0",
             ];
         }
         var i = rule.length;
@@ -149,7 +167,11 @@ d3.json('tzinfo.json', function (tzdata) {
             _.each(rule.change, function (change) {
                 var month = +change[0];
                 var day = +change[1];
-                var save = +change[5];
+                var saveParts = change[5].split(':');
+                var save = +saveParts[0];
+                if (saveParts.length > 1) {
+                    save += (+saveParts[1] || 0) / 60;
+                }
                 var isDST = save > 0;
                 var prop = isDST ? 'dstStart' : 'dstEnd';
                 // Special case for Morocco again
@@ -263,7 +285,7 @@ d3.json('tzinfo.json', function (tzdata) {
 
     list.append('g').classed('zone-id', true)
         .append('text')
-            .attr('y', labelHeight)
+            .attr('y', labelHeight * .8)
             .text(function (d) { return d.id });
 
     var changes = list.append('g')
@@ -277,8 +299,8 @@ d3.json('tzinfo.json', function (tzdata) {
         .classed('gmt-offset', true)
         .attr('transform', 'translate(' + (labelWidth + yearWidth + 10) + ',0)')
         .append('text')
-            .attr('y', labelHeight)
-            .text(function (d) { return d.offset })
+            .attr('y', labelHeight * .8)
+            .text(function (d) { return d.offsetStr })
 
     var dst = changes.filter(function (d) { return !!d.dstStart })
 
