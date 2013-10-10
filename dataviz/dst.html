@@ -31,6 +31,7 @@
             background: #D4E9F2;
             background: linear-gradient(to bottom, #D4E9F2 0, #D4E9F2 27px, rgba(0, 0, 0, 0) 100%);
             font-size: 12px;
+            max-height: 25px;
             padding-top: 10px;
             position: fixed;
             width: 960px;
@@ -118,6 +119,7 @@ d3.json('moment-timezone.json', function (tzdata) {
     var zones = [];
     var rules = {};
     var year = new Date().getFullYear();
+    var groupedZones;
 
     _.each(tzdata.zones, function (data, id) {
         var zone = _.last(data);
@@ -197,23 +199,63 @@ d3.json('moment-timezone.json', function (tzdata) {
         zone.sortValue = sortValue;
     });
     zones = _.sortBy(zones, 'sortValue');
-    // console.log(rules);
-    // console.log(tzdata.rules);
-    // console.log(zones);
-    // var tmpZone = _.find(zones, function (z) { return z.id == 'Africa/Casablanca' })
-    // console.log(tmpZone, rules[tmpZone.rule]);
+    groupedZones = _.chain(zones)
+        .groupBy(function (zone) {
+            var key = zone.id.split('/').slice(0, 1);
+            key.push(
+                zone.offset,
+                zone.dstStartValue || '-',
+                zone.dstEndValue || '-',
+                zone.dstStart2Value ? '1' : '0'
+            );
+            return key.join('/');
+        }).map(function (zoneList, key) {
+            var zone = _.clone(zoneList[0]);
+            if (zoneList.length === 1) {
+                return zone;
+            }
+            key = key.split('/');
+            zone.id = key[0] + '/(' + zone.offsetStr + ', ' + zoneList.length + ' zones)';
+            zone.zoneIds = _.pluck(zoneList, 'id');
+            return zone;
+        })
+        .sortBy('sortValue')
+        .value();
 
 
     /*** Display ***/
 
     var sortMode = 'dstStart';
+    var isGrouped = false;
 
     var dateX = window.dateX = d3.scale.linear()
         .domain([1, 365])
         .range([1, yearWidth])
 
-    var zoneY = function (d, i) {
-        return 'translate(0,' + (i * (labelHeight + labelPadding) + labelPadding) + ')';
+    function zoneY(x) {
+        x = +x || 0;
+        var fn = function (d, i) {
+            return 'translate(' + x + ',' + (i * (labelHeight + labelPadding) + labelPadding) + ')';
+        };
+        fn.scale = function (sx, sy) {
+            sx = +sx || 0;
+            sy = +sy || 0;
+            if (arguments.length < 2) {
+                sy = 1;
+            }
+            if (arguments.length < 1) {
+                sx = 1;
+            }
+            return function (d, i) {
+                var oldX = x;
+                x += (labelWidth + yearWidth + gmtOffsetWidth) / 2 * (1 - sx);
+                var transform = fn.call(this, d, i);
+                x = oldX;
+                transform += ' scale(' + sx + ',' + sy + ')';
+                return transform;
+            };
+        };
+        return fn;
     }
 
     function dstPathBlock(x1, x2) {
@@ -248,6 +290,25 @@ d3.json('moment-timezone.json', function (tzdata) {
         }
     }
 
+
+    // Legend
+
+    var legend = d3.select('#legend-display')
+        .attr('height', (labelHeight + labelPadding) * 2)
+        .append('g')
+            .classed('changes', true)
+
+    legend.append('rect')
+        .attr('width', '100%')
+        .attr('height', labelHeight);
+    legend.append('rect')
+        .classed('dst', true)
+        .attr('width', '100%')
+        .attr('height', labelHeight)
+        .attr('transform', 'translate(0,' + labelHeight + ')')
+
+    // Titles
+
     var titles = d3.select('#titles')
         .attr('width', labelWidth + yearWidth + gmtOffsetWidth)
         .attr('height', labelHeight + labelPadding)
@@ -273,78 +334,122 @@ d3.json('moment-timezone.json', function (tzdata) {
                 .attr('y', labelHeight * .8)
                 .text(function (d) { return d.format('MMM').substr(0, 1) })
 
+
+    // Data display
+
     var svg = d3.select('#zones')
         .attr('width', labelWidth + yearWidth + gmtOffsetWidth)
         .attr('height', (labelHeight + labelPadding) * zones.length + labelPadding)
 
-    var list = svg.selectAll('.zone-data')
-        .data(zones)
-        .enter().append('g')
+    var listGroup = svg.append('g').classed('list-group', true);
+
+    var list;
+
+    function display() {
+        var data = isGrouped ? groupedZones : zones;
+        list = listGroup.selectAll('.zone-data')
+            .data(data, function (d) { return d.id + (d.dstStartValue || '') })
+
+        list.exit()
+            .transition()
+            .duration(500)
+            .attr('transform', zoneY().scale(0))
+            .remove();
+
+
+        var newZones = list.enter().append('g')
             .classed('zone-data', true)
-            .attr('transform', zoneY)
+            .attr('transform', zoneY().scale(0))
 
-    list.append('g').classed('zone-id', true)
-        .append('text')
-            .attr('y', labelHeight * .8)
-            .text(function (d) { return d.id });
+        list.transition()
+            .duration(500)
+            .attr('transform', zoneY().scale(1))
 
-    var changes = list.append('g')
-        .classed('changes', true)
-        .attr('transform', 'translate(' + labelWidth + ',0)')
-    changes.append('rect')
-        .attr('width', yearWidth)
-        .attr('height', labelHeight)
+        newZones.append('g').classed('zone-id', true)
+            .append('text')
+                .attr('y', labelHeight * .8)
+                .text(function (d) { return d.id });
 
-    list.append('g')
-        .classed('gmt-offset', true)
-        .attr('transform', 'translate(' + (labelWidth + yearWidth + 10) + ',0)')
-        .append('text')
-            .attr('y', labelHeight * .8)
-            .text(function (d) { return d.offsetStr })
+        var changes = newZones.append('g')
+            .classed('changes', true)
+            .attr('transform', 'translate(' + labelWidth + ',0)')
+        changes.append('rect')
+            .attr('width', yearWidth)
+            .attr('height', labelHeight)
 
-    var dst = changes.filter(function (d) { return !!d.dstStart })
+        newZones.append('g')
+            .classed('gmt-offset', true)
+            .attr('transform', 'translate(' + (labelWidth + yearWidth + 10) + ',0)')
+            .append('text')
+                .attr('y', labelHeight * .8)
+                .text(function (d) { return d.offsetStr })
 
-    dst.append('path')
-        .classed('dst', true)
-        .attr('d', dstPath())
-        .attr('translate', 'transform(' + labelWidth + ',0)')
-        // .text(function (d) {
-        //     return ~~(d.sortValue / 1000)
-        // })
+        var dst = changes.filter(function (d) { return !!d.dstStart })
 
-    // YET MORE MOROCCO SPECIAL CODE
-    dst.filter(function (d) { return d.id == 'Africa/Casablanca' }).append('path')
-        .classed('dst', true)
-        .attr('d', dstPath('2'))
-        // .text(function (d) {
-        //     var sortValue = d.dstStart2Value[0] * 100000 + d.dstStart2Value[1] * 1000 + 100;
-        //     return ~~(sortValue / 1000);
-        // })
+        dst.append('path')
+            .classed('dst', true)
+            .attr('d', dstPath())
+            .attr('translate', 'transform(' + labelWidth + ',0)')
+            // .text(function (d) {
+            //     return ~~(d.sortValue / 1000)
+            // })
 
-    svg.selectAll('.month-line')
-        .data(months)
-        .enter().append('line')
-            .classed('month-line', true)
-            .attr('x1', 0).attr('x2', 0)
-            .attr('y1', labelPadding).attr('y2', svg.attr('height') - labelPadding)
-            .attr('transform', function (d) { return 'translate(' + (labelWidth + dateX(d.dayOfYear())) + ',0)' })
+        // YET MORE MOROCCO SPECIAL CODE
+        dst.filter(function (d) { return d.id == 'Africa/Casablanca' }).append('path')
+            .classed('dst', true)
+            .attr('d', dstPath('2'))
+            // .text(function (d) {
+            //     var sortValue = d.dstStart2Value[0] * 100000 + d.dstStart2Value[1] * 1000 + 100;
+            //     return ~~(sortValue / 1000);
+            // })
+
+        list.sort(sortData);
+    }
+    display();
+
+    svg.append('g')
+        .classed('month-line-group', true)
+        .selectAll('.month-line')
+            .data(months)
+            .enter().append('line')
+                .classed('month-line', true)
+                .attr('x1', 0).attr('x2', 0)
+                .attr('y1', labelPadding).attr('y2', svg.attr('height') - labelPadding)
+                .attr('transform', function (d) { return 'translate(' + (labelWidth + dateX(d.dayOfYear())) + ',0)' })
+
+
+    // Data manipulation
+
+    function sortData(a, b) {
+        var prop = 'sortValue';
+        if (sortMode === 'offset' && a.offset != b.offset) {
+            prop = 'offset';
+        }
+        var diff = a[prop] - b[prop];
+        if (diff !== 0) {
+            return diff;
+        }
+        return a.id < b.id ? -1 : 1;
+    }
 
     function setSortMode(mode) {
         sortMode = mode;
-        list.sort(function (a, b) {
-            var prop = 'sortValue';
-            if (sortMode === 'offset' && a.offset != b.offset) {
-                prop = 'offset';
-            }
-            return a[prop] - b[prop];
-        });
-        moveZones();
+        // list.sort(sortData);
+        // moveZones();
+        zones.sort(sortData);
+        groupedZones.sort(sortData);
+        display();
+    }
+
+    function setGrouping(shouldGroup) {
+        isGrouped = !!shouldGroup;
+        display();
     }
 
     function moveZones() {
         list.transition()
             .duration(1000)
-            .attr('transform', zoneY)
+            .attr('transform', zoneY())
     }
 
     /*** Interactive controls ***/
