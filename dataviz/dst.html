@@ -71,6 +71,8 @@
     Sort By:
     <label><input type="radio" name="sort" value="dstStart" checked> DST start date</label>
     <label><input type="radio" name="sort" value="offset"> GMT offset</label>
+    <hr>
+    <label><input type="checkbox" name="groupSame"> Group identical zones</label>
 </div>
 <div id="titles-container">
     <svg id="titles"></svg>
@@ -113,6 +115,7 @@ d3.json('moment-timezone.json', function (tzdata) {
     var labelWidth = 270;
     var yearWidth = 365;
     var gmtOffsetWidth = 80;
+    var transitionSpeed = 500;
 
     /*** Data preparation ***/
 
@@ -352,7 +355,7 @@ d3.json('moment-timezone.json', function (tzdata) {
 
         list.exit()
             .transition()
-            .duration(500)
+            .duration(transitionSpeed)
             .attr('transform', zoneY().scale(0))
             .remove();
 
@@ -362,7 +365,7 @@ d3.json('moment-timezone.json', function (tzdata) {
             .attr('transform', zoneY().scale(0))
 
         list.transition()
-            .duration(500)
+            .duration(transitionSpeed)
             .attr('transform', zoneY().scale(1))
 
         newZones.append('g').classed('zone-id', true)
@@ -403,6 +406,7 @@ d3.json('moment-timezone.json', function (tzdata) {
             //     return ~~(sortValue / 1000);
             // })
 
+        // Make sure the DOM nodes are in the right order, as it affects animation positions
         list.sort(sortData);
     }
     display();
@@ -455,8 +459,13 @@ d3.json('moment-timezone.json', function (tzdata) {
     /*** Interactive controls ***/
 
     document.getElementById('controls').addEventListener('change', function (e) {
-        if (e.target.nodeName == 'INPUT') {
-            setSortMode(e.target.value);
+        var elem = e.target;
+        if (elem.nodeName == 'INPUT') {
+            if (elem.name == 'sort') {
+                setSortMode(elem.value);
+            } else if (elem.name == 'groupSame') {
+                setGrouping(elem.checked);
+            }
         }
     }, false)
 });
