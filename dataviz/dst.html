@@ -15,10 +15,21 @@
             left: 0;
             position: fixed;
             text-align: left;
-            top: 40px;
+            top: 70px;
+        }
+        .controls h3 {
+            font-size: inherit;
+            margin: 0.25em 0;
         }
         .controls label {
             display: block;
+        }
+        .legend {
+            margin-top: 1em;
+        }
+        .legend text {
+            text-anchor: middle;
+            pointer-events: none;
         }
         svg {
             display: block;
@@ -27,20 +38,25 @@
         text {
             font-size: 14px;
         }
-        #titles-container {
+        .desc, #titles-container {
             background: #D4E9F2;
-            background: linear-gradient(to bottom, #D4E9F2 0, #D4E9F2 27px, rgba(0, 0, 0, 0) 100%);
-            font-size: 12px;
-            max-height: 25px;
-            padding-top: 10px;
             position: fixed;
             width: 960px;
+        }
+        .desc {
+            margin: 0;
+            padding: 10px 0;
+        }
+        #titles-container {
+            background: linear-gradient(to bottom, #D4E9F2 0, #D4E9F2 19px, rgba(0, 0, 0, 0) 100%);
+            height: 30px;
+            top: 45px;
         }
         .month-name text {
             text-anchor: middle;
         }
         #zones-container {
-            padding-top: 33px;
+            padding-top: 70px;
         }
         .changes rect {
             fill: hsl(20, 60%, 70%);
@@ -68,18 +84,21 @@
 
 <body class="centre">
 <div id="controls" class="controls">
-    Sort By:
+    <h3>Sort By</h3>
     <label><input type="radio" name="sort" value="dstStart" checked> DST start date</label>
     <label><input type="radio" name="sort" value="offset"> GMT offset</label>
     <hr>
     <label><input type="checkbox" name="groupSame"> Group identical zones</label>
+    <div class="legend">
+        <h3>Legend</h3>
+    </div>
 </div>
+<p class="desc">
+    Daylight savings rules around the world
+</p>
 <div id="titles-container">
-    <svg id="titles"></svg>
 </div>
-<div id="zones-container">
-    <svg id="zones"></svg>
-</div>
+<div id="zones-container"></div>
 
 <script src="../common/js/d3.js"></script>
 <script src="../common/js/underscore.js"></script>
