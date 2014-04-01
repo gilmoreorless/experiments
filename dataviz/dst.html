@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>Daylight savings time around the world</title>
+    <title>Daylight saving time around the world</title>
     <link rel="stylesheet" href="../main.css">
 
     <style>
@@ -94,7 +94,7 @@
     </div>
 </div>
 <p class="desc">
-    Daylight savings rules around the world
+    Daylight saving rules around the world <small>(probably already out of date)</small>
 </p>
 <div id="titles-container">
 </div>
@@ -123,6 +123,32 @@ function offsetStr(num) {
     str += ('0' + hours).slice(-2);
     str += ':' + ('0' + mins).slice(-2);
     return str;
+}
+
+// Copied from moment-timezone/zones.js
+function getFirstDayOfWeek(year, month, dayOfWeek, minDay) {
+    var firstDayOfWeek = moment([year, month, 1]).day(),
+        output = dayOfWeek + 1 - firstDayOfWeek;
+
+    while (output < minDay) {
+        output += 7;
+    }
+
+    return output;
+}
+
+// Copied from moment-timezone/zones.js
+function getLastDayOfWeek(year, month, dayOfWeek) {
+    var dow = dayOfWeek % 7,
+        lastDowOfMonth = moment([year, month + 1, 1]).day(),
+        daysInMonth = moment([year, month, 1]).daysInMonth(),
+        output = daysInMonth + (dow - (lastDowOfMonth - 1)) - (~~(dayOfWeek / 7) * 7);
+
+    if (dow >= lastDowOfMonth) {
+        output -= 7;
+    }
+
+    return output;
 }
 
 d3.json('moment-timezone.json', function (tzdata) {
@@ -189,8 +215,10 @@ d3.json('moment-timezone.json', function (tzdata) {
         var rule = rules[zone.rule];
         if (rule) {
             _.each(rule.change, function (change) {
+                // console.log(change)
                 var month = +change[0];
                 var day = +change[1];
+                var dayRule = +change[2];
                 var saveParts = change[5].split(':');
                 var save = +saveParts[0];
                 if (saveParts.length > 1) {
@@ -203,10 +231,12 @@ d3.json('moment-timezone.json', function (tzdata) {
                     prop += '2';
                 }
 
-                var date = moment([year, month, day || 1]);
-                if (day === 0) { // "last Sunday of the month"
-                    date = date.endOf('month').startOf('week');
+                if (dayRule === 8) { // "last <day> of month"
+                    day = getLastDayOfWeek(year, month, day);
+                } else if (dayRule < 7) { // "first <dayRule> >= <day>"
+                    day = getFirstDayOfWeek(year, month, dayRule, day)
                 }
+                var date = moment([year, month, day || 1]);
                 zone[prop] = date;
                 zone[prop + 'Value'] = [month, date.date(), save];
             });
@@ -256,26 +286,19 @@ d3.json('moment-timezone.json', function (tzdata) {
 
     function zoneY(x) {
         x = +x || 0;
+        var transform = d3.transform();
+        transform.translate[0] = x;
+
         var fn = function (d, i) {
-            return 'translate(' + x + ',' + (i * (labelHeight + labelPadding) + labelPadding) + ')';
+            transform.translate[1] = i * (labelHeight + labelPadding) + labelPadding;
+            return transform;
         };
         fn.scale = function (sx, sy) {
-            sx = +sx || 0;
-            sy = +sy || 0;
-            if (arguments.length < 2) {
-                sy = 1;
-            }
-            if (arguments.length < 1) {
-                sx = 1;
-            }
-            return function (d, i) {
-                var oldX = x;
-                x += (labelWidth + yearWidth + gmtOffsetWidth) / 2 * (1 - sx);
-                var transform = fn.call(this, d, i);
-                x = oldX;
-                transform += ' scale(' + sx + ',' + sy + ')';
-                return transform;
-            };
+            sx = arguments.length < 1 ? 1 : +sx || 0;
+            sy = arguments.length < 2 ? 1 : +sy || 0;
+            transform.translate[0] += (labelWidth + yearWidth + gmtOffsetWidth) / 2 * (1 - sx);
+            transform.scale = [sx, sy];
+            return fn;
         };
         return fn;
     }
@@ -315,23 +338,35 @@ d3.json('moment-timezone.json', function (tzdata) {
 
     // Legend
 
-    var legend = d3.select('#legend-display')
-        .attr('height', (labelHeight + labelPadding) * 2)
+    var legend = d3.select('.legend').append('svg')
+        .attr('height', (labelHeight + labelPadding) * 2 + labelPadding)
         .append('g')
             .classed('changes', true)
 
     legend.append('rect')
-        .attr('width', '100%')
-        .attr('height', labelHeight);
+        .attr('width', '98%')
+        .attr('height', labelHeight)
+        .attr('transform', 'translate(2,0)')
+    legend.append('text')
+        .text('Normal GMT offset')
+        .attr('y', labelHeight)
+
     legend.append('rect')
         .classed('dst', true)
-        .attr('width', '100%')
+        .attr('width', '98%')
         .attr('height', labelHeight)
-        .attr('transform', 'translate(0,' + labelHeight + ')')
+        .attr('transform', 'translate(2,' + (labelHeight + labelPadding * 2) + ')')
+    legend.append('text')
+        .text('Daylight saving')
+        .attr('y', (labelHeight + labelPadding) * 2)
+
+    legend.selectAll('text')
+        .attr('x', '50%')
+        .attr('dy', -5)
 
     // Titles
 
-    var titles = d3.select('#titles')
+    var titles = d3.select('#titles-container').append('svg')
         .attr('width', labelWidth + yearWidth + gmtOffsetWidth)
         .attr('height', labelHeight + labelPadding)
 
@@ -359,7 +394,7 @@ d3.json('moment-timezone.json', function (tzdata) {
 
     // Data display
 
-    var svg = d3.select('#zones')
+    var svg = d3.select('#zones-container').append('svg')
         .attr('width', labelWidth + yearWidth + gmtOffsetWidth)
         .attr('height', (labelHeight + labelPadding) * zones.length + labelPadding)
 
@@ -457,8 +492,6 @@ d3.json('moment-timezone.json', function (tzdata) {
 
     function setSortMode(mode) {
         sortMode = mode;
-        // list.sort(sortData);
-        // moveZones();
         zones.sort(sortData);
         groupedZones.sort(sortData);
         display();
@@ -469,11 +502,6 @@ d3.json('moment-timezone.json', function (tzdata) {
         display();
     }
 
-    function moveZones() {
-        list.transition()
-            .duration(1000)
-            .attr('transform', zoneY())
-    }
 
     /*** Interactive controls ***/
 
