@@ -1,0 +1,1983 @@
+[
+  {
+    "zones": [
+      "Etc/GMT+11", 
+      "Pacific/Midway", 
+      "Pacific/Niue", 
+      "Pacific/Pago_Pago"
+    ], 
+    "janOffset": -39600000, 
+    "julyOffset": -39600000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": -39600000, 
+    "julyOffset": -36000000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": -36000000, 
+    "julyOffset": -39600000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": -38700000, 
+    "julyOffset": -38700000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": -38700000, 
+    "julyOffset": -35100000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": -35100000, 
+    "julyOffset": -38700000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": -37800000, 
+    "julyOffset": -37800000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": -37800000, 
+    "julyOffset": -34200000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": -34200000, 
+    "julyOffset": -37800000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": -36900000, 
+    "julyOffset": -36900000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": -36900000, 
+    "julyOffset": -33300000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": -33300000, 
+    "julyOffset": -36900000
+  }, 
+  {
+    "zones": [
+      "Etc/GMT+10", 
+      "Pacific/Honolulu", 
+      "Pacific/Johnston", 
+      "Pacific/Rarotonga", 
+      "Pacific/Tahiti"
+    ], 
+    "janOffset": -36000000, 
+    "julyOffset": -36000000
+  }, 
+  {
+    "zones": [
+      "America/Adak"
+    ], 
+    "janOffset": -36000000, 
+    "julyOffset": -32400000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": -32400000, 
+    "julyOffset": -36000000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": -35100000, 
+    "julyOffset": -35100000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": -35100000, 
+    "julyOffset": -31500000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": -31500000, 
+    "julyOffset": -35100000
+  }, 
+  {
+    "zones": [
+      "Pacific/Marquesas"
+    ], 
+    "janOffset": -34200000, 
+    "julyOffset": -34200000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": -34200000, 
+    "julyOffset": -30600000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": -30600000, 
+    "julyOffset": -34200000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": -33300000, 
+    "julyOffset": -33300000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": -33300000, 
+    "julyOffset": -29700000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": -29700000, 
+    "julyOffset": -33300000
+  }, 
+  {
+    "zones": [
+      "Etc/GMT+9", 
+      "Pacific/Gambier"
+    ], 
+    "janOffset": -32400000, 
+    "julyOffset": -32400000
+  }, 
+  {
+    "zones": [
+      "America/Anchorage", 
+      "America/Juneau", 
+      "America/Nome", 
+      "America/Sitka", 
+      "America/Yakutat"
+    ], 
+    "janOffset": -32400000, 
+    "julyOffset": -28800000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": -28800000, 
+    "julyOffset": -32400000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": -31500000, 
+    "julyOffset": -31500000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": -31500000, 
+    "julyOffset": -27900000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": -27900000, 
+    "julyOffset": -31500000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": -30600000, 
+    "julyOffset": -30600000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": -30600000, 
+    "julyOffset": -27000000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": -27000000, 
+    "julyOffset": -30600000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": -29700000, 
+    "julyOffset": -29700000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": -29700000, 
+    "julyOffset": -26100000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": -26100000, 
+    "julyOffset": -29700000
+  }, 
+  {
+    "zones": [
+      "America/Metlakatla", 
+      "Etc/GMT+8", 
+      "Pacific/Pitcairn"
+    ], 
+    "janOffset": -28800000, 
+    "julyOffset": -28800000
+  }, 
+  {
+    "zones": [
+      "America/Dawson", 
+      "America/Los_Angeles", 
+      "America/Santa_Isabel", 
+      "America/Tijuana", 
+      "America/Vancouver", 
+      "America/Whitehorse"
+    ], 
+    "janOffset": -28800000, 
+    "julyOffset": -25200000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": -25200000, 
+    "julyOffset": -28800000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": -27900000, 
+    "julyOffset": -27900000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": -27900000, 
+    "julyOffset": -24300000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": -24300000, 
+    "julyOffset": -27900000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": -27000000, 
+    "julyOffset": -27000000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": -27000000, 
+    "julyOffset": -23400000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": -23400000, 
+    "julyOffset": -27000000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": -26100000, 
+    "julyOffset": -26100000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": -26100000, 
+    "julyOffset": -22500000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": -22500000, 
+    "julyOffset": -26100000
+  }, 
+  {
+    "zones": [
+      "America/Creston", 
+      "America/Dawson_Creek", 
+      "America/Hermosillo", 
+      "America/Phoenix", 
+      "Etc/GMT+7"
+    ], 
+    "janOffset": -25200000, 
+    "julyOffset": -25200000
+  }, 
+  {
+    "zones": [
+      "America/Boise", 
+      "America/Cambridge_Bay", 
+      "America/Chihuahua", 
+      "America/Denver", 
+      "America/Edmonton", 
+      "America/Inuvik", 
+      "America/Mazatlan", 
+      "America/Ojinaga", 
+      "America/Yellowknife"
+    ], 
+    "janOffset": -25200000, 
+    "julyOffset": -21600000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": -21600000, 
+    "julyOffset": -25200000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": -24300000, 
+    "julyOffset": -24300000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": -24300000, 
+    "julyOffset": -20700000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": -20700000, 
+    "julyOffset": -24300000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": -23400000, 
+    "julyOffset": -23400000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": -23400000, 
+    "julyOffset": -19800000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": -19800000, 
+    "julyOffset": -23400000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": -22500000, 
+    "julyOffset": -22500000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": -22500000, 
+    "julyOffset": -18900000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": -18900000, 
+    "julyOffset": -22500000
+  }, 
+  {
+    "zones": [
+      "America/Belize", 
+      "America/Costa_Rica", 
+      "America/El_Salvador", 
+      "America/Guatemala", 
+      "America/Managua", 
+      "America/Regina", 
+      "America/Swift_Current", 
+      "America/Tegucigalpa", 
+      "Etc/GMT+6", 
+      "Pacific/Galapagos"
+    ], 
+    "janOffset": -21600000, 
+    "julyOffset": -21600000
+  }, 
+  {
+    "zones": [
+      "America/Bahia_Banderas", 
+      "America/Cancun", 
+      "America/Chicago", 
+      "America/Indiana/Knox", 
+      "America/Indiana/Tell_City", 
+      "America/Matamoros", 
+      "America/Menominee", 
+      "America/Merida", 
+      "America/Mexico_City", 
+      "America/Monterrey", 
+      "America/North_Dakota/Beulah", 
+      "America/North_Dakota/Center", 
+      "America/North_Dakota/New_Salem", 
+      "America/Rainy_River", 
+      "America/Rankin_Inlet", 
+      "America/Resolute", 
+      "America/Winnipeg"
+    ], 
+    "janOffset": -21600000, 
+    "julyOffset": -18000000
+  }, 
+  {
+    "zones": [
+      "Pacific/Easter"
+    ], 
+    "janOffset": -18000000, 
+    "julyOffset": -21600000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": -20700000, 
+    "julyOffset": -20700000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": -20700000, 
+    "julyOffset": -17100000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": -17100000, 
+    "julyOffset": -20700000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": -19800000, 
+    "julyOffset": -19800000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": -19800000, 
+    "julyOffset": -16200000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": -16200000, 
+    "julyOffset": -19800000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": -18900000, 
+    "julyOffset": -18900000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": -18900000, 
+    "julyOffset": -15300000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": -15300000, 
+    "julyOffset": -18900000
+  }, 
+  {
+    "zones": [
+      "America/Atikokan", 
+      "America/Bogota", 
+      "America/Cayman", 
+      "America/Eirunepe", 
+      "America/Guayaquil", 
+      "America/Jamaica", 
+      "America/Lima", 
+      "America/Panama", 
+      "America/Rio_Branco", 
+      "Etc/GMT+5"
+    ], 
+    "janOffset": -18000000, 
+    "julyOffset": -18000000
+  }, 
+  {
+    "zones": [
+      "America/Detroit", 
+      "America/Grand_Turk", 
+      "America/Havana", 
+      "America/Indiana/Indianapolis", 
+      "America/Indiana/Marengo", 
+      "America/Indiana/Petersburg", 
+      "America/Indiana/Vevay", 
+      "America/Indiana/Vincennes", 
+      "America/Indiana/Winamac", 
+      "America/Iqaluit", 
+      "America/Kentucky/Louisville", 
+      "America/Kentucky/Monticello", 
+      "America/Montreal", 
+      "America/Nassau", 
+      "America/New_York", 
+      "America/Nipigon", 
+      "America/Pangnirtung", 
+      "America/Port-au-Prince", 
+      "America/Thunder_Bay", 
+      "America/Toronto"
+    ], 
+    "janOffset": -18000000, 
+    "julyOffset": -14400000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": -14400000, 
+    "julyOffset": -18000000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": -17100000, 
+    "julyOffset": -17100000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": -17100000, 
+    "julyOffset": -13500000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": -13500000, 
+    "julyOffset": -17100000
+  }, 
+  {
+    "zones": [
+      "America/Caracas"
+    ], 
+    "janOffset": -16200000, 
+    "julyOffset": -16200000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": -16200000, 
+    "julyOffset": -12600000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": -12600000, 
+    "julyOffset": -16200000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": -15300000, 
+    "julyOffset": -15300000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": -15300000, 
+    "julyOffset": -11700000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": -11700000, 
+    "julyOffset": -15300000
+  }, 
+  {
+    "zones": [
+      "America/Anguilla", 
+      "America/Antigua", 
+      "America/Aruba", 
+      "America/Barbados", 
+      "America/Blanc-Sablon", 
+      "America/Boa_Vista", 
+      "America/Curacao", 
+      "America/Dominica", 
+      "America/Grenada", 
+      "America/Guadeloupe", 
+      "America/Guyana", 
+      "America/La_Paz", 
+      "America/Manaus", 
+      "America/Martinique", 
+      "America/Montserrat", 
+      "America/Port_of_Spain", 
+      "America/Porto_Velho", 
+      "America/Puerto_Rico", 
+      "America/Santo_Domingo", 
+      "America/St_Kitts", 
+      "America/St_Lucia", 
+      "America/St_Thomas", 
+      "America/St_Vincent", 
+      "America/Tortola", 
+      "Etc/GMT+4"
+    ], 
+    "janOffset": -14400000, 
+    "julyOffset": -14400000
+  }, 
+  {
+    "zones": [
+      "America/Glace_Bay", 
+      "America/Goose_Bay", 
+      "America/Halifax", 
+      "America/Moncton", 
+      "America/Thule", 
+      "Atlantic/Bermuda"
+    ], 
+    "janOffset": -14400000, 
+    "julyOffset": -10800000
+  }, 
+  {
+    "zones": [
+      "America/Asuncion", 
+      "America/Campo_Grande", 
+      "America/Cuiaba", 
+      "America/Santiago", 
+      "Antarctica/Palmer"
+    ], 
+    "janOffset": -10800000, 
+    "julyOffset": -14400000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": -13500000, 
+    "julyOffset": -13500000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": -13500000, 
+    "julyOffset": -9900000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": -9900000, 
+    "julyOffset": -13500000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": -12600000, 
+    "julyOffset": -12600000
+  }, 
+  {
+    "zones": [
+      "America/St_Johns"
+    ], 
+    "janOffset": -12600000, 
+    "julyOffset": -9000000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": -9000000, 
+    "julyOffset": -12600000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": -11700000, 
+    "julyOffset": -11700000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": -11700000, 
+    "julyOffset": -8100000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": -8100000, 
+    "julyOffset": -11700000
+  }, 
+  {
+    "zones": [
+      "America/Araguaina", 
+      "America/Argentina/Buenos_Aires", 
+      "America/Argentina/Catamarca", 
+      "America/Argentina/Cordoba", 
+      "America/Argentina/Jujuy", 
+      "America/Argentina/La_Rioja", 
+      "America/Argentina/Mendoza", 
+      "America/Argentina/Rio_Gallegos", 
+      "America/Argentina/Salta", 
+      "America/Argentina/San_Juan", 
+      "America/Argentina/San_Luis", 
+      "America/Argentina/Tucuman", 
+      "America/Argentina/Ushuaia", 
+      "America/Bahia", 
+      "America/Belem", 
+      "America/Cayenne", 
+      "America/Fortaleza", 
+      "America/Maceio", 
+      "America/Paramaribo", 
+      "America/Recife", 
+      "America/Santarem", 
+      "Antarctica/Rothera", 
+      "Atlantic/Stanley", 
+      "Etc/GMT+3"
+    ], 
+    "janOffset": -10800000, 
+    "julyOffset": -10800000
+  }, 
+  {
+    "zones": [
+      "America/Godthab", 
+      "America/Miquelon"
+    ], 
+    "janOffset": -10800000, 
+    "julyOffset": -7200000
+  }, 
+  {
+    "zones": [
+      "America/Montevideo", 
+      "America/Sao_Paulo"
+    ], 
+    "janOffset": -7200000, 
+    "julyOffset": -10800000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": -9900000, 
+    "julyOffset": -9900000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": -9900000, 
+    "julyOffset": -6300000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": -6300000, 
+    "julyOffset": -9900000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": -9000000, 
+    "julyOffset": -9000000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": -9000000, 
+    "julyOffset": -5400000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": -5400000, 
+    "julyOffset": -9000000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": -8100000, 
+    "julyOffset": -8100000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": -8100000, 
+    "julyOffset": -4500000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": -4500000, 
+    "julyOffset": -8100000
+  }, 
+  {
+    "zones": [
+      "America/Noronha", 
+      "Atlantic/South_Georgia", 
+      "Etc/GMT+2"
+    ], 
+    "janOffset": -7200000, 
+    "julyOffset": -7200000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": -7200000, 
+    "julyOffset": -3600000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": -3600000, 
+    "julyOffset": -7200000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": -6300000, 
+    "julyOffset": -6300000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": -6300000, 
+    "julyOffset": -2700000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": -2700000, 
+    "julyOffset": -6300000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": -5400000, 
+    "julyOffset": -5400000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": -5400000, 
+    "julyOffset": -1800000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": -1800000, 
+    "julyOffset": -5400000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": -4500000, 
+    "julyOffset": -4500000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": -4500000, 
+    "julyOffset": -900000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": -900000, 
+    "julyOffset": -4500000
+  }, 
+  {
+    "zones": [
+      "Atlantic/Cape_Verde", 
+      "Etc/GMT+1"
+    ], 
+    "janOffset": -3600000, 
+    "julyOffset": -3600000
+  }, 
+  {
+    "zones": [
+      "America/Scoresbysund", 
+      "Atlantic/Azores"
+    ], 
+    "janOffset": -3600000, 
+    "julyOffset": 0
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 0, 
+    "julyOffset": -3600000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": -2700000, 
+    "julyOffset": -2700000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": -2700000, 
+    "julyOffset": 900000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 900000, 
+    "julyOffset": -2700000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": -1800000, 
+    "julyOffset": -1800000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": -1800000, 
+    "julyOffset": 1800000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 1800000, 
+    "julyOffset": -1800000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": -900000, 
+    "julyOffset": -900000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": -900000, 
+    "julyOffset": 2700000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 2700000, 
+    "julyOffset": -900000
+  }, 
+  {
+    "zones": [
+      "Africa/Abidjan", 
+      "Africa/Accra", 
+      "Africa/Bamako", 
+      "Africa/Banjul", 
+      "Africa/Bissau", 
+      "Africa/Casablanca", 
+      "Africa/Conakry", 
+      "Africa/Dakar", 
+      "Africa/El_Aaiun", 
+      "Africa/Freetown", 
+      "Africa/Lome", 
+      "Africa/Monrovia", 
+      "Africa/Nouakchott", 
+      "Africa/Ouagadougou", 
+      "Africa/Sao_Tome", 
+      "America/Danmarkshavn", 
+      "Atlantic/Reykjavik", 
+      "Atlantic/St_Helena", 
+      "Etc/GMT"
+    ], 
+    "janOffset": 0, 
+    "julyOffset": 0
+  }, 
+  {
+    "zones": [
+      "Atlantic/Canary", 
+      "Atlantic/Faroe", 
+      "Atlantic/Madeira", 
+      "Europe/Dublin", 
+      "Europe/Lisbon", 
+      "Europe/London"
+    ], 
+    "janOffset": 0, 
+    "julyOffset": 3600000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 3600000, 
+    "julyOffset": 0
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 900000, 
+    "julyOffset": 900000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 900000, 
+    "julyOffset": 4500000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 4500000, 
+    "julyOffset": 900000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 1800000, 
+    "julyOffset": 1800000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 1800000, 
+    "julyOffset": 5400000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 5400000, 
+    "julyOffset": 1800000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 2700000, 
+    "julyOffset": 2700000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 2700000, 
+    "julyOffset": 6300000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 6300000, 
+    "julyOffset": 2700000
+  }, 
+  {
+    "zones": [
+      "Africa/Algiers", 
+      "Africa/Bangui", 
+      "Africa/Brazzaville", 
+      "Africa/Douala", 
+      "Africa/Kinshasa", 
+      "Africa/Lagos", 
+      "Africa/Libreville", 
+      "Africa/Luanda", 
+      "Africa/Malabo", 
+      "Africa/Ndjamena", 
+      "Africa/Niamey", 
+      "Africa/Porto-Novo", 
+      "Africa/Tunis", 
+      "Etc/GMT-1"
+    ], 
+    "janOffset": 3600000, 
+    "julyOffset": 3600000
+  }, 
+  {
+    "zones": [
+      "Africa/Ceuta", 
+      "Europe/Amsterdam", 
+      "Europe/Andorra", 
+      "Europe/Belgrade", 
+      "Europe/Berlin", 
+      "Europe/Brussels", 
+      "Europe/Budapest", 
+      "Europe/Copenhagen", 
+      "Europe/Gibraltar", 
+      "Europe/Luxembourg", 
+      "Europe/Madrid", 
+      "Europe/Malta", 
+      "Europe/Monaco", 
+      "Europe/Oslo", 
+      "Europe/Paris", 
+      "Europe/Prague", 
+      "Europe/Rome", 
+      "Europe/Stockholm", 
+      "Europe/Tirane", 
+      "Europe/Vaduz", 
+      "Europe/Vienna", 
+      "Europe/Warsaw", 
+      "Europe/Zurich"
+    ], 
+    "janOffset": 3600000, 
+    "julyOffset": 7200000
+  }, 
+  {
+    "zones": [
+      "Africa/Windhoek"
+    ], 
+    "janOffset": 7200000, 
+    "julyOffset": 3600000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 4500000, 
+    "julyOffset": 4500000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 4500000, 
+    "julyOffset": 8100000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 8100000, 
+    "julyOffset": 4500000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 5400000, 
+    "julyOffset": 5400000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 5400000, 
+    "julyOffset": 9000000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 9000000, 
+    "julyOffset": 5400000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 6300000, 
+    "julyOffset": 6300000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 6300000, 
+    "julyOffset": 9900000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 9900000, 
+    "julyOffset": 6300000
+  }, 
+  {
+    "zones": [
+      "Africa/Blantyre", 
+      "Africa/Bujumbura", 
+      "Africa/Cairo", 
+      "Africa/Gaborone", 
+      "Africa/Harare", 
+      "Africa/Johannesburg", 
+      "Africa/Kigali", 
+      "Africa/Lubumbashi", 
+      "Africa/Lusaka", 
+      "Africa/Maputo", 
+      "Africa/Maseru", 
+      "Africa/Mbabane", 
+      "Africa/Tripoli", 
+      "Etc/GMT-2"
+    ], 
+    "janOffset": 7200000, 
+    "julyOffset": 7200000
+  }, 
+  {
+    "zones": [
+      "Asia/Beirut", 
+      "Asia/Damascus", 
+      "Asia/Gaza", 
+      "Asia/Hebron", 
+      "Asia/Jerusalem", 
+      "Asia/Nicosia", 
+      "Europe/Athens", 
+      "Europe/Bucharest", 
+      "Europe/Chisinau", 
+      "Europe/Helsinki", 
+      "Europe/Istanbul", 
+      "Europe/Kiev", 
+      "Europe/Riga", 
+      "Europe/Simferopol", 
+      "Europe/Sofia", 
+      "Europe/Tallinn", 
+      "Europe/Uzhgorod", 
+      "Europe/Vilnius", 
+      "Europe/Zaporozhye"
+    ], 
+    "janOffset": 7200000, 
+    "julyOffset": 10800000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 10800000, 
+    "julyOffset": 7200000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 8100000, 
+    "julyOffset": 8100000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 8100000, 
+    "julyOffset": 11700000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 11700000, 
+    "julyOffset": 8100000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 9000000, 
+    "julyOffset": 9000000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 9000000, 
+    "julyOffset": 12600000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 12600000, 
+    "julyOffset": 9000000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 9900000, 
+    "julyOffset": 9900000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 9900000, 
+    "julyOffset": 13500000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 13500000, 
+    "julyOffset": 9900000
+  }, 
+  {
+    "zones": [
+      "Africa/Addis_Ababa", 
+      "Africa/Asmara", 
+      "Africa/Dar_es_Salaam", 
+      "Africa/Djibouti", 
+      "Africa/Juba", 
+      "Africa/Kampala", 
+      "Africa/Khartoum", 
+      "Africa/Mogadishu", 
+      "Africa/Nairobi", 
+      "Antarctica/Syowa", 
+      "Asia/Aden", 
+      "Asia/Amman", 
+      "Asia/Baghdad", 
+      "Asia/Bahrain", 
+      "Asia/Kuwait", 
+      "Asia/Qatar", 
+      "Asia/Riyadh", 
+      "Etc/GMT-3", 
+      "Europe/Kaliningrad", 
+      "Europe/Minsk", 
+      "Indian/Antananarivo", 
+      "Indian/Comoro", 
+      "Indian/Mayotte"
+    ], 
+    "janOffset": 10800000, 
+    "julyOffset": 10800000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 10800000, 
+    "julyOffset": 14400000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 14400000, 
+    "julyOffset": 10800000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 11700000, 
+    "julyOffset": 11700000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 11700000, 
+    "julyOffset": 15300000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 15300000, 
+    "julyOffset": 11700000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 12600000, 
+    "julyOffset": 12600000
+  }, 
+  {
+    "zones": [
+      "Asia/Tehran"
+    ], 
+    "janOffset": 12600000, 
+    "julyOffset": 16200000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 16200000, 
+    "julyOffset": 12600000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 13500000, 
+    "julyOffset": 13500000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 13500000, 
+    "julyOffset": 17100000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 17100000, 
+    "julyOffset": 13500000
+  }, 
+  {
+    "zones": [
+      "Asia/Dubai", 
+      "Asia/Muscat", 
+      "Asia/Tbilisi", 
+      "Asia/Yerevan", 
+      "Etc/GMT-4", 
+      "Europe/Moscow", 
+      "Europe/Samara", 
+      "Europe/Volgograd", 
+      "Indian/Mahe", 
+      "Indian/Mauritius", 
+      "Indian/Reunion"
+    ], 
+    "janOffset": 14400000, 
+    "julyOffset": 14400000
+  }, 
+  {
+    "zones": [
+      "Asia/Baku"
+    ], 
+    "janOffset": 14400000, 
+    "julyOffset": 18000000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 18000000, 
+    "julyOffset": 14400000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 15300000, 
+    "julyOffset": 15300000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 15300000, 
+    "julyOffset": 18900000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 18900000, 
+    "julyOffset": 15300000
+  }, 
+  {
+    "zones": [
+      "Asia/Kabul"
+    ], 
+    "janOffset": 16200000, 
+    "julyOffset": 16200000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 16200000, 
+    "julyOffset": 19800000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 19800000, 
+    "julyOffset": 16200000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 17100000, 
+    "julyOffset": 17100000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 17100000, 
+    "julyOffset": 20700000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 20700000, 
+    "julyOffset": 17100000
+  }, 
+  {
+    "zones": [
+      "Antarctica/Mawson", 
+      "Asia/Aqtau", 
+      "Asia/Aqtobe", 
+      "Asia/Ashgabat", 
+      "Asia/Dushanbe", 
+      "Asia/Karachi", 
+      "Asia/Oral", 
+      "Asia/Samarkand", 
+      "Asia/Tashkent", 
+      "Etc/GMT-5", 
+      "Indian/Kerguelen", 
+      "Indian/Maldives"
+    ], 
+    "janOffset": 18000000, 
+    "julyOffset": 18000000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 18000000, 
+    "julyOffset": 21600000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 21600000, 
+    "julyOffset": 18000000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 18900000, 
+    "julyOffset": 18900000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 18900000, 
+    "julyOffset": 22500000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 22500000, 
+    "julyOffset": 18900000
+  }, 
+  {
+    "zones": [
+      "Asia/Colombo", 
+      "Asia/Kolkata"
+    ], 
+    "janOffset": 19800000, 
+    "julyOffset": 19800000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 19800000, 
+    "julyOffset": 23400000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 23400000, 
+    "julyOffset": 19800000
+  }, 
+  {
+    "zones": [
+      "Asia/Kathmandu"
+    ], 
+    "janOffset": 20700000, 
+    "julyOffset": 20700000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 20700000, 
+    "julyOffset": 24300000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 24300000, 
+    "julyOffset": 20700000
+  }, 
+  {
+    "zones": [
+      "Antarctica/Vostok", 
+      "Asia/Almaty", 
+      "Asia/Bishkek", 
+      "Asia/Dhaka", 
+      "Asia/Qyzylorda", 
+      "Asia/Thimphu", 
+      "Asia/Yekaterinburg", 
+      "Etc/GMT-6", 
+      "Indian/Chagos"
+    ], 
+    "janOffset": 21600000, 
+    "julyOffset": 21600000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 21600000, 
+    "julyOffset": 25200000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 25200000, 
+    "julyOffset": 21600000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 22500000, 
+    "julyOffset": 22500000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 22500000, 
+    "julyOffset": 26100000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 26100000, 
+    "julyOffset": 22500000
+  }, 
+  {
+    "zones": [
+      "Asia/Rangoon", 
+      "Indian/Cocos"
+    ], 
+    "janOffset": 23400000, 
+    "julyOffset": 23400000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 23400000, 
+    "julyOffset": 27000000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 27000000, 
+    "julyOffset": 23400000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 24300000, 
+    "julyOffset": 24300000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 24300000, 
+    "julyOffset": 27900000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 27900000, 
+    "julyOffset": 24300000
+  }, 
+  {
+    "zones": [
+      "Antarctica/Davis", 
+      "Asia/Bangkok", 
+      "Asia/Ho_Chi_Minh", 
+      "Asia/Hovd", 
+      "Asia/Jakarta", 
+      "Asia/Novokuznetsk", 
+      "Asia/Novosibirsk", 
+      "Asia/Omsk", 
+      "Asia/Phnom_Penh", 
+      "Asia/Pontianak", 
+      "Asia/Vientiane", 
+      "Etc/GMT-7", 
+      "Indian/Christmas"
+    ], 
+    "janOffset": 25200000, 
+    "julyOffset": 25200000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 25200000, 
+    "julyOffset": 28800000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 28800000, 
+    "julyOffset": 25200000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 26100000, 
+    "julyOffset": 26100000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 26100000, 
+    "julyOffset": 29700000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 29700000, 
+    "julyOffset": 26100000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 27000000, 
+    "julyOffset": 27000000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 27000000, 
+    "julyOffset": 30600000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 30600000, 
+    "julyOffset": 27000000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 27900000, 
+    "julyOffset": 27900000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 27900000, 
+    "julyOffset": 31500000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 31500000, 
+    "julyOffset": 27900000
+  }, 
+  {
+    "zones": [
+      "Antarctica/Casey", 
+      "Asia/Brunei", 
+      "Asia/Choibalsan", 
+      "Asia/Chongqing", 
+      "Asia/Harbin", 
+      "Asia/Hong_Kong", 
+      "Asia/Kashgar", 
+      "Asia/Krasnoyarsk", 
+      "Asia/Kuala_Lumpur", 
+      "Asia/Kuching", 
+      "Asia/Macau", 
+      "Asia/Makassar", 
+      "Asia/Manila", 
+      "Asia/Shanghai", 
+      "Asia/Singapore", 
+      "Asia/Taipei", 
+      "Asia/Ulaanbaatar", 
+      "Asia/Urumqi", 
+      "Australia/Perth", 
+      "Etc/GMT-8"
+    ], 
+    "janOffset": 28800000, 
+    "julyOffset": 28800000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 28800000, 
+    "julyOffset": 32400000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 32400000, 
+    "julyOffset": 28800000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 29700000, 
+    "julyOffset": 29700000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 29700000, 
+    "julyOffset": 33300000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 33300000, 
+    "julyOffset": 29700000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 30600000, 
+    "julyOffset": 30600000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 30600000, 
+    "julyOffset": 34200000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 34200000, 
+    "julyOffset": 30600000
+  }, 
+  {
+    "zones": [
+      "Australia/Eucla"
+    ], 
+    "janOffset": 31500000, 
+    "julyOffset": 31500000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 31500000, 
+    "julyOffset": 35100000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 35100000, 
+    "julyOffset": 31500000
+  }, 
+  {
+    "zones": [
+      "Asia/Dili", 
+      "Asia/Irkutsk", 
+      "Asia/Jayapura", 
+      "Asia/Pyongyang", 
+      "Asia/Seoul", 
+      "Asia/Tokyo", 
+      "Etc/GMT-9", 
+      "Pacific/Palau"
+    ], 
+    "janOffset": 32400000, 
+    "julyOffset": 32400000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 32400000, 
+    "julyOffset": 36000000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 36000000, 
+    "julyOffset": 32400000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 33300000, 
+    "julyOffset": 33300000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 33300000, 
+    "julyOffset": 36900000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 36900000, 
+    "julyOffset": 33300000
+  }, 
+  {
+    "zones": [
+      "Australia/Darwin"
+    ], 
+    "janOffset": 34200000, 
+    "julyOffset": 34200000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 34200000, 
+    "julyOffset": 37800000
+  }, 
+  {
+    "zones": [
+      "Australia/Adelaide", 
+      "Australia/Broken_Hill"
+    ], 
+    "janOffset": 37800000, 
+    "julyOffset": 34200000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 35100000, 
+    "julyOffset": 35100000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 35100000, 
+    "julyOffset": 38700000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 38700000, 
+    "julyOffset": 35100000
+  }, 
+  {
+    "zones": [
+      "Antarctica/DumontDUrville", 
+      "Asia/Khandyga", 
+      "Asia/Yakutsk", 
+      "Australia/Brisbane", 
+      "Australia/Lindeman", 
+      "Etc/GMT-10", 
+      "Pacific/Chuuk", 
+      "Pacific/Guam", 
+      "Pacific/Port_Moresby", 
+      "Pacific/Saipan"
+    ], 
+    "janOffset": 36000000, 
+    "julyOffset": 36000000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 36000000, 
+    "julyOffset": 39600000
+  }, 
+  {
+    "zones": [
+      "Australia/Currie", 
+      "Australia/Hobart", 
+      "Australia/Melbourne", 
+      "Australia/Sydney"
+    ], 
+    "janOffset": 39600000, 
+    "julyOffset": 36000000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 36900000, 
+    "julyOffset": 36900000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 36900000, 
+    "julyOffset": 40500000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 40500000, 
+    "julyOffset": 36900000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 37800000, 
+    "julyOffset": 37800000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 37800000, 
+    "julyOffset": 41400000
+  }, 
+  {
+    "zones": [
+      "Australia/Lord_Howe"
+    ], 
+    "janOffset": 39600000.0, 
+    "julyOffset": 37800000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 38700000, 
+    "julyOffset": 38700000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 38700000, 
+    "julyOffset": 42300000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 42300000, 
+    "julyOffset": 38700000
+  }, 
+  {
+    "zones": [
+      "Antarctica/Macquarie", 
+      "Asia/Sakhalin", 
+      "Asia/Ust-Nera", 
+      "Asia/Vladivostok", 
+      "Etc/GMT-11", 
+      "Pacific/Efate", 
+      "Pacific/Guadalcanal", 
+      "Pacific/Kosrae", 
+      "Pacific/Noumea", 
+      "Pacific/Pohnpei"
+    ], 
+    "janOffset": 39600000, 
+    "julyOffset": 39600000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 39600000, 
+    "julyOffset": 43200000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 43200000, 
+    "julyOffset": 39600000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 40500000, 
+    "julyOffset": 40500000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 40500000, 
+    "julyOffset": 44100000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 44100000, 
+    "julyOffset": 40500000
+  }, 
+  {
+    "zones": [
+      "Pacific/Norfolk"
+    ], 
+    "janOffset": 41400000, 
+    "julyOffset": 41400000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 41400000, 
+    "julyOffset": 45000000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 45000000, 
+    "julyOffset": 41400000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 42300000, 
+    "julyOffset": 42300000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 42300000, 
+    "julyOffset": 45900000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 45900000, 
+    "julyOffset": 42300000
+  }, 
+  {
+    "zones": [
+      "Asia/Anadyr", 
+      "Asia/Kamchatka", 
+      "Asia/Magadan", 
+      "Etc/GMT-12", 
+      "Pacific/Funafuti", 
+      "Pacific/Kwajalein", 
+      "Pacific/Majuro", 
+      "Pacific/Nauru", 
+      "Pacific/Tarawa", 
+      "Pacific/Wake", 
+      "Pacific/Wallis"
+    ], 
+    "janOffset": 43200000, 
+    "julyOffset": 43200000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 43200000, 
+    "julyOffset": 46800000
+  }, 
+  {
+    "zones": [
+      "Antarctica/McMurdo", 
+      "Pacific/Auckland", 
+      "Pacific/Fiji"
+    ], 
+    "janOffset": 46800000, 
+    "julyOffset": 43200000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 44100000, 
+    "julyOffset": 44100000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 44100000, 
+    "julyOffset": 47700000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 47700000, 
+    "julyOffset": 44100000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 45000000, 
+    "julyOffset": 45000000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 45000000, 
+    "julyOffset": 48600000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 48600000, 
+    "julyOffset": 45000000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 45900000, 
+    "julyOffset": 45900000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 45900000, 
+    "julyOffset": 49500000
+  }, 
+  {
+    "zones": [
+      "Pacific/Chatham"
+    ], 
+    "janOffset": 49500000, 
+    "julyOffset": 45900000
+  }, 
+  {
+    "zones": [
+      "Etc/GMT-13", 
+      "Pacific/Enderbury", 
+      "Pacific/Fakaofo", 
+      "Pacific/Tongatapu"
+    ], 
+    "janOffset": 46800000, 
+    "julyOffset": 46800000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 46800000, 
+    "julyOffset": 50400000
+  }, 
+  {
+    "zones": [
+      "Pacific/Apia"
+    ], 
+    "janOffset": 50400000, 
+    "julyOffset": 46800000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 47700000, 
+    "julyOffset": 47700000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 47700000, 
+    "julyOffset": 51300000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 51300000, 
+    "julyOffset": 47700000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 48600000, 
+    "julyOffset": 48600000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 48600000, 
+    "julyOffset": 52200000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 52200000, 
+    "julyOffset": 48600000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 49500000, 
+    "julyOffset": 49500000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 49500000, 
+    "julyOffset": 53100000
+  }, 
+  {
+    "zones": [], 
+    "janOffset": 53100000, 
+    "julyOffset": 49500000
+  }
+]

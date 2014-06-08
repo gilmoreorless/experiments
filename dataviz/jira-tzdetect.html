@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>JIRA tzdetect time zone groups</title>
+    <link rel="stylesheet" href="../main.css">
+    <style>
+        body {
+            width: auto;
+            overflow: scroll;
+        }
+
+        .axis .domain {
+            fill: #333;
+        }
+        .tick text {
+            color: #333;
+            font-size: 14px;
+        }
+        .tick line {
+            stroke: #333;
+        }
+
+        .zone-data rect {
+            cursor: pointer;
+            fill: hsl(20, 60%, 70%);
+            stroke: #333;
+            stroke-width: 1;
+        }
+        .zone-data rect:hover {
+            fill: hsl(20, 60%, 80%);
+        }
+        .zone-data rect.dst {
+            fill: hsl(35, 100%, 70%);
+            stroke: hsl(35, 50%, 20%);
+        }
+        .zone-data rect.dst:hover {
+            fill: hsl(35, 100%, 80%);
+        }
+
+        .popup-container {
+            display: none;
+            position: absolute;
+        }
+        .popup-container.visible {
+            display: block;
+        }
+        .popup-main {
+            background-color: #fff;
+            border: 2px solid #333;
+            border-radius: 10px;
+            font-size: 12px;
+            padding: .5em;
+            text-align: left;
+        }
+        .popup-main strong {
+            font-size: 14px;
+        }
+    </style>
+</head>
+
+<body class="centre">
+<p class="desc">
+    JIRA tzdetect time zone groups (tzdetect 2.0.2, JIRA 6.3, Joda Time 2.3)
+</p>
+<div id="graph-container"></div>
+
+<script src="../common/js/d3.js"></script>
+<script src="../common/js/underscore.js"></script>
+<script src="../common/js/shimShiminy.js"></script>
+<script>
+
+d3.json('jira-zoneCounts.json', function (tzdata) {
+
+    /*** Config ***/
+
+    var barWidth = 6;
+    var graphWidth = 1100;
+    var graphHeight = 300;
+    var paddingWidth = 50;
+    var paddingHeight = 30;
+
+
+    /*** Data preparation ***/
+
+    var filteredData = _.filter(tzdata, function (d) { return d.zones.length > 0; });
+    var maxCount = d3.max(filteredData, function (d) { return d.zones.length; });
+    var minOffset = d3.min(filteredData, function (d) { return d.janOffset; });
+    var maxOffset = d3.max(filteredData, function (d) { return Math.min(d.janOffset, d.julyOffset); });
+    var oneHour = 60 * 60 * 1000;
+    var timePadding = oneHour / 6;
+
+    /*** Display ***/
+
+    // Helpers
+
+    var scaleX = d3.scale.linear()
+        .domain([minOffset - timePadding, maxOffset + timePadding])
+        .range([paddingWidth, graphWidth - paddingWidth])
+
+    var scaleY = d3.scale.linear()
+        .domain([0, maxCount])
+        .range([0, graphHeight - paddingHeight * 2])
+
+    var axisX = d3.svg.axis()
+        .scale(scaleX)
+        .orient('bottom')
+        .tickSize(7, 1)
+        .tickValues(d3.range(minOffset, maxOffset + 1, oneHour))
+        .tickFormat(function (d) {
+            return offsetText(d);
+        })
+
+    var axisY = d3.svg.axis()
+        .scale(scaleY.copy().domain([maxCount, 0]))
+        .tickSize(10, 1)
+        .orient('left')
+
+    function offsetText(offsetMillis) {
+        var mins = offsetMillis / 1000 / 60;
+        var hours = Math.floor(mins / 60);
+        if (hours >= 0) {
+            hours = '+' + hours;
+        }
+        mins = ('00' + Math.floor(mins - hours * 60)).slice(-2);
+        return [hours, mins].join(':');
+    }
+
+    // Rendering
+
+    var svg = d3.select('#graph-container').append('svg')
+        .attr('width', graphWidth)
+        .attr('height', graphHeight)
+
+    svg.append('g')
+        .attr('class', 'axis axis-x')
+        .attr('transform', 'translate(0,' + (graphHeight - paddingHeight) + ')')
+        .call(axisX)
+
+    svg.append('g')
+        .attr('class', 'axis axis-y')
+        .attr('transform', 'translate(' + paddingWidth + ',' + paddingHeight + ')')
+        .call(axisY)
+
+    var zoneGroups = svg.append('g').selectAll('.zone-data')
+        .data(filteredData)
+        .enter().append('g')
+            .classed('zone-data', true)
+            .attr('transform', function (d) {
+                var baseOffset = Math.min(d.janOffset, d.julyOffset);
+                var translate = (scaleX(baseOffset) - barWidth / 2);
+                if (d.janOffset > d.julyOffset) translate -= barWidth;
+                if (d.janOffset < d.julyOffset) translate += barWidth;
+                return 'translate(' + translate + ',0)';
+            })
+            .append('rect')
+                .classed('dst', function (d) {
+                    return d.janOffset != d.julyOffset;
+                })
+                .attr('width', barWidth)
+                .attr('height', function (d) {
+                    return scaleY(d.zones.length);
+                })
+                .attr('transform', function (d) {
+                    return 'translate(0,' + (scaleY(maxCount - d.zones.length) + paddingHeight) + ')';
+                })
+                .on('mouseover', showData)
+                .on('mouseout', hideData)
+
+    // Interaction
+
+    var body = d3.select('body');
+    var popup = body.append('div')
+        .classed('popup-container', true)
+    var popupText = popup.append('div')
+        .classed('popup-main', true)
+
+    function showData(d) {
+        popupText.html(formatData(d));
+        popup.classed('visible', true);
+        var xy = d3.mouse(body[0][0]);
+        popup.style('left', (xy[0] + 5) + 'px')
+            .style('top', xy[1] + 'px')
+    }
+
+    function hideData(d) {
+        popup.classed('visible', false);
+    }
+
+    function formatData(d) {
+        var title = offsetText(d.janOffset) + ' / ' +
+            offsetText(d.julyOffset) + ' (' +
+            d.zones.length + ' zone' +
+            (d.zones.length === 1 ? '' : 's') + ')';
+        var items = [
+            '<strong>' + title + '</strong>', ''
+        ].concat(d.zones);
+        return items.join('<br>')
+    }
+});
+</script>
+</body>
+</html>
