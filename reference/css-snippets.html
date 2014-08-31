@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf8">
+    <title>CSS snippets &mdash; bits and pieces</title>
+    <link rel="stylesheet" href="../main.css">
+    <link rel="stylesheet" href="css-snippets.css">
+</head>
+<body>
+    <section id="divider">
+        <h2>Divider</h2>
+        <div class="container">
+            <hr class="mountains">
+            <hr class="break">
+            <hr class="break2">
+        </div>
+    </section>
+
+    <section id="group-blocks">
+        <h2>Group blocks</h2>
+        <div class="container"></div>
+    </section>
+
+    <script src="../common/js/shimShiminy.js"></script>
+    <script src="../common/js/put.js"></script>
+    <script>
+        /*** Group blocks setup ***/
+
+        function putBlocks(parent, levels) {
+            levels--;
+            var top = put('div.blocks');
+            ['w', 'd', 'l'].forEach(function (type) {
+                var block = put(top, 'div.block.block-' + type);
+                if (levels > 0) {
+                    putBlocks(block, levels);
+                }
+            });
+            put(parent, top);
+        }
+        putBlocks(document.querySelector('#group-blocks .container'), 6);
+        console.log('Nodes', document.querySelectorAll('#group-blocks *').length);
+    </script>
+</body>
+</html>
