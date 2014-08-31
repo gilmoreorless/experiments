@@ -7,7 +7,7 @@
     <style>
         #output {position:relative; margin-left:140px;}
         #output > canvas {position:absolute; left:0; top:0;}
-        .mirror video {-webkit-transform:scaleX(-1);}
+        .mirror video {-webkit-transform:scaleX(-1);transform:scaleX(-1);}
         #message {font-size:125%; font-weight:bold; padding:10px; text-align:center;}
         #debug-edge-left {float:left;}
         #debug, #debug-edge-right {float:right;}
@@ -90,9 +90,9 @@
         var calibrationImage = new Image();
         calibrationImage.src = '../common/img/theremin-overlay-hands.png';
 
-        var audioCtx = new webkitAudioContext();
+        var audioCtx = new AudioContext();
         var oscillator = audioCtx.createOscillator();
-        var gainNode = audioCtx.createGainNode();
+        var gainNode = audioCtx.createGain();
         var vectorCache = {};
         var width, height, colLeft, colRight;
         var debugCanvas = {};
@@ -136,7 +136,7 @@
             oscillator.connect(gainNode);
             gainNode.connect(audioCtx.destination);
             setVolume(0);
-            oscillator.noteOn(0);
+            oscillator.start(0);
         }
         // setTimeout(startInput);
 
@@ -148,7 +148,7 @@
         function stopInput() {
             hasStream = false;
             video.src = '';
-            oscillator.noteOff(0);
+            oscillator.stop(0);
             oscillator.disconnect();
             tracker.setState('off');
             setButtonStates();

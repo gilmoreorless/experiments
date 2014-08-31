@@ -55,36 +55,36 @@ var RingModulator = (function () {
   function RingModulator(context) {
     var vIn, vInDiode1, vInDiode2, vInGain, vInInverter1, vInInverter2, vInInverter3, vcDiode3, vcDiode4, vcInverter1;
     if (!context) {
-      context = new webkitAudioContext();
+      context = new AudioContext();
     }
 
     // Setup audio components
     vIn = this.vIn = context.createOscillator();
     vIn.frequency.value = 30;
-    vIn.noteOn(0);
+    vIn.start(0);
 
-    vInGain = context.createGainNode();
+    vInGain = context.createGain();
     vInGain.gain.value = 0.5;
 
-    vInInverter1 = context.createGainNode();
+    vInInverter1 = context.createGain();
     vInInverter1.gain.value = -1;
-    vInInverter2 = context.createGainNode();
+    vInInverter2 = context.createGain();
     vInInverter2.gain.value = -1;
 
     vInDiode1 = new DiodeNode(context);
     vInDiode2 = new DiodeNode(context);
 
-    vInInverter3 = context.createGainNode();
+    vInInverter3 = context.createGain();
     vInInverter3.gain.value = -1;
 
-    vcInverter1 = this.vcInverter1 = context.createGainNode();
+    vcInverter1 = this.vcInverter1 = context.createGain();
     vcInverter1.gain.value = -1;
 
     vcDiode3 = new DiodeNode(context);
     vcDiode4 = this.vcDiode4 = new DiodeNode(context);
     this.diodes = [vInDiode1, vInDiode2, vcDiode3, vcDiode4];
 
-    outGain = context.createGainNode();
+    outGain = context.createGain();
     outGain.gain.value = 2;
 
     compressor = context.createDynamicsCompressor();
@@ -161,7 +161,7 @@ var RingModulator = (function () {
   });
   */
   /*
-  liveInputGain = context.createGainNode();
+  liveInputGain = context.createGain();
   liveInput = null;
   isLiveInputSupported = function() {
     var browser, isSupported, majorVersion;

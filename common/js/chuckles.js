@@ -134,7 +134,7 @@ Chuckles = (function () {
     };
 
     cproto._handleAudioStream = function () {
-        this._animFrameID = webkitRequestAnimationFrame(this._handleAudioStream.bind(this));
+        this._animFrameID = requestAnimationFrame(this._handleAudioStream.bind(this));
         this.analyser.getByteFrequencyData(this.byteData);
         var max = Math.max.apply(Math, this.byteData);
         this.setPosition(max / 256);
@@ -337,6 +337,7 @@ Chuckles = (function () {
 
     cproto.bindInput = function (input) {
         if (!input) {
+            console.warn('Chuckles: bindInput() called with no input');
             return;
         }
         if (input.nodeName && input.nodeName.toLowerCase() === 'input') {
@@ -347,7 +348,7 @@ Chuckles = (function () {
             });
             return;
         }
-        if (input.mediaStream && input.context && input.context instanceof webkitAudioContext) {
+        if (input.context && input.context instanceof AudioContext) {
             var i = this._inputs.length;
             while (i--) {
                 if (this._inputs[i].type === 'audio/stream' && this._inputs[i].input !== input) {
@@ -369,12 +370,14 @@ Chuckles = (function () {
                     remove: function () {
                         // Uncomment when https://www.w3.org/Bugs/Public/show_bug.cgi?id=17793 is resolved
                         // input.disconnect();
-                        webkitCancelAnimationFrame(chuck._animFrameID);
+                        cancelAnimationFrame(chuck._animFrameID);
                     }
                 }
             });
             this._handleAudioStream();
+            return;
         }
+        console.warn('Chuckles: bindInput() called with invalid input. Must be an <input> node or a Web Audio stream. Input was:', input);
     };
 
     cproto.unbindInput = function (input) {

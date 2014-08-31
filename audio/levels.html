@@ -23,7 +23,7 @@
 
         var canvas = document.getElementById('levels');
         var ctx = canvas.getContext('2d');
-        var audioCtx = new webkitAudioContext();
+        var audioCtx = new AudioContext();
         var analyser = audioCtx.createAnalyser();
         var filter = audioCtx.createBiquadFilter();
         var heightScale = height / 256;
@@ -64,7 +64,7 @@
             if (!doDraw) {
                 return;
             }
-            webkitRequestAnimationFrame(draw);
+            requestAnimationFrame(draw);
 
             var count = analyser.frequencyBinCount;
             analyser.getByteFrequencyData(byteData);

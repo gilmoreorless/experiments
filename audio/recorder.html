@@ -94,7 +94,7 @@
     <script src="../common/js/recorder.js"></script>
     <script src="../common/js/ring-modulator.js"></script>
     <script>
-        var audioCtx = new webkitAudioContext();
+        var audioCtx = new AudioContext();
         var analyser = audioCtx.createAnalyser();
         var ringModulator = new RingModulator(audioCtx);
         var isRecording = false;
@@ -242,21 +242,15 @@
             if (options.highSpeed) {
                 newSource.playbackRate.value = 1.5;
             }
+
+            newSource.onended = function () {
+                isPlaying = false;
+                showIndicator(playIndicator, false);
+                eve('playback.stop');
+            };
+
             newSource.start(0);
             eve('playback.start');
-
-            // AudioBufferSourceNodes don't have an event fired when playbackState has changed :(
-            function checkState() {
-                console.log('checkState', newSource.playbackState);
-                if (newSource.playbackState === 3) { // FINISHED_STATE
-                    isPlaying = false;
-                    showIndicator(playIndicator, false);
-                    eve('playback.stop');
-                } else {
-                    setTimeout(checkState, 0);
-                }
-            }
-            setTimeout(checkState, newBuffer.duration * 1000);
         }
 
         var once = eve.once;
@@ -295,7 +289,7 @@
             }
         }
 
-        var threshold = 130;
+        var threshold = 160;
         var cutoffAllowance = 1000; // milliseconds
         var lastTimeAboveThreshold = 0;
         function isAudioAboveThreshold() {

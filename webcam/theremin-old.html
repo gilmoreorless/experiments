@@ -62,7 +62,7 @@
         var outCtx = output.getContext('2d');
         var audioCtx = new webkitAudioContext();
         var oscillator = audioCtx.createOscillator();
-        var gainNode = audioCtx.createGainNode();
+        var gainNode = audioCtx.createGain();
         var prevDataCache = {};
         var vectorCache = {};
         var width, height, timer;
