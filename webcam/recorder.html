@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Webcam Experiments - Recorder</title>
+    <link rel="stylesheet" href="../main.css">
+    <style>
+        #controls > div {
+            background: #b4d0db;
+            border-radius: 10px;
+            margin: 0 0 20px 150px;
+            padding: 10px;
+            position: relative;
+        }
+        #controls > div h2 {
+            background: #b4d0db;
+            border-radius: 10px 0 0 10px;
+            left: -150px;
+            margin: 0;
+            padding: 10px;
+            position: absolute;
+            width: 130px;
+        }
+        #indicators {
+            background: #79A0AF;
+            border-radius: 5px;
+            color: #E8E9F8;
+            display: none;
+            float: right;
+            font-size: 20px;
+            padding: 15px;
+        }
+        .recording, .playing {
+            display: none;
+            font-style: italic;
+            padding: 5px 0 0 30px;
+            position: relative;
+        }
+        .recording::before {
+            border: 11px solid #c00;
+            border-radius: 50%;
+            content: '';
+            display: block;
+            height: 0;
+            left: 0;
+            position: absolute;
+            top: 6px;
+            width: 0;
+        }
+        .playing::before {
+            border: 0 solid transparent;
+            border-width: 11px 0 11px 22px;
+            border-left-color: #64E95D;
+            content: '';
+            display: block;
+            height: 0;
+            left: 0;
+            position: absolute;
+            top: 6px;
+            width: 0;
+        }
+
+        .input video {
+            transform: scaleX(-1);
+        }
+
+        #debug h3 {
+            color: red;
+        }
+        #debug > div {
+            border: 1px solid #36f;
+            float: left;
+            margin: 0 1em 1em 0;
+            padding: 1em;
+        }
+        #debug strong {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div id="controls" class="controls">
+        <div id="actions">
+            <h2>Input</h2>
+            <div id="indicators" class="control-row">
+                <div class="recording">Recording&hellip;</div>
+                <div class="playing">Playing&hellip;</div>
+            </div>
+            <div class="control-row">
+                <button id="btn-startInput">Enable Media Input</button>
+                <button id="btn-stopInput">Disable Media Input</button>
+            </div>
+            <div class="control-row">
+                <button id="btn-startRecording">Start Recording</button>
+                <button id="btn-stopRecording">Stop Recording / Start Playback</button>
+            </div>
+        </div>
+    </div>
+    <div id="input-video" class="input">
+        <video id="webcam" autoplay width="320" height="240"></video>
+    </div>
+    <div id="debug" class="output"></div>
+
+    <script src="../common/js/shimShiminy.js"></script>
+    <script src="../common/js/eve.js"></script>
+    <script src="../common/js/put.js"></script>
+    <script src="../common/js/whammy.js"></script>
+    <script>
+    // WebCam Recorder
+    var WCR = (function () {
+        var state = {
+            isRecordingVideo: false,
+            isPlayingVideo: false,
+            isRecordingAudio: false,
+            isPlayingAudio: false,
+
+            isRecording: function () {
+                return state.isRecordingVideo // || state.isRecordingAudio;
+            },
+            isPlaying: function () {
+                return state.isPlayingVideo // || state.isPlayingAudio;
+            }
+        };
+
+        var buffer = {
+            video: null,
+            audio: null
+        };
+        var options = {
+            autoDetect: false
+        };
+
+        // Debug
+        eve.on('*', function () {
+            console.log('EVE', eve.nt(), arguments);
+        });
+        var DEBUG = 1;
+        var FPS = 10;
+
+        // DOM nodes
+        var btn = {
+            startInput: document.getElementById('btn-startInput'),
+            stopInput: document.getElementById('btn-stopInput'),
+            startRec: document.getElementById('btn-startRecording'),
+            stopRec: document.getElementById('btn-stopRecording')
+        };
+        var indicators = document.getElementById('indicators');
+        var recIndicator = indicators.querySelector('.recording');
+        var playIndicator = indicators.querySelector('.playing');
+        var inputVideo = document.getElementById('webcam');
+        var debugContainer = document.getElementById('debug');
+
+        var rawStream, inputCanvas, inputCtx, videoRecorder;
+
+        function setStates() {
+            btn.startInput.disabled = !!rawStream;
+            btn.stopInput.disabled = !rawStream;
+            btn.startRec.disabled = !rawStream || state.isRecording() || options.autoDetect;
+            btn.stopRec.disabled = !rawStream || !state.isRecording() || options.autoDetect;
+        }
+
+        function actionClick(e) {
+            var id = e.target.id.replace('btn-', '');
+            if (typeof WCR[id] === 'function') {
+                WCR[id]();
+            }
+            setStates();
+        }
+
+        function optionClick(e) {
+            var input = e.target;
+            if (input.nodeName.toLowerCase() === 'input') {
+                var type = input.type;
+                var name = input.name;
+                if (type === 'checkbox') {
+                    options[name] = input.checked;
+                } else {
+                    options[name] = input.value;
+                }
+                eve('option.change.' + name, input, options[name]);
+                setStates();
+            }
+        }
+
+        function setup() {
+            document.getElementById('actions').addEventListener('click', actionClick, false);
+
+            inputCanvas = document.createElement('canvas');
+            inputCanvas.width  = inputVideo.width;
+            inputCanvas.height = inputVideo.height;
+            inputCtx = inputCanvas.getContext('2d');
+            inputCtx.translate(inputCanvas.width, 0);
+            inputCtx.scale(-1, 1);
+
+            if (DEBUG) {
+                put(debugContainer, 'h3 $', 'Debug @ ' + FPS + ' fps');
+                put(debugContainer, 'div strong $ <', 'inputCanvas', inputCanvas);
+            }
+
+            setStates();
+            setTimeout(startInput);
+        }
+
+        function startInput() {
+            navigator.getUserMedia({video: true}, function (stream) {
+                rawStream = stream;
+                setStreamSrc(inputVideo, stream);
+                videoRecorder = new Whammy.Video(FPS);
+
+                setStates();
+                eve('input.start');
+            }, function () {
+                console.error('Oh noes!');
+            });
+        }
+
+        function stopInput() {
+            removeStreamSrc(inputVideo);
+            rawStream = null;
+            eve('input.stop');
+        }
+
+        function showIndicator(elem, isShown) {
+            var display = isShown !== false ? 'block' : 'none';
+            indicators.style.display = display;
+            elem.style.display = display;
+        }
+
+        function startTick(callback) {
+            frameTick.startTime = +new Date();
+            frameTick.callback = callback;
+            requestAnimationFrame(frameTick);
+        }
+
+        function frameTick(time) {
+            var delta = time - (frameTick.lastPulse || 0);
+            var frameThreshold = 1000 / FPS;
+            if (delta > frameThreshold) {
+                inputCtx.drawImage(inputVideo, 0, 0, inputVideo.width, inputVideo.height);
+                if (DEBUG) {
+                    inputCtx.save();
+                    inputCtx.translate(inputCanvas.width, 0);
+                    inputCtx.scale(-1, 1);
+                    var textTime = (+new Date()) - frameTick.startTime;
+                    var mins = Math.floor(textTime / 60000);
+                    var secs = (textTime / 1000) % 60;
+                    if (secs < 10) secs = '0' + secs;
+                    var text = [mins, secs].join(':');
+                    inputCtx.font = '20px bold sans-serif';
+                    inputCtx.fillStyle = '#fff';
+                    inputCtx.strokeStyle = '#000';
+                    inputCtx.strokeWidth = 10;
+                    inputCtx.strokeText(text, inputCanvas.width / 2 + 1, inputCanvas.height - 20 + 1);
+                    inputCtx.fillText(text, inputCanvas.width / 2, inputCanvas.height - 20);
+                    inputCtx.restore();
+                }
+                frameTick.lastPulse = time;
+                if (frameTick.callback) {
+                    frameTick.callback(time, delta);
+                }
+            }
+            frameTick.raf = requestAnimationFrame(frameTick);
+        }
+
+        function stopTick() {
+            cancelAnimationFrame(frameTick.raf);
+        }
+
+        function startRecording() {
+            state.isRecordingVideo = true;
+            showIndicator(recIndicator);
+            startTick(function () {
+                videoRecorder.add(inputCanvas);
+            });
+            eve('recording.start');
+        }
+
+        function stopRecording() {
+            state.isRecordingVideo = false;
+            showIndicator(recIndicator, false);
+            stopTick();
+            eve('recording.stop');
+            var blob = videoRecorder.compile();
+            playRecording(blob);
+        }
+
+        function playRecording(blob) {
+            console.log(blob);
+            state.isPlayingVideo = true;
+            showIndicator(playIndicator);
+
+            function stopPlayback() {
+                state.isPlayingVideo = false;
+                showIndicator(playIndicator, false);
+                eve('playback.stop');
+            };
+
+            var output = document.createElement('video');
+            output.width = inputVideo.width;
+            output.height = inputVideo.height;
+            output.autoplay = true;
+            output.controls = true;
+            output.onended = stopPlayback;
+            if (DEBUG) {
+                put(debugContainer, 'div strong $ <', 'outputVideo', output);
+            }
+            setStreamSrc(output, blob);
+            eve('playback.start');
+        }
+
+        var once = eve.once;
+        eve.once = function (name) {
+            console.log('eve.once', name);
+            once.apply(eve, arguments);
+        };
+
+        setup();
+
+        return {
+            startInput: startInput,
+            stopInput: stopInput,
+            startRecording: startRecording,
+            stopRecording: stopRecording,
+            startTick: startTick,
+            stopTick: stopTick
+        };
+    })();
+    </script>
+    <!-- // <script src="tmp.js"></script> -->
+</body>
+</html>

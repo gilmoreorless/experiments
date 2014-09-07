@@ -29,6 +29,14 @@
         video.play();
     };
 
+    window.removeStreamSrc = function (video) {
+        video.pause();
+        if (video.mozSrcObject) {
+            video.mozSrcObject = '';
+        }
+        video.src = '';
+    };
+
     // AudioContext normalisation
     window.AudioContext = window.AudioContext || window.webkitAudioContext || window.mozAudioContext;
 
