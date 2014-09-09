@@ -135,7 +135,7 @@
             console.log('EVE', eve.nt(), arguments);
         });
         var DEBUG = 1;
-        var FPS = 10;
+        var FPS = 20;
 
         // DOM nodes
         var btn = {
@@ -205,7 +205,6 @@
             navigator.getUserMedia({video: true}, function (stream) {
                 rawStream = stream;
                 setStreamSrc(inputVideo, stream);
-                videoRecorder = new Whammy.Video(FPS);
 
                 setStates();
                 eve('input.start');
@@ -267,10 +266,19 @@
         }
 
         function startRecording() {
+            videoRecorder = new Whammy.Video();
             state.isRecordingVideo = true;
             showIndicator(recIndicator);
-            startTick(function () {
-                videoRecorder.add(inputCanvas);
+
+            var prevFrame;
+            startTick(function (time, delta) {
+                if (prevFrame) {
+                    // We need to pass the duration for frame N to Whammy,
+                    // but can only get the duration once frame N+1 has been captured.
+                    // This means the last frame of video gets dropped :(
+                    videoRecorder.add(prevFrame, delta);
+                }
+                prevFrame = inputCanvas;
             });
             eve('recording.start');
         }
