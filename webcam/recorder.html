@@ -293,7 +293,6 @@
         }
 
         function playRecording(blob) {
-            console.log(blob);
             state.isPlayingVideo = true;
             showIndicator(playIndicator);
 
@@ -309,10 +308,13 @@
             output.autoplay = true;
             output.controls = true;
             output.onended = stopPlayback;
-            if (DEBUG) {
-                put(debugContainer, 'div strong $ <', 'outputVideo', output);
-            }
             setStreamSrc(output, blob);
+            if (DEBUG) {
+                var filename = 'webcam-recording-' + (+new Date()) + '.webm';
+                var dbg = put(debugContainer, 'div strong $ <', 'outputVideo', output);
+                var link = put(dbg, 'div a[download=$] $', filename, 'Download video (WebM)');
+                link.href = output.src;
+            }
             eve('playback.start');
         }
 
