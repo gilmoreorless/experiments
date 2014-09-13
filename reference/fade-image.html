@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>References - Fade Image</title>
+    <link rel="stylesheet" href="../main.css">
+</head>
+<body>
+    <canvas id="fade"></canvas>
+
+    <script src="../common/js/shimShiminy.js"></script>
+    <script>
+        var imgSrc = ['../common/img/catimov.jpg', '../common/img/cat-couch.jpg'];
+        var width = 640;
+        var height; // Auto-calculated
+        var imgs = [];
+
+        var canvas = document.getElementById('fade');
+        var ctx = canvas.getContext('2d');
+
+        function load() {
+            var loaded = 0;
+            imgs = imgSrc.map(function (src) {
+                img = new Image();
+                img.onload = function () {
+                    var scale = width / img.width;
+                    var scaleHeight = Math.round(img.height * scale);
+                    if (!height || scaleHeight > height) {
+                        height = scaleHeight;
+                    }
+                    loaded++;
+                    if (loaded == imgSrc.length) {
+                        canvas.width  = width;
+                        canvas.height = height;
+                        init();
+                    }
+                }
+                img.src = src;
+                return img;
+            });
+        }
+
+        function loaded() {
+            init();
+        }
+
+        function init() {
+            var tmpCanvas = document.createElement('canvas');
+            tmpCanvas.width = canvas.width;
+            tmpCanvas.height = canvas.height;
+            var tmpCtx = tmpCanvas.getContext('2d');
+            var gradient;
+
+            var fadeStart = 0.2;
+            var fadeEnd = 0.8;
+
+            ctx.fillStyle = '#0f0';
+            ctx.fillRect(0, 0, width, height);
+
+            if (imgs[0]) {
+                gradient = tmpCtx.createLinearGradient(width * fadeStart, 0, width * fadeEnd, 0);
+                gradient.addColorStop(0, 'rgba(0,0,0,0)');
+                gradient.addColorStop(1, 'rgba(0,0,0,1)');
+                tmpCtx.fillStyle = gradient;
+                tmpCtx.fillRect(0, 0, width, height);
+
+                tmpCtx.globalCompositeOperation = 'xor';
+                tmpCtx.drawImage(imgs[0], 0, 0, img.width, img.height, 0, 0, width, height);
+                ctx.drawImage(tmpCanvas, 0, 0);
+            }
+            if (imgs[1]) {
+                gradient = tmpCtx.createLinearGradient(width * fadeStart, 0, width * fadeEnd, 0);
+                gradient.addColorStop(0, 'rgba(0,0,0,1)');
+                gradient.addColorStop(1, 'rgba(0,0,0,0)');
+                tmpCtx.clearRect(0, 0, width, height);
+                tmpCtx.fillStyle = gradient;
+                tmpCtx.fillRect(0, 0, width, height);
+
+                tmpCtx.globalCompositeOperation = 'xor';
+                tmpCtx.drawImage(imgs[1], 0, 0, img.width, img.height, 0, 0, width, height);
+                ctx.drawImage(tmpCanvas, 0, 0);
+            }
+        }
+
+        load();
+    </script>
+</body>
+</html>
