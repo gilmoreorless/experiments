@@ -4,9 +4,24 @@
     <meta charset="UTF-8">
     <title>References - Fade Image</title>
     <link rel="stylesheet" href="../main.css">
+    <style>
+        #fader-controls {display: none;}
+        #fader-controls.active {display: block;}
+        #fader-controls label {display: inline-block; width: 90px;}
+    </style>
 </head>
 <body>
     <canvas id="fade"></canvas>
+    <div class="controls" id="fader-controls">
+        <div class="control">
+            <label for="fade1">Fade start</label>
+            <input type="range" name="fade1" id="fade1" min="0" max="1" step="0.01" value="0.2" />
+        </div>
+        <div class="control">
+            <label for="fade2">Fade end</label>
+            <input type="range" name="fade2" id="fade2" min="0" max="1" step="0.01" value="0.8" />
+        </div>
+    </div>
 
     <script src="../common/js/shimShiminy.js"></script>
     <script>
@@ -17,8 +32,11 @@
 
         var canvas = document.getElementById('fade');
         var ctx = canvas.getContext('2d');
+        var tmpCanvas, tmpCtx;
+        var fadeControls = document.getElementById('fader-controls');;
+        var fadeInput1, fadeInput2;
 
-        function load() {
+        function initImages() {
             var loaded = 0;
             imgs = imgSrc.map(function (src) {
                 img = new Image();
@@ -32,7 +50,7 @@
                     if (loaded == imgSrc.length) {
                         canvas.width  = width;
                         canvas.height = height;
-                        init();
+                        initFader();
                     }
                 }
                 img.src = src;
@@ -40,35 +58,47 @@
             });
         }
 
-        function loaded() {
-            init();
-        }
-
-        function init() {
-            var tmpCanvas = document.createElement('canvas');
+        function initFader() {
+            tmpCanvas = document.createElement('canvas');
             tmpCanvas.width = canvas.width;
             tmpCanvas.height = canvas.height;
-            var tmpCtx = tmpCanvas.getContext('2d');
+            tmpCtx = tmpCanvas.getContext('2d');
+
+            fadeInput1 = fadeControls.querySelector('[name=fade1]');
+            fadeInput2 = fadeControls.querySelector('[name=fade2]');
+            fadeControls.addEventListener('input', doCrossFade, false);
+            fadeControls.classList.add('active');
+
+            doCrossFade();
+        }
+
+        function doCrossFade() {
             var gradient;
 
-            var fadeStart = 0.2;
-            var fadeEnd = 0.8;
+//             var fadeStart = 0.2;
+//             var fadeEnd = 0.8;
+            var fadeStart = parseFloat(fadeInput1.value) || 0;
+            var fadeEnd = parseFloat(fadeInput2.value) || 0;
+            console.log('fade', fadeStart, fadeEnd)
 
             ctx.fillStyle = '#0f0';
             ctx.fillRect(0, 0, width, height);
 
             if (imgs[0]) {
+                tmpCtx.save();
                 gradient = tmpCtx.createLinearGradient(width * fadeStart, 0, width * fadeEnd, 0);
                 gradient.addColorStop(0, 'rgba(0,0,0,0)');
                 gradient.addColorStop(1, 'rgba(0,0,0,1)');
-                tmpCtx.fillStyle = gradient;
-                tmpCtx.fillRect(0, 0, width, height);
+//                 tmpCtx.fillStyle = gradient;
+//                 tmpCtx.fillRect(0, 0, width, height);
 
-                tmpCtx.globalCompositeOperation = 'xor';
+//                 tmpCtx.globalCompositeOperation = 'xor';
                 tmpCtx.drawImage(imgs[0], 0, 0, img.width, img.height, 0, 0, width, height);
                 ctx.drawImage(tmpCanvas, 0, 0);
+                tmpCtx.restore();
             }
             if (imgs[1]) {
+                tmpCtx.save();
                 gradient = tmpCtx.createLinearGradient(width * fadeStart, 0, width * fadeEnd, 0);
                 gradient.addColorStop(0, 'rgba(0,0,0,1)');
                 gradient.addColorStop(1, 'rgba(0,0,0,0)');
@@ -79,10 +109,11 @@
                 tmpCtx.globalCompositeOperation = 'xor';
                 tmpCtx.drawImage(imgs[1], 0, 0, img.width, img.height, 0, 0, width, height);
                 ctx.drawImage(tmpCanvas, 0, 0);
+                tmpCtx.restore();
             }
         }
 
-        load();
+        initImages();
     </script>
 </body>
 </html>
