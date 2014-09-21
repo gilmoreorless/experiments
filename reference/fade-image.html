@@ -21,6 +21,10 @@
             <label for="fade2">Fade end</label>
             <input type="range" name="fade2" id="fade2" min="0" max="1" step="0.01" value="0.8" />
         </div>
+        <div class="control">
+            <label for="fade3">Fade mid</label>
+            <input type="range" name="fade3" id="fade3" min="0" max="1" step="0.005" value="0.5" />
+        </div>
     </div>
 
     <script src="../common/js/shimShiminy.js"></script>
@@ -34,7 +38,7 @@
         var ctx = canvas.getContext('2d');
         var tmpCanvas, tmpCtx;
         var fadeControls = document.getElementById('fader-controls');;
-        var fadeInput1, fadeInput2;
+        var fadeInput1, fadeInput2, fadeInput3;
 
         function initImages() {
             var loaded = 0;
@@ -66,20 +70,37 @@
 
             fadeInput1 = fadeControls.querySelector('[name=fade1]');
             fadeInput2 = fadeControls.querySelector('[name=fade2]');
+            fadeInput3 = fadeControls.querySelector('[name=fade3]');
             fadeControls.addEventListener('input', doCrossFade, false);
             fadeControls.classList.add('active');
+            fadeInput1.addEventListener('input', updateMidSlider, false);
+            fadeInput2.addEventListener('input', updateMidSlider, false);
+            fadeInput3.addEventListener('input', fadeMidSliderChanged, false);
 
             doCrossFade();
+        }
+
+        function fadeMidSliderChanged() {
+            var fadeStart = parseFloat(fadeInput1.value) || 0;
+            var fadeEnd = parseFloat(fadeInput2.value) || 0;
+            var diff = (fadeEnd - fadeStart) / 2;
+            var fadeMid = parseFloat(fadeInput3.value) || 0;
+            fadeInput1.value = fadeMid - diff;
+            fadeInput2.value = fadeMid + diff;
+        }
+
+        function updateMidSlider() {
+            var fadeStart = parseFloat(fadeInput1.value) || 0;
+            var fadeEnd = parseFloat(fadeInput2.value) || 0;
+            var diff = (fadeEnd - fadeStart) / 2;
+            fadeInput3.value = fadeStart + diff;
         }
 
         function doCrossFade() {
             var gradient;
 
-//             var fadeStart = 0.2;
-//             var fadeEnd = 0.8;
             var fadeStart = parseFloat(fadeInput1.value) || 0;
             var fadeEnd = parseFloat(fadeInput2.value) || 0;
-            console.log('fade', fadeStart, fadeEnd)
 
             ctx.fillStyle = '#0f0';
             ctx.fillRect(0, 0, width, height);
