@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>SydJS Demo - Talk to the Hand</title>
+    <link rel="stylesheet" href="../main.css">
+    <style>
+        #controls > div {
+            background: #b4d0db;
+            border-radius: 10px;
+            margin: 0 0 20px 150px;
+            padding: 10px;
+            position: relative;
+        }
+        #controls > div h2 {
+            background: #b4d0db;
+            border-radius: 10px 0 0 10px;
+            left: -150px;
+            margin: 0;
+            padding: 10px;
+            position: absolute;
+            width: 130px;
+        }
+        #indicators {
+            background: #79A0AF;
+            border-radius: 5px;
+            color: #E8E9F8;
+            display: none;
+            float: right;
+            font-size: 20px;
+            padding: 15px;
+        }
+        .recording, .playing {
+            display: none;
+            font-style: italic;
+            padding: 5px 0 0 30px;
+            position: relative;
+        }
+        .recording::before {
+            border: 11px solid #c00;
+            border-radius: 50%;
+            content: '';
+            display: block;
+            height: 0;
+            left: 0;
+            position: absolute;
+            top: 6px;
+            width: 0;
+        }
+        .playing::before {
+            border: 0 solid transparent;
+            border-width: 11px 0 11px 22px;
+            border-left-color: #64E95D;
+            content: '';
+            display: block;
+            height: 0;
+            left: 0;
+            position: absolute;
+            top: 6px;
+            width: 0;
+        }
+
+        .input video {
+            transform: scaleX(-1);
+        }
+
+        #debug h3 {
+            color: red;
+        }
+        #debug > div {
+            border: 1px solid #36f;
+            float: left;
+            margin: 0 1em 1em 0;
+            padding: 1em;
+        }
+        #debug strong {
+            display: block;
+        }
+
+        /*#webcam {display:none;}*/
+    </style>
+</head>
+<body>
+    <div id="controls" class="controls">
+        <div id="actions">
+            <h2>Input</h2>
+            <div id="indicators" class="control-row">
+                <div class="recording">Recording&hellip;</div>
+                <div class="playing">Playing&hellip;</div>
+            </div>
+            <div class="control-row">
+                <button id="btn-startInput">Enable Media Input</button>
+                <button id="btn-stopInput">Disable Media Input</button>
+            </div>
+            <div class="control-row">
+                <button id="btn-startRecording">Start Recording</button>
+                <button id="btn-stopRecording">Stop Recording / Start Playback</button>
+            </div>
+        </div>
+    </div>
+    <div id="input-video" class="input">
+        <video id="webcam" autoplay muted width="320" height="240"></video>
+    </div>
+    <div id="debug" class="output"></div>
+
+    <script src="../common/js/shimShiminy.js"></script>
+    <script src="../common/js/eve.js"></script>
+    <script src="../common/js/put.js"></script>
+    <script src="../common/js/recorder.js"></script>
+    <script src="../common/js/whammy.js"></script>
+    <script>
+    // WebCam/Microphone Recorder
+    var WCMR = (function () {
+
+        /*** SETUP ***/
+
+        var audioCtx, audioStream, audioRecorder;
+        var rawStream, inputCanvas, inputCtx, videoRecorder, controller;
+
+        var buffer = {
+            video: null,
+            audio: null
+        };
+        var options = {
+            autoDetect: false
+        };
+
+        // Debug
+        eve.on('*', function () {
+            console.log('EVE', eve.nt(), arguments);
+        });
+        var DEBUG = 1;
+        var FPS = 20;
+
+        // DOM nodes
+        var btn = {
+            startInput: document.getElementById('btn-startInput'),
+            stopInput: document.getElementById('btn-stopInput'),
+            startRec: document.getElementById('btn-startRecording'),
+            stopRec: document.getElementById('btn-stopRecording')
+        };
+        var indicators = document.getElementById('indicators');
+        var recIndicator = indicators.querySelector('.recording');
+        var playIndicator = indicators.querySelector('.playing');
+        var inputVideo = document.getElementById('webcam');
+        var debugContainer = document.getElementById('debug');
+
+        function setup() {
+            audioCtx = new AudioContext();
+
+            document.getElementById('actions').addEventListener('click', actionClick, false);
+
+            inputCanvas = document.createElement('canvas');
+            inputCanvas.width  = inputVideo.width;
+            inputCanvas.height = inputVideo.height;
+            inputCtx = inputCanvas.getContext('2d');
+            inputCtx.translate(inputCanvas.width, 0);
+            inputCtx.scale(-1, 1);
+
+            if (DEBUG) {
+                put(debugContainer, 'h3 $', 'Debug @ ' + FPS + ' fps');
+                put(debugContainer, 'div strong $ <', 'inputCanvas', inputCanvas);
+            }
+
+            setStates();
+            setTimeout(startInput);
+        }
+
+
+        /*** STATE MANAGEMENT ***/
+
+        var state = {
+            isRecordingVideo: false,
+            isPlayingVideo: false,
+            isRecordingAudio: false,
+            isPlayingAudio: false,
+
+            isRecording: function () {
+                return state.isRecordingVideo || state.isRecordingAudio;
+            },
+            isPlaying: function () {
+                return state.isPlayingVideo || state.isPlayingAudio;
+            }
+        };
+
+        function setStates() {
+            btn.startInput.disabled = !!rawStream;
+            btn.stopInput.disabled = !rawStream;
+            btn.startRec.disabled = !rawStream || state.isRecording() || options.autoDetect;
+            btn.stopRec.disabled = !rawStream || !state.isRecording() || options.autoDetect;
+        }
+
+        function showIndicator(elem, isShown) {
+            var display = isShown !== false ? 'block' : 'none';
+            indicators.style.display = display;
+            elem.style.display = display;
+        }
+
+        function actionClick(e) {
+            var id = e.target.id.replace('btn-', '');
+            if (typeof WCMR[id] === 'function') {
+                WCMR[id]();
+            }
+            setStates();
+        }
+
+        function optionClick(e) {
+            var input = e.target;
+            if (input.nodeName.toLowerCase() === 'input') {
+                var type = input.type;
+                var name = input.name;
+                if (type === 'checkbox') {
+                    options[name] = input.checked;
+                } else {
+                    options[name] = input.value;
+                }
+                eve('option.change.' + name, input, options[name]);
+                setStates();
+            }
+        }
+
+
+        /*** INPUT MANAGEMENT ***/
+
+        function startInput() {
+            navigator.getUserMedia({audio: true, video: true}, function (stream) {
+                rawStream = stream;
+                setStreamSrc(inputVideo, stream);
+                audioStream = audioCtx.createMediaStreamSource(stream);
+                audioRecorder = new Recorder(audioStream, {
+                    workerPath: '../common/js/recorderWorker.js'
+                });
+                setStates();
+                eve('input.start');
+            }, function () {
+                console.error('Oh noes!');
+            });
+        }
+
+        function stopInput() {
+            removeStreamSrc(inputVideo);
+            rawStream = null;
+            audioStream.disconnect();
+            audioStream = null;
+            eve('input.stop');
+        }
+
+
+        /*** A/V SYNC ***/
+
+        /**
+         * Synchronised controller for audio and video streams
+         * @param  {Recorder} audio
+         * @param  {Whammy} video
+         * @return {object}
+         */
+        function avController(audio, video) {
+            var ctrl = {};
+
+            ctrl.startRecording = function (callback) {
+                showIndicator(recIndicator);
+
+                state.isRecordingAudio = true;
+                audio.clear();
+                audio.record();
+
+                state.isRecordingVideo = true;
+                var prevFrame;
+                startTick(function (time, delta) {
+                    if (prevFrame) {
+                        // We need to pass the duration for frame N to Whammy,
+                        // but can only get the duration once frame N+1 has been captured.
+                        // This means the last frame of video gets dropped :(
+                        video.add(prevFrame, delta);
+                    }
+                    prevFrame = inputCanvas;
+                });
+
+                eve('recording.start');
+                callback && callback(audio, video);
+            };
+
+            ctrl.stopRecording = function (callback) {
+                var sync = avSync(callback);
+                showIndicator(recIndicator, false);
+
+                state.isRecordingAudio = false;
+                audio.stop();
+                audio.getBuffer(sync.audioDone);
+
+                state.isRecordingVideo = false;
+                stopTick();
+                eve('recording.stop');
+                var blob = video.compile();
+                sync.videoDone(blob);
+            };
+
+            ctrl.startPlayback =  function (audioBuffer, videoBlob) {
+                var sync = avSync(ctrl.stopPlayback);
+                showIndicator(playIndicator);
+
+                state.isPlayingAudio = true;
+                var newSource = audioCtx.createBufferSource();
+                var newBuffer = audioCtx.createBuffer(2, audioBuffer[0].length, audioCtx.sampleRate);
+                newBuffer.getChannelData(0).set(audioBuffer[0]);
+                newBuffer.getChannelData(1).set(audioBuffer[1]);
+                newSource.buffer = newBuffer;
+                newSource.onended = sync.audioDone;
+                newSource.connect(audioCtx.destination);
+                newSource.start(0);
+
+                state.isPlayingVideo = true;
+                var output = document.createElement('video');
+                output.width = inputVideo.width;
+                output.height = inputVideo.height;
+                output.autoplay = true;
+                output.onended = sync.videoDone;
+                setStreamSrc(output, videoBlob);
+                if (DEBUG) {
+                    var filename = 'webcam-recording-' + (+new Date()) + '.webm';
+                    var dbg = put(debugContainer, 'div strong $ <', 'outputVideo', output);
+                    var link = put(dbg, 'div a[download=$] $', filename, 'Download video (WebM)');
+                    link.href = output.src;
+                }
+
+                eve('playback.start', null, newSource, output);
+            };
+
+            ctrl.stopPlayback =  function () {
+                showIndicator(playIndicator, false);
+                state.isPlayingAudio = false;
+                state.isPlayingVideo = false;
+                eve('playback.stop');
+            };
+
+            return ctrl;
+        }
+
+        function avSync(callback) {
+            var audioDone = false, audioThing;
+            var videoDone = false, videoThing;
+
+            function checkFinished() {
+                if (audioDone && videoDone && callback) {
+                    callback(audioThing, videoThing);
+                }
+            }
+
+            return {
+                audioDone: function (thing) {
+                    audioDone = true;
+                    audioThing = thing;
+                    checkFinished();
+                },
+                videoDone: function (thing) {
+                    videoDone = true;
+                    videoThing = thing;
+                    checkFinished();
+                }
+            }
+        }
+
+
+        /*** RECORDING ***/
+
+        function startTick(callback) {
+            frameTick.startTime = +new Date();
+            frameTick.callback = callback;
+            requestAnimationFrame(frameTick);
+        }
+
+        function frameTick(time) {
+            var delta = time - (frameTick.lastPulse || 0);
+            var frameThreshold = 1000 / FPS;
+            if (delta > frameThreshold) {
+                inputCtx.clearRect(0, 0, inputVideo.width, inputVideo.height);
+                inputCtx.drawImage(inputVideo, 0, 0, inputVideo.width, inputVideo.height);
+                if (DEBUG) {
+                    inputCtx.save();
+                    inputCtx.translate(inputCanvas.width, 0);
+                    inputCtx.scale(-1, 1);
+                    var textTime = (+new Date()) - frameTick.startTime;
+                    var mins = Math.floor(textTime / 60000);
+                    var secs = (textTime / 1000) % 60;
+                    if (secs < 10) secs = '0' + secs;
+                    var text = [mins, secs].join(':');
+                    inputCtx.font = '20px bold sans-serif';
+                    inputCtx.fillStyle = '#fff';
+                    inputCtx.strokeStyle = '#000';
+                    inputCtx.strokeWidth = 10;
+                    inputCtx.strokeText(text, inputCanvas.width / 2 + 1, inputCanvas.height - 20 + 1);
+                    inputCtx.fillText(text, inputCanvas.width / 2, inputCanvas.height - 20);
+                    inputCtx.restore();
+                }
+                frameTick.lastPulse = time;
+                if (frameTick.callback) {
+                    frameTick.callback(time, delta);
+                }
+            }
+            frameTick.raf = requestAnimationFrame(frameTick);
+        }
+
+        function stopTick() {
+            cancelAnimationFrame(frameTick.raf);
+        }
+
+        function startRecording() {
+            videoRecorder = new Whammy.Video();
+            controller = avController(audioRecorder, videoRecorder);
+            controller.startRecording();
+        }
+
+        function stopRecording() {
+            controller.stopRecording(controller.startPlayback);
+        }
+
+
+        /*** GET IT STARTED ***/
+
+        setup();
+
+        return {
+            startInput: startInput,
+            stopInput: stopInput,
+            startRecording: startRecording,
+            stopRecording: stopRecording,
+            startTick: startTick,
+            stopTick: stopTick
+        };
+    })();
+    </script>
+</body>
+</html>
