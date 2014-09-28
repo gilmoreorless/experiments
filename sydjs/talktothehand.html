@@ -5,6 +5,9 @@
     <title>SydJS Demo - Talk to the Hand</title>
     <link rel="stylesheet" href="../main.css">
     <style>
+        .hidden {
+            display: none !important;
+        }
         #controls > div {
             background: #b4d0db;
             border-radius: 10px;
@@ -20,6 +23,9 @@
             padding: 10px;
             position: absolute;
             width: 130px;
+        }
+        #play-controls button:first-child {
+            margin-left: 10px;
         }
         #indicators {
             background: #79A0AF;
@@ -60,7 +66,7 @@
             width: 0;
         }
 
-        .input video {
+        #video-display video {
             transform: scaleX(-1);
         }
 
@@ -93,12 +99,16 @@
                 <button id="btn-stopInput">Disable Media Input</button>
             </div>
             <div class="control-row">
-                <button id="btn-startRecording">Start Recording</button>
-                <button id="btn-stopRecording">Stop Recording / Start Playback</button>
+                <button id="btn-startRecording">Record</button>
+                <button id="btn-stopRecording">Stop</button>
+                <span id="play-controls">
+                    <button id="btn-startPlayback">Play</button>
+                    <button id="btn-stopPlayback">Stop</button>
+                </span>
             </div>
         </div>
     </div>
-    <div id="input-video" class="input">
+    <div id="video-display">
         <video id="webcam" autoplay muted width="320" height="240"></video>
     </div>
     <div id="debug" class="output"></div>
@@ -137,7 +147,10 @@
             startInput: document.getElementById('btn-startInput'),
             stopInput: document.getElementById('btn-stopInput'),
             startRec: document.getElementById('btn-startRecording'),
-            stopRec: document.getElementById('btn-stopRecording')
+            stopRec: document.getElementById('btn-stopRecording'),
+            playCtrls: document.getElementById('play-controls'),
+            startPlay: document.getElementById('btn-startPlayback'),
+            stopPlay: document.getElementById('btn-stopPlayback')
         };
         var indicators = document.getElementById('indicators');
         var recIndicator = indicators.querySelector('.recording');
@@ -170,11 +183,19 @@
         /*** STATE MANAGEMENT ***/
 
         var state = {
+            hasInput: false,
+            hasPlayback: false,
             isRecordingVideo: false,
             isPlayingVideo: false,
             isRecordingAudio: false,
             isPlayingAudio: false,
 
+            canRecord: function () {
+                return state.hasInput;
+            },
+            canPlay: function () {
+                return state.hasPlayback;
+            },
             isRecording: function () {
                 return state.isRecordingVideo || state.isRecordingAudio;
             },
@@ -184,10 +205,22 @@
         };
 
         function setStates() {
-            btn.startInput.disabled = !!rawStream;
-            btn.stopInput.disabled = !rawStream;
-            btn.startRec.disabled = !rawStream || state.isRecording() || options.autoDetect;
-            btn.stopRec.disabled = !rawStream || !state.isRecording() || options.autoDetect;
+            var canRecord = state.canRecord();
+            btn.startInput.disabled = canRecord;
+            btn.stopInput.disabled = !canRecord;
+            btn.startRec.disabled = !canRecord || state.isRecording();
+            setShow(btn.stopRec, state.isRecording());
+            if (state.canPlay()) {
+                setShow(btn.playCtrls, true);
+                btn.startPlay.disabled = !canRecord || state.isPlaying();
+                setShow(btn.stopPlay, state.isPlaying());
+            } else {
+                setShow(btn.playCtrls, false);
+            }
+        }
+
+        function setShow(elem, isShown) {
+            elem.classList[isShown ? 'remove' : 'add']('hidden');
         }
 
         function showIndicator(elem, isShown) {
@@ -224,6 +257,7 @@
 
         function startInput() {
             navigator.getUserMedia({audio: true, video: true}, function (stream) {
+                state.hasInput = true;
                 rawStream = stream;
                 setStreamSrc(inputVideo, stream);
                 audioStream = audioCtx.createMediaStreamSource(stream);
@@ -238,6 +272,7 @@
         }
 
         function stopInput() {
+            state.hasInput = false;
             removeStreamSrc(inputVideo);
             rawStream = null;
             audioStream.disconnect();
@@ -256,9 +291,12 @@
          */
         function avController(audio, video) {
             var ctrl = {};
+            var curAudioBuffer, curAudioNode;
+            var curVideoBlob, curVideoElem;
 
             ctrl.startRecording = function (callback) {
                 showIndicator(recIndicator);
+                state.hasPlayback = false;
 
                 state.isRecordingAudio = true;
                 audio.clear();
@@ -281,7 +319,13 @@
             };
 
             ctrl.stopRecording = function (callback) {
-                var sync = avSync(callback);
+                var sync = avSync(function (audioBuffer, videoBlob) {
+                    curAudioBuffer = audioBuffer;
+                    curVideoBlob = videoBlob;
+                    state.hasPlayback = true;
+                    setStates();
+                    callback && callback(audioBuffer, videoBlob);
+                });
                 showIndicator(recIndicator, false);
 
                 state.isRecordingAudio = false;
@@ -295,19 +339,26 @@
                 sync.videoDone(blob);
             };
 
-            ctrl.startPlayback =  function (audioBuffer, videoBlob) {
+            ctrl.startPlayback =  function () {
+                if (!curAudioBuffer || !curVideoBlob) {
+                    console.error('Not enough data to begin playback', curAudioBuffer, curVideoBlob);
+                    eve('playback.failed');
+                    return;
+                }
+
                 var sync = avSync(ctrl.stopPlayback);
                 showIndicator(playIndicator);
 
                 state.isPlayingAudio = true;
                 var newSource = audioCtx.createBufferSource();
-                var newBuffer = audioCtx.createBuffer(2, audioBuffer[0].length, audioCtx.sampleRate);
-                newBuffer.getChannelData(0).set(audioBuffer[0]);
-                newBuffer.getChannelData(1).set(audioBuffer[1]);
+                var newBuffer = audioCtx.createBuffer(2, curAudioBuffer[0].length, audioCtx.sampleRate);
+                newBuffer.getChannelData(0).set(curAudioBuffer[0]);
+                newBuffer.getChannelData(1).set(curAudioBuffer[1]);
                 newSource.buffer = newBuffer;
                 newSource.onended = sync.audioDone;
                 newSource.connect(audioCtx.destination);
                 newSource.start(0);
+                curAudioNode = newSource;
 
                 state.isPlayingVideo = true;
                 var output = document.createElement('video');
@@ -315,7 +366,8 @@
                 output.height = inputVideo.height;
                 output.autoplay = true;
                 output.onended = sync.videoDone;
-                setStreamSrc(output, videoBlob);
+                setStreamSrc(output, curVideoBlob);
+                curVideoElem = output;
                 if (DEBUG) {
                     var filename = 'webcam-recording-' + (+new Date()) + '.webm';
                     var dbg = put(debugContainer, 'div strong $ <', 'outputVideo', output);
@@ -328,8 +380,19 @@
 
             ctrl.stopPlayback =  function () {
                 showIndicator(playIndicator, false);
+
                 state.isPlayingAudio = false;
+                if (curAudioNode) {
+                    curAudioNode.stop(0);
+                    curAudioNode.disconnect();
+                }
+
                 state.isPlayingVideo = false;
+                if (curVideoElem) {
+                    curVideoElem.pause();
+                }
+
+                setStates();
                 eve('playback.stop');
             };
 
@@ -373,7 +436,7 @@
             var delta = time - (frameTick.lastPulse || 0);
             var frameThreshold = 1000 / FPS;
             if (delta > frameThreshold) {
-                inputCtx.clearRect(0, 0, inputVideo.width, inputVideo.height);
+//                 inputCtx.clearRect(0, 0, inputVideo.width, inputVideo.height);
                 inputCtx.drawImage(inputVideo, 0, 0, inputVideo.width, inputVideo.height);
                 if (DEBUG) {
                     inputCtx.save();
@@ -411,7 +474,15 @@
         }
 
         function stopRecording() {
-            controller.stopRecording(controller.startPlayback);
+            controller.stopRecording();
+        }
+
+        function startPlayback() {
+            controller.startPlayback();
+        }
+
+        function stopPlayback() {
+            controller.stopPlayback();
         }
 
 
@@ -424,6 +495,8 @@
             stopInput: stopInput,
             startRecording: startRecording,
             stopRecording: stopRecording,
+            startPlayback: startPlayback,
+            stopPlayback: stopPlayback,
             startTick: startTick,
             stopTick: stopTick
         };
