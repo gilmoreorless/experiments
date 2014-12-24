@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Webcam Experiments - Centred Face</title>
+    <link rel="stylesheet" href="../main.css">
+    <style>
+        body {
+            margin: 0;
+            width: auto;
+        }
+        #container {
+            /*border: 1px dashed #333;*/
+            position: relative;
+            transition: all 50ms;
+        }
+        #container > canvas {
+            left: 0;
+            position: absolute;
+            top: 0;
+        }
+        .overlay {
+            background: repeating-radial-gradient(circle at center,
+                transparent 20px,
+                rgba(255,0,64,0.1) 20px,
+                rgba(255,0,64,0.1) 25px,
+                transparent 25px,
+                transparent 70px);
+            left: 0;
+            height: 100vh;
+            position: absolute;
+            top: 0;
+            width: 100vw;
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <!-- <video id="webcam" autoplay width="320" height="240"></video> -->
+        <!-- <video id="webcam" autoplay width="480" height="360"></video> -->
+        <video id="webcam" autoplay width="640" height="480"></video>
+    </div>
+    <div class="overlay"></div>
+
+    <script src="../common/js/shimShiminy.js"></script>
+    <script src="../common/js/headtrackr.min.js"></script>
+    <script>
+        var DEBUG = 0;
+        var LOG_EVENTS = false;
+
+        var container = document.getElementById('container');
+        var video = document.getElementById('webcam');
+        var canvas, tracker, debugCanvas, debugCtx;
+        var dimsDoc, dimsVideo;
+
+        function setup() {
+            canvas = document.createElement('canvas');
+            canvas.width = video.width;
+            canvas.height = video.height;
+            container.style.width = canvas.width + 'px';
+            container.style.height = canvas.height + 'px';
+            tracker = new headtrackr.Tracker({
+                headPosition: false,
+                ui: false,
+                calcAngles: true
+            });
+
+            if (DEBUG) {
+                debugCanvas = document.createElement('canvas');
+                debugCanvas.width = video.width;
+                debugCanvas.height = video.height;
+                debugCtx = debugCanvas.getContext('2d');
+                container.appendChild(debugCanvas);
+            }
+
+            document.addEventListener('facetrackingEvent', trackerEventHandler, false);
+            tracker.init(video, canvas);
+            tracker.start();
+
+            dimsVideo = {
+                width: video.width,
+                height: video.height,
+                w2: video.width / 2,
+                h2: video.height / 2
+            };
+            getDocumentDims();
+            positionVideo();
+        }
+
+        function getDocumentDims() {
+            function getMax(dim) {
+                return Math.max(
+                    document.documentElement['scroll' + dim],
+                    document.documentElement['offset' + dim],
+                    document.documentElement['client' + dim]
+                );
+            }
+
+            dimsDoc = {
+                width: getMax('Width'),
+                height: getMax('Height')
+            };
+            dimsDoc.w2 = dimsDoc.width / 2;
+            dimsDoc.h2 = dimsDoc.height / 2;
+            return dimsDoc;
+        }
+
+        function positionVideo(dimsFace) {
+            var x = dimsDoc.w2;
+            var y = dimsDoc.h2;
+            if (dimsFace) {
+                x -= dimsFace.cx;
+                y -= dimsFace.cy;
+            } else {
+                x -= dimsVideo.w2;
+                y -= dimsVideo.h2;
+            }
+            var transform = 'translate3d(' + x + 'px, ' + y + 'px, 0)';
+            if (dimsFace && 'angle' in dimsFace) {
+                transform += ' rotate(' + -dimsFace.angle + 'rad)';
+            }
+            container.style.webkitTransform = transform;
+            container.style.transform = transform;
+        }
+
+        function trackerEventHandler(e) {
+            if (LOG_EVENTS) {
+                console.log(e);
+            }
+            var dimsFace = {
+                cx: e.x,
+                cy: e.y,
+                width: e.width,
+                height: e.height,
+                angle: e.angle - (Math.PI / 2)
+            };
+            dimsFace.w2 = dimsFace.width / 2;
+            dimsFace.h2 = dimsFace.height / 2;
+            if (DEBUG) {
+                debugCtx.clearRect(0, 0, dimsVideo.width, dimsVideo.height);
+                debugCtx.save();
+                debugCtx.strokeStyle = '#0F0';
+                debugCtx.translate(dimsFace.cx, dimsFace.cy);
+                debugCtx.rotate(dimsFace.angle);
+                debugCtx.strokeRect(-dimsFace.w2, -dimsFace.h2, dimsFace.width, dimsFace.height);
+                debugCtx.restore();
+            }
+            positionVideo(dimsFace);
+        }
+
+        setTimeout(setup);
+    </script>
+</body>
+</html>
