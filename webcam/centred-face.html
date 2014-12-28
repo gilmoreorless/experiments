@@ -19,18 +19,13 @@
             position: absolute;
             top: 0;
         }
-        .overlay {
-            background: repeating-radial-gradient(circle at center,
-                transparent 20px,
-                rgba(255,0,64,0.1) 20px,
-                rgba(255,0,64,0.1) 25px,
-                transparent 25px,
-                transparent 70px);
-            left: 0;
-            height: 100vh;
+        #overlay {
+            border: 1px solid #FF0;
+            display: none;
+            left: 50%;
             position: absolute;
-            top: 0;
-            width: 100vw;
+            top: 50%;
+            transform: translate(-50%, -50%);
         }
     </style>
 </head>
@@ -40,16 +35,18 @@
         <!-- <video id="webcam" autoplay width="480" height="360"></video> -->
         <video id="webcam" autoplay width="640" height="480"></video>
     </div>
-    <div class="overlay"></div>
+    <div id="overlay"></div>
 
     <script src="../common/js/shimShiminy.js"></script>
     <script src="../common/js/headtrackr.min.js"></script>
     <script>
-        var DEBUG = 0;
+        var DEBUG = true;
+        var SET_BOUNDS = 200; // Pixels, as integer
         var LOG_EVENTS = false;
 
         var container = document.getElementById('container');
         var video = document.getElementById('webcam');
+        var overlay = document.getElementById('overlay');
         var canvas, tracker, debugCanvas, debugCtx;
         var dimsDoc, dimsVideo;
 
@@ -73,7 +70,13 @@
                 container.appendChild(debugCanvas);
             }
 
+            if (SET_BOUNDS) {
+                overlay.style.display = 'block';
+                overlay.style.width = overlay.style.height = SET_BOUNDS + 'px';
+            }
+
             document.addEventListener('facetrackingEvent', trackerEventHandler, false);
+            window.addEventListener('resize', getDocumentDims, false);
             tracker.init(video, canvas);
             tracker.start();
 
@@ -119,8 +122,17 @@
             if (dimsFace && 'angle' in dimsFace) {
                 transform += ' rotate(' + -dimsFace.angle + 'rad)';
             }
-            container.style.webkitTransform = transform;
-            container.style.transform = transform;
+            if (SET_BOUNDS && dimsFace) {
+                var faceMax = Math.max(dimsFace.width, dimsFace.height);
+                var scale = SET_BOUNDS / faceMax;
+                transform += ' scale(' + scale + ')';
+            }
+            container.style.webkitTransform =
+                  container.style.transform = transform;
+            if (dimsFace) {
+                container.style.webkitTransformOrigin =
+                      container.style.transformOrigin = dimsFace.cx + 'px ' + dimsFace.cy + 'px';
+            }
         }
 
         function trackerEventHandler(e) {
