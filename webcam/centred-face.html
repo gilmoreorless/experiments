@@ -9,10 +9,15 @@
             margin: 0;
             width: auto;
         }
+        .footnote {
+            position: absolute;
+            bottom: 0;
+        }
         #container {
-            /*border: 1px dashed #333;*/
-            position: relative;
+            left: 0;
+            position: absolute;
             transition: all 50ms;
+            top: 0;
         }
         #container > canvas {
             left: 0;
@@ -30,6 +35,10 @@
     </style>
 </head>
 <body>
+    <p>A webcam experiment in keeping a face centred in the page, at approximately the same size and angle.</p>
+    <p>You will need a <a href="http://caniuse.com/#search=stream">browser that supports the <code>getUserMedia()</code> API</a> and a face, perhaps your own. This experiment will try to keep a detected face (surrounded by a green box) within the defined area in the centre of the page (shown with a yellow box). (Detection provided by the <a href="https://github.com/auduno/headtrackr">headtrackr</a> library.)</p>
+    <p>Try tilting your head or moving towards/away from the camera to best see the effect.</p>
+    <p class="footnote">Disclaimer: Sometimes this goes a bit wonky when detection hasn’t worked correctly. Oh well, it’s an experiment.</p>
     <div id="container">
         <!-- <video id="webcam" autoplay width="320" height="240"></video> -->
         <!-- <video id="webcam" autoplay width="480" height="360"></video> -->
