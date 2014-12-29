@@ -2,10 +2,12 @@
 
 body {
     background: #D4E9F2; /*#DFE9FF;*/
+    box-sizing: border-box;
     color: #1E225E;
     font-family: 'Raleway', sans-serif;
     line-height: 1.4;
     margin: 10px auto;
+    padding: 0 10px;
     width: 960px;
 }
 .centre {
