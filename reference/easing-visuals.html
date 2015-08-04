@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>References - Easing Visuals</title>
+    <link rel="stylesheet" href="../main.css">
+    <style>
+        .easing {
+            display: table-row;
+        }
+        .name {
+            display: table-cell;
+            padding: 20px 10px;
+            vertical-align: top;
+            width: 80px;
+        }
+        .visuals {
+            display: table-cell;
+            padding: 10px;
+        }
+        .visuals > span {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div id="container"></div>
+
+    <script src="../common/js/shimShiminy.js"></script>
+    <script src="../common/js/put.js"></script>
+    <script>
+        var container = document.getElementById('container');
+        var graphWidth = 100;
+
+        function lerp(from, to, perc) {
+            return (to - from) * perc + from;
+        }
+
+        function unLerp(min, max, val) {
+            return (val - min) / (max - min);
+        }
+
+        function drawEasing(name, fn) {
+            var row = put('div.easing');
+            put(row, 'span.name $', name);
+
+            var funcs = [
+                fn,  // Ease in
+                function (t) { return fn(1 - t); },  // Ease in reversed
+                function (t) { return 1 - fn(1 - t); },  // Ease out
+                function (t) { return .5 * (t < .5 ? fn(2 * t) : (2 - fn(2 - 2 * t))); },  // Ease in-out
+            ];
+            funcs.forEach(function (newFn) {
+                var visuals = put(row, 'span.visuals');
+                put(visuals, 'span.graph', drawXYGraph(newFn));
+                put(visuals, 'span.velocity.colour', drawVelocity(newFn));
+                put(visuals, 'span.velocity.grey', drawVelocity(newFn, {greyscale: true}));
+                put(visuals, 'span.velocity.grey', drawVelocity(newFn, {greyscale: true, singleScale: true}));
+                put(visuals, 'span.position', drawPosition(newFn));
+                put(visuals, 'span.samples', drawSamples(newFn));
+            });
+
+            put(container, row);
+        }
+
+        function drawXYGraph(fn) {
+            var canvas = document.createElement('canvas');
+            var ctx = canvas.getContext('2d');
+            var padX = 0;
+            var padY = graphWidth / 8;
+            var w = graphWidth;
+            var h = graphWidth;
+            canvas.width  = w + padX * 2;
+            canvas.height = h + padY * 2;
+
+            // Background & border
+            ctx.fillStyle = '#fff';
+            ctx.fillRect(padX, padY, w, h);
+            ctx.strokeStyle = '#999';
+            ctx.strokeWidth = 1;
+            ctx.strokeRect(padX, padY, w, h);
+
+            // Graph
+            var i, t, val;
+            ctx.strokeStyle = '#000';
+            ctx.beginPath();
+            for (i = 0; i <= w; i++) {
+                t = i / w;
+                val = fn(t) * h;
+                ctx[i ? 'lineTo' : 'moveTo'](padX + i, h - val + padY);
+            }
+            ctx.stroke();
+
+            return canvas;
+        }
+
+        function drawVelocity(fn, opts) {
+            var canvas = document.createElement('canvas');
+            var ctx = canvas.getContext('2d');
+            var w = canvas.width = graphWidth;
+            var h = canvas.height = Math.round(graphWidth / 4);
+            opts = opts || {};
+
+            // Velocity
+            var i, t, val, delta, angle, perc, hue, sat, grey;
+            var prevVal = 0;
+            var angleMin = 0;
+            var angleMax = Math.PI / 2; // Quarter turn in radians
+            for (i = 1; i <= w; i++) {
+                t = i / w;
+                val = fn(t);
+                delta = (Math.round(val * 1000000) - Math.round(prevVal * 1000000)) / 10000;
+                angle = Math.atan2(delta, 1);
+                if (delta >= 0) {
+                    perc = unLerp(angleMin, angleMax, angle);
+                    hue = 240;
+                    grey = opts.singleScale ? lerp(0, 255, perc) : lerp(128, 255, perc);
+                } else {
+                    perc = unLerp(angleMin, -angleMax, angle);
+                    hue = 0;
+                    grey = opts.singleScale ? lerp(0, 255, perc) : lerp(127, 0, perc);
+                }
+                sat = Math.round(perc * 100);
+
+                if (opts.greyscale) {
+                    grey = Math.round(grey);
+                    ctx.fillStyle = 'rgb(' + [grey, grey, grey].join(',') + ')';
+                } else {
+                    ctx.fillStyle = 'hsl(' + [hue, sat + '%', '50%'].join(',') + ')';
+                }
+                ctx.fillRect(i, 0, i + 2, h);
+
+                prevVal = val;
+            }
+
+            return canvas;
+        }
+
+        function drawPosition(fn) {
+            var canvas = document.createElement('canvas');
+            var ctx = canvas.getContext('2d');
+            var w = canvas.width = graphWidth;
+            var h = canvas.height = Math.round(graphWidth / 4);
+
+            // Velocity
+            var i, t, val, col1, col2;
+            var r, g, b;
+            for (i = 1; i <= w; i++) {
+                t = i / w;
+                val = fn(t);
+                /*
+                if (val < 0) {
+                    col1 = 0;
+                    col2 = Math.round(lerp(64, 0, -val * 5));
+                } else if (val > 1) {
+                    col1 = 255;
+                    col2 = Math.round(lerp(64, 255, (val - 1) * 5));
+                } else {
+                    col1 = Math.round(val * 255);
+                    col2 = 64;
+                }
+                ctx.fillStyle = 'rgb(' + [col2, col1, col2].join(',') + ')';
+                 */
+                r = val < 0 ? Math.round(-val * 255) * 3 : 0;
+                g = Math.round(Math.max(Math.min(val * 255, 255), 0));
+                b = val > 1 ? Math.round((val - 1) * 255) * 6 : 0;
+                ctx.fillStyle = 'rgb(' + [r, g, b].join(',') + ')';
+                ctx.fillRect(i, 0, i + 2, h);
+            }
+
+            return canvas;
+        }
+
+        function drawSamples(fn) {
+            var canvas = document.createElement('canvas');
+            var ctx = canvas.getContext('2d');
+            var w = canvas.width = graphWidth;
+            var h = canvas.height = Math.round(graphWidth / 4);
+
+            // Background
+            ctx.fillStyle = '#fff';
+            ctx.fillRect(0, 0, w, h);
+
+            // Samples
+            var sampleCount = 20;
+            var i, t, val, x;
+            ctx.strokeStyle = 'rgba(0, 0, 0, 0.7)';
+            ctx.strokeWidth = 1;
+            for (i = 1; i <= sampleCount; i++) {
+                t = i / sampleCount;
+                val = fn(t);
+                x = val * w;
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, h);
+                ctx.stroke();
+            }
+
+            return canvas;
+        }
+
+        drawEasing('linear', function (t) { return t; });
+        drawEasing('cubic', function (t) { return t * t * t; });
+        drawEasing('quint', function (t) { return t * t * t * t * t; });
+        drawEasing('circ', function (t) { return 1 - Math.sqrt(1 - t * t); });
+        drawEasing('back', function (t) { var s = 1.70158; return t * t * ((s + 1) * t - s); });
+        drawEasing('bounce', function (t) {
+            var d = 2.75,
+                m = 7.5625, // Penner's magic number #2
+                e = 0;
+            e = t < .25 / d ?
+                m * (t -= .125 / d) * t + .984375 :
+                t < .75 / d ?
+                    m * (t -= .5 / d) * t + .9375 :
+                    t < 1.75 / d ?
+                        m * (t -= 1.25 / d) * t + .75 :
+                        m * --t * t;
+            return 1 - e;
+        });
+    </script>
+</body>
+</html>
