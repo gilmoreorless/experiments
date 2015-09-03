@@ -15,7 +15,7 @@
             left: 0;
             position: fixed;
             text-align: left;
-            top: 70px;
+            top: 80px;
         }
         .controls h3 {
             font-size: inherit;
@@ -30,6 +30,9 @@
         .legend text {
             text-anchor: middle;
             pointer-events: none;
+        }
+        .legend svg {
+            width: 200px;
         }
         svg {
             display: block;
@@ -94,7 +97,7 @@
     </div>
 </div>
 <p class="desc">
-    Daylight saving rules around the world <small>(probably already out of date)</small>
+    Daylight saving rules around the world <small class="data-version">(probably already out of date)</small>
 </p>
 <div id="titles-container">
 </div>
@@ -125,33 +128,13 @@ function offsetStr(num) {
     return str;
 }
 
-// Copied from moment-timezone/zones.js
-function getFirstDayOfWeek(year, month, dayOfWeek, minDay) {
-    var firstDayOfWeek = moment([year, month, 1]).day(),
-        output = dayOfWeek + 1 - firstDayOfWeek;
-
-    while (output < minDay) {
-        output += 7;
-    }
-
-    return output;
+function round(num, places) {
+    places = +places || 0;
+    var mult = Math.pow(10, places);
+    return Math.round(num * mult) / mult;
 }
 
-// Copied from moment-timezone/zones.js
-function getLastDayOfWeek(year, month, dayOfWeek) {
-    var dow = dayOfWeek % 7,
-        lastDowOfMonth = moment([year, month + 1, 1]).day(),
-        daysInMonth = moment([year, month, 1]).daysInMonth(),
-        output = daysInMonth + (dow - (lastDowOfMonth - 1)) - (~~(dayOfWeek / 7) * 7);
-
-    if (dow >= lastDowOfMonth) {
-        output -= 7;
-    }
-
-    return output;
-}
-
-d3.json('moment-timezone.json', function (tzdata) {
+d3.json('dst-data.json', function (tzdata) {
 
     /*** Config ***/
 
@@ -167,90 +150,111 @@ d3.json('moment-timezone.json', function (tzdata) {
     var zones = [];
     var rules = {};
     var year = new Date().getFullYear();
+    var visDateStart = Date.UTC(year, 0, 1, 0, 0, 0);
+    var visDateEnd = Date.UTC(year + 1, 0, 1, 0, 0, -1);
     var groupedZones;
 
-    _.each(tzdata.zones, function (data, id) {
-        var zone = _.last(data);
-        var info = zone.split(' ');
-        var rule = info[1];
-        var offset = offsetNum(info[0]);
-        zones.push({
-            id: id,
-            offset: offset,
-            offsetStr: offsetStr(offset),
-            rule: rule
-        });
-        if (rule != '-') {
-            rules[rule] = {
-                name: rule,
-                change: []
-            };
-        }
-    });
-    _.each(rules, function (data, name) {
-        var rule = tzdata.rules[name];
-        if (!rule) {
-            console.error('NO RULE FOR ' + name);
-        }
-        // Special hard-coded 2013 case for crazy rules of Morocco
-        if (name == 'Morocco') {
-            rule = [
-                "2013 2013 7 8 7 2 0 1 S",
-                "2013 9999 9 0 8 3 0 0",
-                "2012 2019 2 0 8 2 0 1 S",
-                "2013 2013 6 9 7 3 0 0",
-            ];
-        }
-        var i = rule.length;
-        var info;
-        while (i--) {
-            info = rule[i].split(' ');
-            if (info[1] == '9999' || name == 'Morocco') {
-                data.change.push(_.rest(info, 2));
+    // Input zone format:
+    // {
+    //   id: 'a/b',
+    //   offset: minutes|float,
+    //   dstChanges: [
+    //     [dstEnabled|int0or1, UTCdatestampOfChange|int],
+    //     ...
+    //   ]
+    // }
+
+    // Output zone format:
+    // {
+    //   id: 'a/b',
+    //   offset: hours|float,
+    //   offsetStr: '±00:00',
+    //   dstBlocks: [
+    //     {
+    //       start: moment(),
+    //       end: moment()
+    //     },
+    //     ...
+    //   ],
+    //   sortValue: int
+    // }
+
+    zones = _.map(tzdata.zones, function (zoneData) {
+        var zone = {
+            id: zoneData.id,
+            offset: zoneData.offset / 60,
+        };
+        zone.offsetStr = offsetStr(zone.offset);
+
+        /**
+         * TODO:
+         *
+         * - Grouping is wrong for some cases:
+         *  \- America/(-06:00, 25 zones)   Shows DST block of America/Cancun instead of no DST
+         *   - Get rid of any references to .dstStartDate and .dstEndDate
+         * - Look at oddities
+         *  \- America/Cancun      x (Quintana Roo moved from -6,DST to -5,noDST in February)
+         *   - America/Montevideo  √ (Uruguay no longer does DST)
+         *   - America/Santiago    x (Chile didn't change clocks back from DST in April)
+         *   - Antarctica/Palmer   x (Chile didn't change clocks back from DST in April)
+         *   - Pacific/Easter      x (Chile didn't change clocks back from DST in April)
+         *   - Asia/Pyongyang      x (North Korea moved from +9 to +8:30 in August)
+         */
+
+        // Only grab DST changes happening this year
+        zone.dstBlocks = [];
+        var curDstBlock;
+        _.each(zoneData.dstChanges, function (change) {
+            // change == [dstEnabled|int0or1, UTCdatestampOfChange|int]
+            var isDST = !!change[0];
+            var changeDateTime = change[1];
+            var changeMoment;
+            if (changeDateTime >= visDateStart && changeDateTime < visDateEnd) {
+                changeMoment = moment.utc(changeDateTime);
+                if (isDST) {
+                    curDstBlock = {
+                        start: changeMoment
+                    };
+                } else {
+                    if (!curDstBlock) {
+                        curDstBlock = {
+                            start: moment.utc(visDateStart),
+                        };
+                    }
+                    curDstBlock.end = changeMoment;
+                    zone.dstBlocks.push(curDstBlock);
+                    curDstBlock = null;
+                }
             }
-        }
-    });
-
-    _.each(zones, function (zone) {
-        var rule = rules[zone.rule];
-        if (rule) {
-            _.each(rule.change, function (change) {
-                // console.log(change)
-                var month = +change[0];
-                var day = +change[1];
-                var dayRule = +change[2];
-                var saveParts = change[5].split(':');
-                var save = +saveParts[0];
-                if (saveParts.length > 1) {
-                    save += (+saveParts[1] || 0) / 60;
-                }
-                var isDST = save > 0;
-                var prop = isDST ? 'dstStart' : 'dstEnd';
-                // Special case for Morocco again
-                if (zone[prop]) {
-                    prop += '2';
-                }
-
-                if (dayRule === 8) { // "last <day> of month"
-                    day = getLastDayOfWeek(year, month, day);
-                } else if (dayRule < 7) { // "first <dayRule> >= <day>"
-                    day = getFirstDayOfWeek(year, month, dayRule, day)
-                }
-                var date = moment([year, month, day || 1]);
-                zone[prop] = date;
-                zone[prop + 'Value'] = [month, date.date(), save];
-            });
+        });
+        if (curDstBlock && !curDstBlock.end) {
+            curDstBlock.end = moment.utc(visDateEnd);
+            zone.dstBlocks.push(curDstBlock);
         }
 
+        // Add a numeric sort value based on DST start and UTC offset
         var sortValue = 1300100; // mmdd1oo
-        if (zone.dstStartValue) {
-            sortValue = zone.dstStartValue[0] * 100000 +
-                zone.dstStartValue[1] * 1000 + 100;
+        var firstDstBlock = _.find(zone.dstBlocks, function (block) {
+            return block.start.dayOfYear() > 1;
+        });
+        if (firstDstBlock) {
+            sortValue = firstDstBlock.start.month() * 100000 +
+                firstDstBlock.start.date() * 1000 + 100;
         }
         sortValue += zone.offset;
         zone.sortValue = sortValue;
+        return zone;
     });
     zones = _.sortBy(zones, 'sortValue');
+
+    // For console debugging
+    window.zones = zones;
+    window.getZone = function (id) {
+        return zones.filter(function (zone) {
+            return zone.id === id;
+        })[0];
+    };
+
     groupedZones = _.chain(zones)
         .groupBy(function (zone) {
             var key = zone.id.split('/').slice(0, 1);
@@ -304,8 +308,8 @@ d3.json('moment-timezone.json', function (tzdata) {
     }
 
     function dstPathBlock(x1, x2) {
-        x1 = dateX(x1);
-        x2 = dateX(x2);
+        x1 = round(dateX(x1), 2);
+        x2 = round(dateX(x2), 2);
         var path = [
             'M', x1, 0,
             'L', x2, 0,
@@ -316,25 +320,18 @@ d3.json('moment-timezone.json', function (tzdata) {
         return path;
     }
 
-    function dstPath(suffix) {
-        suffix || (suffix = '');
-        var startProp = 'dstStart' + suffix;
-        var endProp = 'dstEnd' + suffix;
-        return function (d) {
-            var startDay = d[startProp].dayOfYear();
-            var endDay = d[endProp].dayOfYear();
-            var path = [];
-
-            if (endDay > startDay) {
-                path = dstPathBlock(startDay, endDay);
-            } else {
-                path = dstPathBlock(startDay, 365).concat(dstPathBlock(0, endDay));
-            }
-
-            return path.join(' ');
-        }
+    function dstPath(d) {
+        var path = d.dstBlocks.reduce(function (memo, block) {
+            var startDay = block.start.dayOfYear();
+            var endDay = block.end.dayOfYear();
+            return memo.concat(dstPathBlock(startDay, endDay));
+        }, []);
+        return path.join(' ');
     }
 
+    // Page title
+
+    d3.select('.data-version').text('(tzdb version ' + tzdata.version + ')');
 
     // Legend
 
@@ -407,26 +404,30 @@ d3.json('moment-timezone.json', function (tzdata) {
         list = listGroup.selectAll('.zone-data')
             .data(data, function (d) { return d.id + (d.dstStartValue || '') })
 
+        // Remove any zones not shown in the current view (when toggling grouping)
         list.exit()
             .transition()
             .duration(transitionSpeed)
             .attr('transform', zoneY().scale(0))
             .remove();
 
-
+        // Add containers for new zones
         var newZones = list.enter().append('g')
             .classed('zone-data', true)
             .attr('transform', zoneY().scale(0))
 
+        // Move zones into the right place
         list.transition()
             .duration(transitionSpeed)
             .attr('transform', zoneY().scale(1))
 
+        // Name label for new zones
         newZones.append('g').classed('zone-id', true)
             .append('text')
                 .attr('y', labelHeight * .8)
                 .text(function (d) { return d.id });
 
+        // Background calendar block for new zones
         var changes = newZones.append('g')
             .classed('changes', true)
             .attr('transform', 'translate(' + labelWidth + ',0)')
@@ -434,6 +435,7 @@ d3.json('moment-timezone.json', function (tzdata) {
             .attr('width', yearWidth)
             .attr('height', labelHeight)
 
+        // Offset label for new zones
         newZones.append('g')
             .classed('gmt-offset', true)
             .attr('transform', 'translate(' + (labelWidth + yearWidth + 10) + ',0)')
@@ -441,23 +443,16 @@ d3.json('moment-timezone.json', function (tzdata) {
                 .attr('y', labelHeight * .8)
                 .text(function (d) { return d.offsetStr })
 
-        var dst = changes.filter(function (d) { return !!d.dstStart })
+        // Find all zones with DST changes
+        var dst = changes.filter(function (d) { return d.dstBlocks.length > 0; })
 
+        // Add all DST blocks
         dst.append('path')
             .classed('dst', true)
-            .attr('d', dstPath())
+            .attr('d', dstPath)
             .attr('translate', 'transform(' + labelWidth + ',0)')
             // .text(function (d) {
             //     return ~~(d.sortValue / 1000)
-            // })
-
-        // YET MORE MOROCCO SPECIAL CODE
-        dst.filter(function (d) { return d.id == 'Africa/Casablanca' }).append('path')
-            .classed('dst', true)
-            .attr('d', dstPath('2'))
-            // .text(function (d) {
-            //     var sortValue = d.dstStart2Value[0] * 100000 + d.dstStart2Value[1] * 1000 + 100;
-            //     return ~~(sortValue / 1000);
             // })
 
         // Make sure the DOM nodes are in the right order, as it affects animation positions
@@ -465,6 +460,7 @@ d3.json('moment-timezone.json', function (tzdata) {
     }
     display();
 
+    // Vertical lines to mark starts of months
     svg.append('g')
         .classed('month-line-group', true)
         .selectAll('.month-line')
