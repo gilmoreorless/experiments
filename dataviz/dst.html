@@ -159,7 +159,11 @@ d3.json('dst-data.json', function (tzdata) {
     //   id: 'a/b',
     //   offset: minutes|float,
     //   dstChanges: [
-    //     [dstEnabled|int0or1, UTCdatestampOfChange|int],
+    //     [dstEnabled|int0or1, UTCdatestampOfChange|int, offsetMinutes|float],
+    //     ...
+    //   ],
+    //   offsetChanges: [
+    //     [dstEnabled|int0or1, UTCdatestampOfChange|int, oldOffsetMinutes|float, newOffsetMinutes|float],
     //     ...
     //   ]
     // }
@@ -191,7 +195,6 @@ d3.json('dst-data.json', function (tzdata) {
          *
          * - Grouping is wrong for some cases:
          *  \- America/(-06:00, 25 zones)   Shows DST block of America/Cancun instead of no DST
-         *   - Get rid of any references to .dstStartDate and .dstEndDate
          * - Look at oddities
          *  \- America/Cancun      x (Quintana Roo moved from -6,DST to -5,noDST in February)
          *   - America/Montevideo  √ (Uruguay no longer does DST)
@@ -199,13 +202,14 @@ d3.json('dst-data.json', function (tzdata) {
          *   - Antarctica/Palmer   x (Chile didn't change clocks back from DST in April)
          *   - Pacific/Easter      x (Chile didn't change clocks back from DST in April)
          *   - Asia/Pyongyang      x (North Korea moved from +9 to +8:30 in August)
+         * - Indicate when a zone changed base offset
          */
 
         // Only grab DST changes happening this year
         zone.dstBlocks = [];
         var curDstBlock;
         _.each(zoneData.dstChanges, function (change) {
-            // change == [dstEnabled|int0or1, UTCdatestampOfChange|int]
+            // change == [dstEnabled|int0or1, UTCdatestampOfChange|int, offsetMinutes|float]
             var isDST = !!change[0];
             var changeDateTime = change[1];
             var changeMoment;

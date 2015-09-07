@@ -4,8 +4,9 @@
  * USAGE:
  *
  * 1. Clone https://github.com/moment/moment-timezone repository
- * 2. In the moment-timezone root, run `grunt data`
- * 3. Run this script:
+ * 2. Modify its grunt scripts to output isdst (MORE DETAILS TBC)
+ * 3. In the moment-timezone root, run `grunt data`
+ * 4. Run this script:
  *    `node get-dst-data.js /path/to/moment-timezone/`
  */
 
@@ -45,41 +46,39 @@ dstData.zones = tzData.zones.filter(function (zone) {
 }).map(function (zone) {
     var zoneData = {
         id: zone.name,
-        offset: -20 * 60,
-        dstChanges: []
+        offset: null,
+        dstChanges: [],
+        offsetChanges: []
     };
     // console.log(zone);
-    var i, ii, until, offset, prevOffset;
-    var allOffsets = [];
-    var isDST = false;
-    for (i = 0, ii = zone.untils.length; i < ii; i++) {
-        // until = zone.untils[i + 1];
-        until = zone.untils[i];
+    var i, ii, from, offset, prevOffset, isDST, prevWasDST;
+    for (i = 1, ii = zone.untils.length; i < ii; i++) {
+        from = zone.untils[i - 1];
         offset = -zone.offsets[i]; // Negative to account for reversed values of getTimezoneOffset()
+        isDST = zone.dsts[i];
         // if (zone.name == 'America/Cancun') {
-        //     console.log(i, until, offset, zone.abbrs[i]);
+        //     console.log(i, from, offset, +isDST, zone.abbrs[i], new Date(from).toUTCString());
         // }
-        if ((until >= startDate && until < endDate) || until === null) {
-            // If this is the first transition, work out if the zone was already in DST
-            if (!allOffsets.length && i > 0) {
-                isDST = offset < prevOffset;
+        if ((from >= startDate && from < endDate) || from === null) {
+            // Store the base offset if it's not daylight saving
+            if (!isDST) {
+                zoneData.offset = offset;
             }
             // Add the transition time/direction to lists
-            allOffsets.push(offset);
-            if (until) {
-                zoneData.dstChanges.push([+isDST, until, offset]);
+            if (isDST !== prevWasDST) {
+                zoneData.dstChanges.push([+isDST, from, offset]);
+            // Note any changes to the base offset
+            } else {
+                zoneData.offsetChanges.push([+isDST, from, prevOffset, offset]);
             }
-            isDST = !isDST;
         }
+        prevWasDST = isDST;
         prevOffset = offset;
     }
-    // If there's only 1 transition, it indicates a change of zone, not DST
-    if (zoneData.dstChanges.length === 1) {
-        zoneData.dstChanges[0][0] = 2;
-        // zoneData.offset =
+    // Get the offset for a zone that doesn't have any changes this year
+    if (zoneData.offset === null) {
+        zoneData.offset = -zone.offsets[zone.offsets.length - 1];
     }
-    // Work out base offset
-    zoneData.offset = Math.min.apply(Math, allOffsets);
     return zoneData;
 });
 // console.log(dstData.zones);
