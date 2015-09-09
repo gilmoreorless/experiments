@@ -1535,6 +1535,7 @@
       "offsetChanges": [
         [
           0,
+          0,
           1422777600000,
           -360,
           -300
@@ -2783,7 +2784,15 @@
           -240
         ]
       ],
-      "offsetChanges": []
+      "offsetChanges": [
+        [
+          1,
+          0,
+          1446357600000,
+          -240,
+          -240
+        ]
+      ]
     },
     {
       "id": "America/Guatemala",
@@ -7011,7 +7020,15 @@
           -180
         ]
       ],
-      "offsetChanges": []
+      "offsetChanges": [
+        [
+          1,
+          0,
+          1430017200000,
+          -180,
+          -180
+        ]
+      ]
     },
     {
       "id": "America/Santo_Domingo",
@@ -8462,7 +8479,15 @@
           -180
         ]
       ],
-      "offsetChanges": []
+      "offsetChanges": [
+        [
+          1,
+          0,
+          1430017200000,
+          -180,
+          -180
+        ]
+      ]
     },
     {
       "id": "Antarctica/Rothera",
@@ -9893,6 +9918,7 @@
       "dstChanges": [],
       "offsetChanges": [
         [
+          0,
           0,
           1439564400000,
           540,
@@ -15857,7 +15883,15 @@
           -300
         ]
       ],
-      "offsetChanges": []
+      "offsetChanges": [
+        [
+          1,
+          0,
+          1430017200000,
+          -300,
+          -300
+        ]
+      ]
     },
     {
       "id": "Pacific/Efate",

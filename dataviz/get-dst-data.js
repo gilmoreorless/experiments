@@ -56,20 +56,40 @@ dstData.zones = tzData.zones.filter(function (zone) {
         from = zone.untils[i - 1];
         offset = -zone.offsets[i]; // Negative to account for reversed values of getTimezoneOffset()
         isDST = zone.dsts[i];
-        // if (zone.name == 'America/Cancun') {
-        //     console.log(i, from, offset, +isDST, zone.abbrs[i], new Date(from).toUTCString());
-        // }
+        if (zone.name == 'America/Santiago') {
+            console.log(i, from, offset, +isDST, zone.abbrs[i], new Date(from).toUTCString());
+        }
         if ((from >= startDate && from < endDate) || from === null) {
             // Store the base offset if it's not daylight saving
             if (!isDST) {
                 zoneData.offset = offset;
             }
+            /**
+             * Work out if a change is due to DST or a change in the base offset
+             *
+             * | DST diff | Offset diff | Result                     |
+             * +----------+-------------+----------------------------+
+             * |    √     |      √      | DST change                 |
+             * |    √     |      x      | DST change + Offset change | (e.g. UTC-6,+DST -> UTC-5,noDST)
+             * |    x     |      √      | Offset change              |
+             * |    x     |      x      | ?? (Bad data)              |
+             * +----------+-------------+----------------------------+
+             */
+            var isDSTDiff = isDST !== prevWasDST;
+            var isOffsetDiff = offset !== prevOffset;
+            var isOffsetChange = false;
             // Add the transition time/direction to lists
-            if (isDST !== prevWasDST) {
+            if (isDSTDiff) {
                 zoneData.dstChanges.push([+isDST, from, offset]);
-            // Note any changes to the base offset
+                if (!isOffsetDiff) {
+                    isOffsetChange = true;
+                }
             } else {
-                zoneData.offsetChanges.push([+isDST, from, prevOffset, offset]);
+                isOffsetChange = true;
+            }
+            // Note any changes to the base offset
+            if (isOffsetChange) {
+                zoneData.offsetChanges.push([+prevWasDST, +isDST, from, prevOffset, offset]);
             }
         }
         prevWasDST = isDST;

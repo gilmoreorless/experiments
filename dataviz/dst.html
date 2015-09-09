@@ -61,16 +61,23 @@
         #zones-container {
             padding-top: 70px;
         }
-        .changes rect {
+        .zone-bg {
             fill: hsl(20, 60%, 70%);
             stroke: none;
         }
-        .changes .dst {
+        .zone-bg-changed {
+            fill: hsla(20, 60%, 30%, 0.4);
+            stroke: none;
+        }
+        .zone-text-changed {
+            fill: #fff;
+        }
+        .zone-dst {
             fill: hsl(35, 100%, 70%);
             stroke: hsl(35, 50%, 20%);
             stroke-width: 1;
         }
-        .changes .dst:hover {
+        .zone-dst:hover {
             fill: hsl(35, 100%, 80%);
         }
         .gmt-offset text {
@@ -163,7 +170,13 @@ d3.json('dst-data.json', function (tzdata) {
     //     ...
     //   ],
     //   offsetChanges: [
-    //     [dstEnabled|int0or1, UTCdatestampOfChange|int, oldOffsetMinutes|float, newOffsetMinutes|float],
+    //     [
+    //       oldDstEnabled|int0or1,
+    //       newDstEnabled|int0or1,
+    //       UTCdatestampOfChange|int,
+    //       oldOffsetMinutes|float,
+    //       newOffsetMinutes|float
+    //     ],
     //     ...
     //   ]
     // }
@@ -177,6 +190,20 @@ d3.json('dst-data.json', function (tzdata) {
     //     {
     //       start: moment(),
     //       end: moment()
+    //     },
+    //     ...
+    //   ],
+    //   offsetChanges: [
+    //     {
+    //       changeAt: moment()
+    //       from: {
+    //         offset: hours|float,
+    //         offsetStr: '±00:00'
+    //       },
+    //       to: {
+    //         offset: hours|float,
+    //         offsetStr: '±00:00'
+    //       }
     //     },
     //     ...
     //   ],
@@ -195,14 +222,8 @@ d3.json('dst-data.json', function (tzdata) {
          *
          * - Grouping is wrong for some cases:
          *  \- America/(-06:00, 25 zones)   Shows DST block of America/Cancun instead of no DST
-         * - Look at oddities
-         *  \- America/Cancun      x (Quintana Roo moved from -6,DST to -5,noDST in February)
-         *   - America/Montevideo  √ (Uruguay no longer does DST)
-         *   - America/Santiago    x (Chile didn't change clocks back from DST in April)
-         *   - Antarctica/Palmer   x (Chile didn't change clocks back from DST in April)
-         *   - Pacific/Easter      x (Chile didn't change clocks back from DST in April)
-         *   - Asia/Pyongyang      x (North Korea moved from +9 to +8:30 in August)
-         * - Indicate when a zone changed base offset
+         *    \- Get rid of references to .dstStartValue etc
+         * - Tooltip when a zone changed base offset
          */
 
         // Only grab DST changes happening this year
@@ -235,6 +256,28 @@ d3.json('dst-data.json', function (tzdata) {
             curDstBlock.end = moment.utc(visDateEnd);
             zone.dstBlocks.push(curDstBlock);
         }
+
+        // Find any changes in base offset
+        zone.offsetChanges = _.map(zoneData.offsetChanges, function (change) {
+            // change == [
+            //   oldDstEnabled|int0or1,
+            //   newDstEnabled|int0or1,
+            //   UTCdatestampOfChange|int,
+            //   oldOffsetMinutes|float,
+            //   newOffsetMinutes|float
+            // ]
+            var changeData = {
+                change: moment.utc(change[2])
+            };
+            _.each({from: 3, to: 4}, function (idx, key) {
+                var offset = change[idx];
+                changeData[key] = {
+                    offset: offset / 60,
+                    offsetStr: offsetStr(offset / 60)
+                };
+            });
+            return changeData;
+        });
 
         // Add a numeric sort value based on DST start and UTC offset
         var sortValue = 1300100; // mmdd1oo
@@ -333,6 +376,12 @@ d3.json('dst-data.json', function (tzdata) {
         return path.join(' ');
     }
 
+    function offsetChangeX(d) {
+        // TODO: Hard-coded to single change per year. Fix this when a zone changes twice in one year (unlikely).
+        var day = d.offsetChanges[0].change.dayOfYear();
+        return round(dateX(day), 2);
+    }
+
     // Page title
 
     d3.select('.data-version').text('(tzdb version ' + tzdata.version + ')');
@@ -340,30 +389,50 @@ d3.json('dst-data.json', function (tzdata) {
     // Legend
 
     var legend = d3.select('.legend').append('svg')
-        .attr('height', (labelHeight + labelPadding) * 2 + labelPadding)
+        .attr('height', (labelHeight + labelPadding) * 3 + labelPadding)
         .append('g')
             .classed('changes', true)
 
+    // Normal UTC offset
     legend.append('rect')
+        .classed('zone-bg', true)
         .attr('width', '98%')
         .attr('height', labelHeight)
         .attr('transform', 'translate(2,0)')
     legend.append('text')
-        .text('Normal GMT offset')
-        .attr('y', labelHeight)
+        .text('Normal UTC offset')
+        .attr('y', labelHeight + labelPadding)
 
+    // Base offset change
     legend.append('rect')
-        .classed('dst', true)
+        .classed('zone-bg', true)
         .attr('width', '98%')
         .attr('height', labelHeight)
-        .attr('transform', 'translate(2,' + (labelHeight + labelPadding * 2) + ')')
+        .attr('transform', 'translate(2,' + (labelHeight + labelPadding) + ')')
+    legend.append('rect')
+        .classed('zone-bg-changed', true)
+        .attr('width', '98%')
+        .attr('height', labelHeight)
+        .attr('transform', 'translate(2,' + (labelHeight + labelPadding) + ')')
     legend.append('text')
-        .text('Daylight saving')
+        .classed('zone-text-changed', true)
+        .text('Change of UTC offset')
         .attr('y', (labelHeight + labelPadding) * 2)
 
+    // Daylight saving
+    legend.append('rect')
+        .classed('zone-dst', true)
+        .attr('width', '98%')
+        .attr('height', labelHeight)
+        .attr('transform', 'translate(2,' + ((labelHeight + labelPadding) * 2) + ')')
+    legend.append('text')
+        .text('Daylight saving')
+        .attr('y', (labelHeight + labelPadding) * 3)
+
+    // Fix vertical alignment
     legend.selectAll('text')
         .attr('x', '50%')
-        .attr('dy', -5)
+        .attr('dy', -8)
 
     // Titles
 
@@ -436,6 +505,7 @@ d3.json('dst-data.json', function (tzdata) {
             .classed('changes', true)
             .attr('transform', 'translate(' + labelWidth + ',0)')
         changes.append('rect')
+            .classed('zone-bg', true)
             .attr('width', yearWidth)
             .attr('height', labelHeight)
 
@@ -447,12 +517,22 @@ d3.json('dst-data.json', function (tzdata) {
                 .attr('y', labelHeight * .8)
                 .text(function (d) { return d.offsetStr })
 
+        // Find all zones with base offset changes
+        var baseChange = changes.filter(function (d) { return d.offsetChanges.length > 0; })
+
+        // Add extra detail for base offset changes
+        baseChange.append('rect')
+            .classed('zone-bg-changed', true)
+            .attr('x', function (d) { return offsetChangeX(d); })
+            .attr('width', function (d) { return yearWidth - offsetChangeX(d); })
+            .attr('height', labelHeight)
+
         // Find all zones with DST changes
         var dst = changes.filter(function (d) { return d.dstBlocks.length > 0; })
 
         // Add all DST blocks
         dst.append('path')
-            .classed('dst', true)
+            .classed('zone-dst', true)
             .attr('d', dstPath)
             .attr('translate', 'transform(' + labelWidth + ',0)')
             // .text(function (d) {
