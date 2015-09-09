@@ -220,10 +220,8 @@ d3.json('dst-data.json', function (tzdata) {
         /**
          * TODO:
          *
-         * - Grouping is wrong for some cases:
-         *  \- America/(-06:00, 25 zones)   Shows DST block of America/Cancun instead of no DST
-         *    \- Get rid of references to .dstStartValue etc
-         * - Tooltip when a zone changed base offset
+         * - Tooltip explaining when a zone changed base offset
+         * - Tooltip for grouped zones, showing which zones they are
          */
 
         // Only grab DST changes happening this year
@@ -307,11 +305,15 @@ d3.json('dst-data.json', function (tzdata) {
             var key = zone.id.split('/').slice(0, 1);
             key.push(
                 zone.offset,
-                zone.dstStartValue || '-',
-                zone.dstEndValue || '-',
-                zone.dstStart2Value ? '1' : '0'
+                zone.dstBlocks.map(function (block) {
+                    return block.start.dayOfYear() + '-' + block.end.dayOfYear();
+                }).join('|') || '-',
+                zone.offsetChanges.map(function (block) {
+                    return block.change.dayOfYear();
+                }).join('|') || '-'
             );
-            return key.join('/');
+            zone.groupKey = key.join('/');
+            return zone.groupKey;
         }).map(function (zoneList, key) {
             var zone = _.clone(zoneList[0]);
             if (zoneList.length === 1) {
@@ -475,7 +477,7 @@ d3.json('dst-data.json', function (tzdata) {
     function display() {
         var data = isGrouped ? groupedZones : zones;
         list = listGroup.selectAll('.zone-data')
-            .data(data, function (d) { return d.id + (d.dstStartValue || '') })
+            .data(data, function (d) { return d.id + (d.groupKey || '') })
 
         // Remove any zones not shown in the current view (when toggling grouping)
         list.exit()
