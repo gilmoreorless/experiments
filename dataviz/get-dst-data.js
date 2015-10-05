@@ -56,9 +56,9 @@ dstData.zones = tzData.zones.filter(function (zone) {
         from = zone.untils[i - 1];
         offset = -zone.offsets[i]; // Negative to account for reversed values of getTimezoneOffset()
         isDST = zone.dsts[i];
-        if (zone.name == 'America/Santiago') {
-            console.log(i, from, offset, +isDST, zone.abbrs[i], new Date(from).toUTCString());
-        }
+        // if (zone.name == 'America/Santiago') {
+        //     console.log(i, from, offset, +isDST, zone.abbrs[i], new Date(from).toUTCString());
+        // }
         if ((from >= startDate && from < endDate) || from === null) {
             // Store the base offset if it's not daylight saving
             if (!isDST) {
