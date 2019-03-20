@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>English Premier League “Window of Opportunity”</title>
+    <link rel="stylesheet" href="../main.css">
+
+    <style>
+        :root {
+            --colour: #333;
+        }
+        .controls {
+            background: #fff;
+            border-radius: 5px;
+            text-align: left;
+        }
+        .slider {
+            display: flex;
+        }
+        .slider label {
+            width: 7rem;
+        }
+        .slider input[type="range"] {
+            width: 20rem;
+        }
+        .slider output {
+            margin-left: 0.5rem;
+        }
+
+        .team-line {
+            fill: none;
+            stroke: var(--colour);
+            stroke-width: 1;
+        }
+        .team-opportunity {
+            fill: var(--colour);
+        }
+    </style>
+</head>
+
+<body class="centre">
+<div class="controls">
+    <div class="slider">
+        <label for="start-round">Start round:</label>
+        <input id="start-round" type="range" min="0">
+        <output for="start-round"></output>
+    </div>
+    <div class="slider">
+        <label for="end-round">End round:</label>
+        <input id="end-round" type="range" min="1">
+        <output for="end-round"></output>
+    </div>
+</div>
+<div id="graph-container"></div>
+
+<script src="../common/js/d3.v5.js"></script>
+<script src="../common/js/shimShiminy.js"></script>
+<script>
+/*** Config ***/
+
+let teamCount = 20;
+let rounds = 38;
+let startAtRound = 32;
+let stopAtRound = 36;
+let pointsPerWin = 3;
+let pointsPerDraw = 1;
+
+let width = 940;
+let height = 600;
+let margin = 10;
+
+
+/*** Derived values ***/
+
+let opacityPerRound = d3.scaleLinear([0, rounds * 2], [0, 1]);
+let xScale = d3.scaleLinear([startAtRound, rounds], [margin, width - margin * 2]);
+let yScale = d3.scaleLinear([0, 1], [height - margin * 2, margin]);
+let colours = d3.interpolateRainbow;
+
+
+/*** Controls ***/
+
+function getSlider(id) {
+    let input = document.getElementById(id); // Just assume this exists
+    let output = document.querySelector(`output[for="${id}"]`);
+
+    function updateOutput() {
+        output.textContent = input.value;
+    }
+
+    function valueChanged() {
+        updateOutput();
+        if (id === 'start-round') {
+            startAtRound = parseFloat(input.value) || 0;
+        }
+        if (id === 'end-round') {
+            stopAtRound = parseFloat(input.value) || 1;
+        }
+        render();
+    }
+
+    input.addEventListener('input', valueChanged);
+
+    return {
+        input,
+        output,
+        setValue: (value) => {
+            input.value = value;
+            updateOutput();
+        },
+        setMin: (value) => { input.min = value; },
+        setMax: (value) => { input.max = value; },
+    }
+}
+
+let sliders = {
+    startRound: getSlider('start-round'),
+    endRound: getSlider('end-round'),
+};
+
+
+/*** Chart setup ***/
+
+let svg = d3.select('#graph-container').append('svg')
+    .attr('width', width)
+    .attr('height', height)
+let root = svg.append('g')
+    .attr('class', 'root')
+    .attr('transform', `translate(${margin}, ${margin})`)
+
+
+/*** Load data ***/
+
+let teamsMap, teamsArr;
+
+function first(array) {
+    return array[0];
+}
+
+function last(array, defaultValue) {
+    return array.length ? array[array.length - 1] : defaultValue;
+}
+
+function rowParser(row) {
+    let parts = row.Date.split('/');
+    return {
+        // Convert dd/mm/yy to yyyy-mm-dd
+        date: `20${parts[2]}-${parts[1]}-${parts[0]}`,
+        home: row.HomeTeam,
+        away: row.AwayTeam,
+        result: row.FTR,
+    };
+}
+
+function addResult(map, team, points) {
+    let results = map.get(team) || [0];
+    let prev = last(results);
+    results.push(prev + points);
+    map.set(team, results);
+}
+
+function update() {
+    sliders.startRound.setMax(rounds - 1);
+    sliders.startRound.setValue(startAtRound);
+    sliders.endRound.setMax(rounds);
+    sliders.endRound.setValue(stopAtRound);
+    render();
+}
+
+function render() {
+    let teams = teamsArr.map(teamPoints => teamPoints.slice(startAtRound, stopAtRound + 1));
+    xScale.domain([startAtRound, rounds]);
+
+    // Work out available points range
+    let minPoints = d3.min(teams, first);
+    let maxPoints = d3.max(teams, last);
+    let roundsRemaining = rounds - stopAtRound;
+    let maxAvailablePoints = maxPoints + pointsPerWin * roundsRemaining;
+    yScale.domain([minPoints, maxAvailablePoints]);
+
+    /*** Render data ***/
+
+    let lineGenerator = d3.line()
+        .x((_, i) => xScale(i + startAtRound))
+        .y(yScale)
+
+    let triangleGenerator = d3.line()
+        .x(d => xScale(d[0]) - 1)
+        .y(d => yScale(d[1]))
+
+    let teamNodes = root.selectAll('.team')
+        .data(teams)
+        .join(
+            enter => enter.append('g')
+                .attr('class', 'team')
+                .style('--colour', (_, i) => colours(i / teamCount))
+        )
+
+    teamNodes.selectAll('.team-line')
+        .data(d => [d])
+        .join(
+            enter => enter.append('path')
+                .attr('class', 'team-line')
+        )
+        .attr('d', lineGenerator)
+
+    teamNodes.selectAll('.team-opportunity')
+        .data(d => [d])
+        .join(
+            enter => enter.append('path')
+                .attr('class', 'team-opportunity')
+                .style('opacity', opacityPerRound(stopAtRound))
+        )
+        .attr('d', d => triangleGenerator([
+            [stopAtRound, last(d)],
+            [rounds, last(d)],
+            [rounds, last(d) + pointsPerWin * roundsRemaining],
+        ]))
+}
+
+// CSV from football-data.org.uk
+d3.csv('epl-1718.csv', rowParser).then(rows => {
+    teamsMap = new Map();
+
+    /*** Process data ***/
+
+    rows.forEach(row => {
+        let homePts = 0;
+        let awayPts = 0;
+        switch (row.result) {
+            case 'H': homePts = pointsPerWin; break;
+            case 'A': awayPts = pointsPerWin; break;
+            case 'D': homePts = pointsPerDraw; awayPts = pointsPerDraw; break;
+        }
+
+        addResult(teamsMap, row.home, homePts);
+        addResult(teamsMap, row.away, awayPts);
+    });
+
+    // Reduce team points to array of arrays
+    teamsArr = [...teamsMap.values()];
+    teamsArr.sort((a, b) => d3.descending(last(a), last(b)));
+
+    update();
+});
+
+</script>
+</body>
+</html>
