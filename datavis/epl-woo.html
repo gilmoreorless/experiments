@@ -32,8 +32,11 @@
             stroke: var(--colour);
             stroke-width: 1;
         }
-        .team-opportunity {
+        .team-opportunity,
+        .team-opportunity-clone {
             fill: var(--colour);
+            stroke: var(--colour);
+            stroke-width: 1;
         }
     </style>
 </head>
@@ -47,8 +50,15 @@
     </div>
     <div class="slider">
         <label for="end-round">End round:</label>
-        <input id="end-round" type="range" min="1">
+        <input id="end-round" type="range" min="0">
         <output for="end-round"></output>
+    </div>
+    <div class="animations">
+        <button id="anim-play-pause" type="button">Play animation</button>
+        <label for="anim-artistic">
+            <input id="anim-artistic" type="checkbox">
+            Use “artistic” mode
+        </label>
     </div>
 </div>
 <div id="graph-container"></div>
@@ -119,6 +129,62 @@ let sliders = {
 };
 
 
+/*** Animation ***/
+
+let anim = {
+    isPlaying: false,
+    isArtistic: false,
+    stepDelay: 200,
+    timer: null,
+    button: document.getElementById('anim-play-pause'),
+};
+
+function startAnimation() {
+    anim.isPlaying = true;
+    startAtRound = 0;
+    stopAtRound = 0;
+    sliders.startRound.setValue(startAtRound);
+    sliders.endRound.setValue(stopAtRound);
+    if (anim.isArtistic) {
+        let setOpacity = 1 / (rounds * teamCount / 4);
+        opacityPerRound.range([setOpacity, setOpacity]);
+    } else {
+        opacityPerRound.range([0, 1]);
+    }
+    anim.timer = d3.interval(animationTick, anim.stepDelay);
+    anim.button.textContent = 'Stop animation';
+    render();
+}
+
+function stopAnimation() {
+    anim.isPlaying = false;
+    anim.timer.stop();
+    anim.button.textContent = 'Play animation';
+}
+
+function animationTick(elapsed) {
+    if (stopAtRound >= rounds) {
+        stopAnimation();
+        return;
+    }
+    stopAtRound++;
+    sliders.endRound.setValue(stopAtRound);
+    render();
+}
+
+anim.button.addEventListener('click', function () {
+    if (anim.isPlaying) {
+        stopAnimation();
+    } else {
+        startAnimation();
+    }
+}, false);
+
+document.getElementById('anim-artistic').addEventListener('change', function () {
+    anim.isArtistic = this.checked;
+}, false);
+
+
 /*** Chart setup ***/
 
 let svg = d3.select('#graph-container').append('svg')
@@ -175,7 +241,8 @@ function render() {
     let minPoints = d3.min(teams, first);
     let maxPoints = d3.max(teams, last);
     let roundsRemaining = rounds - stopAtRound;
-    let maxAvailablePoints = maxPoints + pointsPerWin * roundsRemaining;
+//     let maxAvailablePoints = maxPoints + pointsPerWin * roundsRemaining;
+    let maxAvailablePoints = pointsPerWin * rounds;
     yScale.domain([minPoints, maxAvailablePoints]);
 
     /*** Render data ***/
@@ -196,26 +263,36 @@ function render() {
                 .style('--colour', (_, i) => colours(i / teamCount))
         )
 
-    teamNodes.selectAll('.team-line')
-        .data(d => [d])
-        .join(
-            enter => enter.append('path')
-                .attr('class', 'team-line')
-        )
-        .attr('d', lineGenerator)
+    let teamLines = teamNodes.selectAll('.team-line')
+    let isArtisticMode = anim.isPlaying && anim.isArtistic;
+    if (isArtisticMode) {
+        teamLines.style('opacity', 0)
+        teamNodes.selectAll('.team-opportunity')
+            .attr('class', 'team-opportunity-clone')
+    } else {
+        teamLines
+            .data(d => [d])
+            .style('opacity', 1)
+            .join(
+                enter => enter.append('path')
+                    .attr('class', 'team-line')
+            )
+            .attr('d', lineGenerator)
+        teamNodes.selectAll('.team-opportunity-clone').remove()
+    }
 
     teamNodes.selectAll('.team-opportunity')
         .data(d => [d])
         .join(
             enter => enter.append('path')
                 .attr('class', 'team-opportunity')
-                .style('opacity', opacityPerRound(stopAtRound))
         )
         .attr('d', d => triangleGenerator([
             [stopAtRound, last(d)],
             [rounds, last(d)],
             [rounds, last(d) + pointsPerWin * roundsRemaining],
-        ]))
+        ]) + 'Z')
+        .style('opacity', opacityPerRound(stopAtRound))
 }
 
 // CSV from football-data.org.uk
@@ -238,7 +315,7 @@ d3.csv('epl-1718.csv', rowParser).then(rows => {
     });
 
     // Reduce team points to array of arrays
-    teamsArr = [...teamsMap.values()];
+    teamsArr = [...teamsMap.values()] //.slice(0, 1);
     teamsArr.sort((a, b) => d3.descending(last(a), last(b)));
 
     update();
