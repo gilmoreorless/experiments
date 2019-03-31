@@ -27,10 +27,14 @@
             margin-left: 0.5rem;
         }
 
-        .team-line {
+        .team-line,
+        .team-prediction {
             fill: none;
             stroke: var(--colour);
             stroke-width: 1;
+        }
+        .team-prediction {
+            stroke-dasharray: 1 1;
         }
         .team-opportunity,
         .team-opportunity-clone {
@@ -55,10 +59,6 @@
     </div>
     <div class="animations">
         <button id="anim-play-pause" type="button">Play animation</button>
-        <label for="anim-artistic">
-            <input id="anim-artistic" type="checkbox">
-            Use “artistic” mode
-        </label>
     </div>
 </div>
 <div id="graph-container"></div>
@@ -66,11 +66,20 @@
 <script src="../common/js/d3.v5.js"></script>
 <script src="../common/js/shimShiminy.js"></script>
 <script>
+/**
+ * TODO:
+ *
+ * - Restrict start/end sliders to appropriate range based on the other slider.
+ * - Find a better colour scheme.
+ * - Switch X scale to date-based.
+ * - Add X/Y axis ticks.
+ */
+
 /*** Config ***/
 
 let teamCount = 20;
 let rounds = 38;
-let startAtRound = 32;
+let startAtRound = 0;
 let stopAtRound = 36;
 let pointsPerWin = 3;
 let pointsPerDraw = 1;
@@ -82,7 +91,7 @@ let margin = 10;
 
 /*** Derived values ***/
 
-let opacityPerRound = d3.scaleLinear([0, rounds * 2], [0, 1]);
+let opacityPerRound = d3.scaleLinear([0, rounds * 3], [0, 1]);
 let xScale = d3.scaleLinear([startAtRound, rounds], [margin, width - margin * 2]);
 let yScale = d3.scaleLinear([0, 1], [height - margin * 2, margin]);
 let colours = d3.interpolateRainbow;
@@ -133,7 +142,6 @@ let sliders = {
 
 let anim = {
     isPlaying: false,
-    isArtistic: false,
     stepDelay: 200,
     timer: null,
     button: document.getElementById('anim-play-pause'),
@@ -145,12 +153,6 @@ function startAnimation() {
     stopAtRound = 0;
     sliders.startRound.setValue(startAtRound);
     sliders.endRound.setValue(stopAtRound);
-    if (anim.isArtistic) {
-        let setOpacity = 1 / (rounds * teamCount / 4);
-        opacityPerRound.range([setOpacity, setOpacity]);
-    } else {
-        opacityPerRound.range([0, 1]);
-    }
     anim.timer = d3.interval(animationTick, anim.stepDelay);
     anim.button.textContent = 'Stop animation';
     render();
@@ -169,7 +171,7 @@ function animationTick(elapsed) {
     }
     stopAtRound++;
     sliders.endRound.setValue(stopAtRound);
-    render();
+    render({ useTransition: true });
 }
 
 anim.button.addEventListener('click', function () {
@@ -178,10 +180,6 @@ anim.button.addEventListener('click', function () {
     } else {
         startAnimation();
     }
-}, false);
-
-document.getElementById('anim-artistic').addEventListener('change', function () {
-    anim.isArtistic = this.checked;
 }, false);
 
 
@@ -233,13 +231,20 @@ function update() {
     render();
 }
 
-function render() {
+function render({ useTransition } = {}) {
+    let transition = d3.transition();
+    if (useTransition) {
+        transition
+            .duration(anim.stepDelay)
+            .ease(d3.easeLinear)
+    }
+
     let teams = teamsArr.map(teamPoints => teamPoints.slice(startAtRound, stopAtRound + 1));
     xScale.domain([startAtRound, rounds]);
 
     // Work out available points range
     let minPoints = d3.min(teams, first);
-    let maxPoints = d3.max(teams, last);
+    // let maxPoints = d3.max(teams, last);
     let roundsRemaining = rounds - stopAtRound;
 //     let maxAvailablePoints = maxPoints + pointsPerWin * roundsRemaining;
     let maxAvailablePoints = pointsPerWin * rounds;
@@ -249,6 +254,12 @@ function render() {
 
     let lineGenerator = d3.line()
         .x((_, i) => xScale(i + startAtRound))
+        .y(yScale)
+
+    // TODO: Remove the need for this by altering lineGenerator to not
+    //       rely on array index, but instead have extra data in the array
+    let tempPredictionGenerator = d3.line()
+        .x((_, i) => xScale(i === 0 ? stopAtRound : rounds))
         .y(yScale)
 
     let triangleGenerator = d3.line()
@@ -264,35 +275,66 @@ function render() {
         )
 
     let teamLines = teamNodes.selectAll('.team-line')
-    let isArtisticMode = anim.isPlaying && anim.isArtistic;
-    if (isArtisticMode) {
-        teamLines.style('opacity', 0)
-        teamNodes.selectAll('.team-opportunity')
-            .attr('class', 'team-opportunity-clone')
-    } else {
+        .data(d => [d])
+        .join(
+            enter => enter.append('path')
+                .attr('class', 'team-line')
+        )
+
+    if (useTransition) {
         teamLines
-            .data(d => [d])
-            .style('opacity', 1)
-            .join(
-                enter => enter.append('path')
-                    .attr('class', 'team-line')
-            )
-            .attr('d', lineGenerator)
-        teamNodes.selectAll('.team-opportunity-clone').remove()
+            .transition(transition)
+            .attrTween('d', function(d, i) {
+                let finalPath = lineGenerator(d);
+                let pathBits = finalPath.split('L');
+                pathBits[pathBits.length - 1] = pathBits[pathBits.length - 2];
+                let initialPath = pathBits.join('L');
+                return d3.interpolateString(initialPath, finalPath);
+            })
+    } else {
+        teamLines.attr('d', lineGenerator)
     }
 
-    teamNodes.selectAll('.team-opportunity')
+    let teamOpps = teamNodes.selectAll('.team-opportunity')
         .data(d => [d])
         .join(
             enter => enter.append('path')
                 .attr('class', 'team-opportunity')
         )
+
+    if (useTransition) {
+        teamOpps = teamOpps.transition(transition)
+    }
+    teamOpps
         .attr('d', d => triangleGenerator([
             [stopAtRound, last(d)],
             [rounds, last(d)],
             [rounds, last(d) + pointsPerWin * roundsRemaining],
         ]) + 'Z')
         .style('opacity', opacityPerRound(stopAtRound))
+
+    let teamPredictions = teamNodes.selectAll('.team-prediction')
+        .data(totals => {
+            // TODO: Include points-per-match data in each item, to avoid calculating this
+            let prevTotal = 0;
+            let pointsPerMatch = totals.map(total => {
+                let thisMatch = total - prevTotal;
+                prevTotal = total;
+                return thisMatch;
+            });
+            let avg = d3.mean(pointsPerMatch);
+            let latestTotal = last(totals);
+            return [[latestTotal, latestTotal + avg * roundsRemaining]];
+        })
+        .join(
+            enter => enter.append('path')
+                .attr('class', 'team-prediction')
+        )
+
+    if (useTransition) {
+        teamPredictions = teamPredictions.transition(transition)
+    }
+    teamPredictions.attr('d', tempPredictionGenerator)
 }
 
 // CSV from football-data.org.uk
