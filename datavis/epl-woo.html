@@ -10,6 +10,9 @@
             --colour: #333;
         }
         .controls {
+            --slider-width: 20rem;
+            --slider-max: 38;
+
             background: #fff;
             border-radius: 5px;
             text-align: left;
@@ -21,10 +24,18 @@
             width: 7rem;
         }
         .slider input[type="range"] {
-            width: 20rem;
+            --min: 0;
+            --max: 38;
+            --step-width: calc(1 / var(--slider-max) * var(--slider-width));
+
+            margin-left: calc(var(--min) * var(--step-width));
+            margin-right: calc((var(--slider-max) - var(--max)) * var(--step-width));
+            width: calc((var(--max) - var(--min)) * var(--step-width));
         }
         .slider output {
             margin-left: 0.5rem;
+            width: 1.5em;
+            text-align: right;
         }
 
         .team-line,
@@ -46,7 +57,7 @@
 </head>
 
 <body class="centre">
-<div class="controls">
+<div class="controls" id="main-controls">
     <div class="slider">
         <label for="start-round">Start round:</label>
         <input id="start-round" type="range" min="0">
@@ -69,7 +80,6 @@
 /**
  * TODO:
  *
- * - Restrict start/end sliders to appropriate range based on the other slider.
  * - Find a better colour scheme.
  * - Switch X scale to date-based.
  * - Add X/Y axis ticks.
@@ -111,9 +121,11 @@ function getSlider(id) {
         updateOutput();
         if (id === 'start-round') {
             startAtRound = parseFloat(input.value) || 0;
+            sliders.endRound.setMin(startAtRound + 1);
         }
         if (id === 'end-round') {
             stopAtRound = parseFloat(input.value) || 1;
+            sliders.startRound.setMax(stopAtRound - 1);
         }
         render();
     }
@@ -127,8 +139,14 @@ function getSlider(id) {
             input.value = value;
             updateOutput();
         },
-        setMin: (value) => { input.min = value; },
-        setMax: (value) => { input.max = value; },
+        setMin: (value) => {
+            input.min = value;
+            input.style.setProperty('--min', value);
+        },
+        setMax: (value) => {
+            input.max = value;
+            input.style.setProperty('--max', value);
+        },
     }
 }
 
@@ -223,9 +241,11 @@ function addResult(map, team, points) {
     map.set(team, results);
 }
 
-function update() {
-    sliders.startRound.setMax(rounds - 1);
+function setup() {
+    document.getElementById('main-controls').style.setProperty('--slider-max', rounds);
+    sliders.startRound.setMax(stopAtRound - 1);
     sliders.startRound.setValue(startAtRound);
+    sliders.endRound.setMin(startAtRound + 1);
     sliders.endRound.setMax(rounds);
     sliders.endRound.setValue(stopAtRound);
     render();
@@ -316,14 +336,8 @@ function render({ useTransition } = {}) {
     let teamPredictions = teamNodes.selectAll('.team-prediction')
         .data(totals => {
             // TODO: Include points-per-match data in each item, to avoid calculating this
-            let prevTotal = 0;
-            let pointsPerMatch = totals.map(total => {
-                let thisMatch = total - prevTotal;
-                prevTotal = total;
-                return thisMatch;
-            });
-            let avg = d3.mean(pointsPerMatch);
             let latestTotal = last(totals);
+            let avg = latestTotal / ((totals.length - 1) + startAtRound);
             return [[latestTotal, latestTotal + avg * roundsRemaining]];
         })
         .join(
@@ -360,7 +374,7 @@ d3.csv('epl-1718.csv', rowParser).then(rows => {
     teamsArr = [...teamsMap.values()] //.slice(0, 1);
     teamsArr.sort((a, b) => d3.descending(last(a), last(b)));
 
-    update();
+    setup();
 });
 
 </script>
