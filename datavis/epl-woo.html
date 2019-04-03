@@ -45,13 +45,13 @@
             stroke-width: 1;
         }
         .team-prediction {
-            stroke-dasharray: 1 1;
+            stroke-dasharray: 2 3;
         }
         .team-opportunity,
         .team-opportunity-clone {
             fill: var(--colour);
             stroke: var(--colour);
-            stroke-width: 1;
+            stroke-width: 2;
         }
     </style>
 </head>
@@ -82,7 +82,6 @@
  *
  * - Find a better colour scheme.
  * - Switch X scale to date-based.
- * - Add X/Y axis ticks.
  */
 
 /*** Config ***/
@@ -96,15 +95,26 @@ let pointsPerDraw = 1;
 
 let width = 940;
 let height = 600;
-let margin = 10;
+let margin = {
+    top: 10,
+    left: 10,
+    right: 40,
+    bottom: 40,
+};
 
 
 /*** Derived values ***/
 
+let innerWidth = width - margin.left - margin.right;
+let innerHeight = height - margin.top - margin.bottom;
+
 let opacityPerRound = d3.scaleLinear([0, rounds * 3], [0, 1]);
-let xScale = d3.scaleLinear([startAtRound, rounds], [margin, width - margin * 2]);
-let yScale = d3.scaleLinear([0, 1], [height - margin * 2, margin]);
+let xScale = d3.scaleLinear([startAtRound, rounds], [margin.left, width - margin.left - margin.right]);
+let yScale = d3.scaleLinear([0, 1], [height - margin.top - margin.bottom, margin.top]);
 let colours = d3.interpolateRainbow;
+
+let axisRight = d3.axisRight(yScale);
+let axisBottom = d3.axisBottom(xScale);
 
 
 /*** Controls ***/
@@ -163,13 +173,17 @@ let anim = {
     stepDelay: 200,
     timer: null,
     button: document.getElementById('anim-play-pause'),
+    storedRange: [],
 };
 
 function startAnimation() {
     anim.isPlaying = true;
+    anim.storedRange = [startAtRound, stopAtRound];
     startAtRound = 0;
     stopAtRound = 0;
+    sliders.startRound.setMax(rounds - 1);
     sliders.startRound.setValue(startAtRound);
+    sliders.endRound.setMin(1);
     sliders.endRound.setValue(stopAtRound);
     anim.timer = d3.interval(animationTick, anim.stepDelay);
     anim.button.textContent = 'Stop animation';
@@ -208,7 +222,15 @@ let svg = d3.select('#graph-container').append('svg')
     .attr('height', height)
 let root = svg.append('g')
     .attr('class', 'root')
-    .attr('transform', `translate(${margin}, ${margin})`)
+    .attr('transform', `translate(${margin.left}, ${margin.top})`)
+let axesGroup = root.append('g')
+    .attr('class', 'group-axes')
+let axisRightGroup = axesGroup.append('g')
+    .attr('transform', `translate(${innerWidth}, 0)`)
+let axisBottomGroup = axesGroup.append('g')
+    .attr('transform', `translate(0, ${innerHeight})`)
+let teamsGroup = root.append('g')
+    .attr('class', 'group-teams')
 
 
 /*** Load data ***/
@@ -271,6 +293,9 @@ function render({ useTransition } = {}) {
     yScale.domain([minPoints, maxAvailablePoints]);
 
     /*** Render data ***/
+
+    axisRightGroup.call(axisRight);
+    axisBottomGroup.call(axisBottom);
 
     let lineGenerator = d3.line()
         .x((_, i) => xScale(i + startAtRound))
