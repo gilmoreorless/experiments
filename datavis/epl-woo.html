@@ -256,10 +256,17 @@ function rowParser(row) {
     };
 }
 
-function addResult(map, team, points) {
-    let results = map.get(team) || [0];
+function addResult(map, date, team, points) {
+    let results = map.get(team) || [{ round: 0, points: 0 }];
     let prev = last(results);
-    results.push(prev + points);
+    let totalPoints = prev.points + points;
+    let round = results.length;
+    results.push({
+        date,
+        round,
+        points: totalPoints,
+        avg: totalPoints / round,
+    });
     map.set(team, results);
 }
 
@@ -281,14 +288,11 @@ function render({ useTransition } = {}) {
             .ease(d3.easeLinear)
     }
 
-    let teams = teamsArr.map(teamPoints => teamPoints.slice(startAtRound, stopAtRound + 1));
+    let teams = teamsArr.map(results => results.slice(startAtRound, stopAtRound + 1));
     xScale.domain([startAtRound, rounds]);
 
     // Work out available points range
-    let minPoints = d3.min(teams, first);
-    // let maxPoints = d3.max(teams, last);
-    let roundsRemaining = rounds - stopAtRound;
-//     let maxAvailablePoints = maxPoints + pointsPerWin * roundsRemaining;
+    let minPoints = d3.min(teams, d => first(d).points);
     let maxAvailablePoints = pointsPerWin * rounds;
     yScale.domain([minPoints, maxAvailablePoints]);
 
@@ -298,14 +302,8 @@ function render({ useTransition } = {}) {
     axisBottomGroup.call(axisBottom);
 
     let lineGenerator = d3.line()
-        .x((_, i) => xScale(i + startAtRound))
-        .y(yScale)
-
-    // TODO: Remove the need for this by altering lineGenerator to not
-    //       rely on array index, but instead have extra data in the array
-    let tempPredictionGenerator = d3.line()
-        .x((_, i) => xScale(i === 0 ? stopAtRound : rounds))
-        .y(yScale)
+        .x(d => xScale(d.round))
+        .y(d => yScale(d.points))
 
     let triangleGenerator = d3.line()
         .x(d => xScale(d[0]) - 1)
@@ -329,12 +327,17 @@ function render({ useTransition } = {}) {
     if (useTransition) {
         teamLines
             .transition(transition)
-            .attrTween('d', function(d, i) {
-                let finalPath = lineGenerator(d);
-                let pathBits = finalPath.split('L');
-                pathBits[pathBits.length - 1] = pathBits[pathBits.length - 2];
-                let initialPath = pathBits.join('L');
-                return d3.interpolateString(initialPath, finalPath);
+            .attrTween('d', d => {
+                let newPath = lineGenerator(d);
+                let lastResult = last(d);
+                if (lastResult.round < stopAtRound) {
+                    return d3.interpolateString(newPath, newPath);
+                }
+                // Set the old path as points `[a, b, b]` before
+                // transitioning to `[a, b, c]`
+                let prevRounds = d.slice(0, -1).concat(d.slice(-2, -1));
+                let prevPath = lineGenerator(prevRounds);
+                return d3.interpolateString(prevPath, newPath);
             })
     } else {
         teamLines.attr('d', lineGenerator)
@@ -351,19 +354,29 @@ function render({ useTransition } = {}) {
         teamOpps = teamOpps.transition(transition)
     }
     teamOpps
-        .attr('d', d => triangleGenerator([
-            [stopAtRound, last(d)],
-            [rounds, last(d)],
-            [rounds, last(d) + pointsPerWin * roundsRemaining],
-        ]) + 'Z')
+        .attr('d', d => {
+            let lastResult = last(d);
+            let lastRound = Math.min(lastResult.round, stopAtRound);
+            let lastPoints = lastResult.points;
+            let roundsRemaining = rounds - lastRound;
+            return triangleGenerator([
+                [lastRound, lastPoints],
+                [rounds, lastPoints],
+                [rounds, lastPoints + pointsPerWin * roundsRemaining], // TODO: Adjust for dates
+            ]) + 'Z'
+        })
         .style('opacity', opacityPerRound(stopAtRound))
 
     let teamPredictions = teamNodes.selectAll('.team-prediction')
-        .data(totals => {
-            // TODO: Include points-per-match data in each item, to avoid calculating this
-            let latestTotal = last(totals);
-            let avg = latestTotal / ((totals.length - 1) + startAtRound);
-            return [[latestTotal, latestTotal + avg * roundsRemaining]];
+        .data(results => {
+            let lastResult = last(results);
+            let lastRound = Math.min(lastResult.round, stopAtRound);
+            let roundsRemaining = rounds - lastRound;
+            let predictedPoints = lastResult.points + (lastResult.avg || 0) * roundsRemaining; // TODO: Adjust for dates
+            return [[
+                { round: lastRound, points: lastResult.points },
+                { round: rounds, points: predictedPoints }
+            ]]
         })
         .join(
             enter => enter.append('path')
@@ -373,7 +386,7 @@ function render({ useTransition } = {}) {
     if (useTransition) {
         teamPredictions = teamPredictions.transition(transition)
     }
-    teamPredictions.attr('d', tempPredictionGenerator)
+    teamPredictions.attr('d', lineGenerator)
 }
 
 // CSV from football-data.org.uk
@@ -391,13 +404,13 @@ d3.csv('epl-1718.csv', rowParser).then(rows => {
             case 'D': homePts = pointsPerDraw; awayPts = pointsPerDraw; break;
         }
 
-        addResult(teamsMap, row.home, homePts);
-        addResult(teamsMap, row.away, awayPts);
+        addResult(teamsMap, row.date, row.home, homePts);
+        addResult(teamsMap, row.date, row.away, awayPts);
     });
 
     // Reduce team points to array of arrays
     teamsArr = [...teamsMap.values()] //.slice(0, 1);
-    teamsArr.sort((a, b) => d3.descending(last(a), last(b)));
+    teamsArr.sort((a, b) => d3.descending(last(a).points, last(b).points));
 
     setup();
 });
