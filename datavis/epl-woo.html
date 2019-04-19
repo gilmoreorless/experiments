@@ -6,14 +6,16 @@
     <link rel="stylesheet" href="../main.css">
 
     <style>
-        :root {
+        body {
             --colour: #333;
+
+            background-color: #fff;
         }
         .controls {
             --slider-width: 20rem;
             --slider-max: 38;
 
-            background: #fff;
+            background-color: #D4E9F2;
             border-radius: 5px;
             text-align: left;
         }
@@ -50,8 +52,10 @@
         .team-opportunity,
         .team-opportunity-clone {
             fill: var(--colour);
-            stroke: var(--colour);
-            stroke-width: 2;
+        }
+        .team-label {
+            font-size: 14px;
+            fill: var(--colour);
         }
     </style>
 </head>
@@ -98,7 +102,7 @@ let height = 600;
 let margin = {
     top: 10,
     left: 10,
-    right: 40,
+    right: 140,
     bottom: 40,
 };
 
@@ -108,10 +112,29 @@ let margin = {
 let innerWidth = width - margin.left - margin.right;
 let innerHeight = height - margin.top - margin.bottom;
 
-let opacityPerRound = d3.scaleLinear([0, rounds * 3], [0, 1]);
-let xScale = d3.scaleLinear([startAtRound, rounds], [margin.left, width - margin.left - margin.right]);
-let yScale = d3.scaleLinear([0, 1], [height - margin.top - margin.bottom, margin.top]);
-let colours = d3.interpolateRainbow;
+// Interpolate numbers in scales to 2 decimal places, for easier SVG path debugging
+function interpolateNeat(a, b) {
+    let interpolator = d3.interpolateNumber(a, b);
+    return function (t) {
+        let n = interpolator(t);
+        return Math.round(n * 100) / 100;
+    }
+}
+
+let opacityPerRound = d3.scaleLinear([0, rounds], [1 / teamCount, 1 / teamCount * 2]);
+let xScale = d3.scaleLinear()
+    .domain([startAtRound, rounds])
+    .range([margin.left, width - margin.left - margin.right])
+    .interpolate(interpolateNeat);
+let yScale = d3.scaleLinear()
+    .domain([0, 1])
+    .range([height - margin.top - margin.bottom, margin.top])
+    .interpolate(interpolateNeat);
+const phi = 1.618 // Close enough
+let colours = (i) => {
+    let ii = (i * phi) % 1;
+    return d3.hcl(ii * 360, 150, 70);
+};
 
 let axisRight = d3.axisRight(yScale);
 let axisBottom = d3.axisBottom(xScale);
@@ -170,7 +193,7 @@ let sliders = {
 
 let anim = {
     isPlaying: false,
-    stepDelay: 200,
+    stepDelay: 400,
     timer: null,
     button: document.getElementById('anim-play-pause'),
     storedRange: [],
@@ -262,6 +285,7 @@ function addResult(map, date, team, points) {
     let totalPoints = prev.points + points;
     let round = results.length;
     results.push({
+        team,
         date,
         round,
         points: totalPoints,
@@ -281,12 +305,9 @@ function setup() {
 }
 
 function render({ useTransition } = {}) {
-    let transition = d3.transition();
-    if (useTransition) {
-        transition
-            .duration(anim.stepDelay)
-            .ease(d3.easeLinear)
-    }
+    let transition = d3.transition()
+        .ease(d3.easeLinear)
+        .duration(useTransition ? anim.stepDelay : 0);
 
     let teams = teamsArr.map(results => results.slice(startAtRound, stopAtRound + 1));
     xScale.domain([startAtRound, rounds]);
@@ -306,15 +327,15 @@ function render({ useTransition } = {}) {
         .y(d => yScale(d.points))
 
     let triangleGenerator = d3.line()
-        .x(d => xScale(d[0]) - 1)
+        .x(d => xScale(d[0]))
         .y(d => yScale(d[1]))
 
-    let teamNodes = root.selectAll('.team')
+    let teamNodes = teamsGroup.selectAll('.team')
         .data(teams)
         .join(
             enter => enter.append('g')
                 .attr('class', 'team')
-                .style('--colour', (_, i) => colours(i / teamCount))
+                .style('--colour', (_, i) => colours(i))
         )
 
     let teamLines = teamNodes.selectAll('.team-line')
@@ -323,25 +344,20 @@ function render({ useTransition } = {}) {
             enter => enter.append('path')
                 .attr('class', 'team-line')
         )
-
-    if (useTransition) {
-        teamLines
-            .transition(transition)
-            .attrTween('d', d => {
-                let newPath = lineGenerator(d);
-                let lastResult = last(d);
-                if (lastResult.round < stopAtRound) {
-                    return d3.interpolateString(newPath, newPath);
-                }
-                // Set the old path as points `[a, b, b]` before
-                // transitioning to `[a, b, c]`
-                let prevRounds = d.slice(0, -1).concat(d.slice(-2, -1));
-                let prevPath = lineGenerator(prevRounds);
-                return d3.interpolateString(prevPath, newPath);
-            })
-    } else {
-        teamLines.attr('d', lineGenerator)
-    }
+        .transition(transition)
+        .attrTween('d', d => {
+            let newPath = lineGenerator(d);
+            let lastResult = last(d);
+            // Don't keep animating if the line ends before stopAtRound
+            if (lastResult.round < stopAtRound) {
+                return d3.interpolateString(newPath, newPath);
+            }
+            // Set the old path as points `[a, b, b]` before
+            // transitioning to `[a, b, c]`
+            let prevRounds = d.slice(0, -1).concat(d.slice(-2, -1));
+            let prevPath = lineGenerator(prevRounds);
+            return d3.interpolateString(prevPath, newPath);
+        })
 
     let teamOpps = teamNodes.selectAll('.team-opportunity')
         .data(d => [d])
@@ -349,11 +365,7 @@ function render({ useTransition } = {}) {
             enter => enter.append('path')
                 .attr('class', 'team-opportunity')
         )
-
-    if (useTransition) {
-        teamOpps = teamOpps.transition(transition)
-    }
-    teamOpps
+        .transition(transition)
         .attr('d', d => {
             let lastResult = last(d);
             let lastRound = Math.min(lastResult.round, stopAtRound);
@@ -382,15 +394,36 @@ function render({ useTransition } = {}) {
             enter => enter.append('path')
                 .attr('class', 'team-prediction')
         )
+        .transition(transition)
+        .attr('d', lineGenerator)
 
-    if (useTransition) {
-        teamPredictions = teamPredictions.transition(transition)
-    }
-    teamPredictions.attr('d', lineGenerator)
+    let teamLabels = teamNodes.selectAll('.team-label')
+        .data(results => {
+            // TODO: Pre-calculate all this data to stop the duplication of logic within each .data() call
+            let lastResult = last(results);
+            let lastRound = Math.min(lastResult.round, stopAtRound);
+            let roundsRemaining = rounds - lastRound;
+            let predictedPoints = lastResult.points + (lastResult.avg || 0) * roundsRemaining;
+            return [{
+                team: lastResult.team,
+                points: lastResult.points,
+                predictedPoints
+            }];
+        })
+        .join(
+            enter => enter.append('text')
+                .attr('class', 'team-label')
+                .attr('dy', '0.35em')
+                .text(d => d.team)
+        )
+        .transition(transition)
+        .attr('transform', d => {
+            return `translate(${innerWidth + 30}, ${yScale(d.predictedPoints)})`;
+        })
 }
 
 // CSV from football-data.org.uk
-d3.csv('epl-1718.csv', rowParser).then(rows => {
+d3.csv('epl-1516.csv', rowParser).then(rows => {
     teamsMap = new Map();
 
     /*** Process data ***/
