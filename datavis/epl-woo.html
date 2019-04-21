@@ -40,6 +40,11 @@
             text-align: right;
         }
 
+        .graph-title {
+            font-size: 1.2rem;
+            margin: 1em 0 0;
+        }
+
         .team-line,
         .team-prediction {
             fill: none;
@@ -76,6 +81,7 @@
         <button id="anim-play-pause" type="button">Play animation</button>
     </div>
 </div>
+<h1 class="graph-title">English Premier League season <span id="title-dates"></span></h1>
 <div id="graph-container"></div>
 
 <script src="../common/js/d3.v5.js"></script>
@@ -445,6 +451,9 @@ d3.csv('epl-1516.csv', rowParser).then(rows => {
     teamsArr = [...teamsMap.values()] //.slice(0, 1);
     teamsArr.sort((a, b) => d3.descending(last(a).points, last(b).points));
 
+    let firstYear = new Date(first(rows).date).getFullYear();
+    let lastYear = new Date(last(rows).date).getFullYear();
+    document.getElementById('title-dates').textContent = `${firstYear}/${String(lastYear).slice(-2)}`;
     setup();
 });
 
