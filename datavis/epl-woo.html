@@ -275,10 +275,13 @@ function last(array, defaultValue) {
 }
 
 function rowParser(row) {
-    let parts = row.Date.split('/');
+    let [day, month, year] = row.Date.split('/');
+    if (year.length === 2) {
+        year = `20${year}`;
+    }
     return {
         // Convert dd/mm/yy to yyyy-mm-dd
-        date: `20${parts[2]}-${parts[1]}-${parts[0]}`,
+        date: new Date(`${year}-${month}-${day}`),
         home: row.HomeTeam,
         away: row.AwayTeam,
         result: row.FTR,
@@ -451,8 +454,8 @@ d3.csv('epl-1516.csv', rowParser).then(rows => {
     teamsArr = [...teamsMap.values()] //.slice(0, 1);
     teamsArr.sort((a, b) => d3.descending(last(a).points, last(b).points));
 
-    let firstYear = new Date(first(rows).date).getFullYear();
-    let lastYear = new Date(last(rows).date).getFullYear();
+    let firstYear = first(rows).date.getFullYear();
+    let lastYear = last(rows).date.getFullYear();
     document.getElementById('title-dates').textContent = `${firstYear}/${String(lastYear).slice(-2)}`;
     setup();
 });
