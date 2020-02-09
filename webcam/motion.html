@@ -4,7 +4,8 @@
     <meta charset="utf-8">
     <title>Webcam Experiments - Motion-only video</title>
     <style>
-    #controls {position:absolute; z-index:2;}
+    body {padding-top:10em;}
+    #controls {position:absolute; z-index:2; top:1em;}
     #output {position:absolute; top:0; left:0; width:100%; height:100%;}
     </style>
 </head>
@@ -40,8 +41,7 @@
         }
 
         function startInput() {
-            // Only works in Opera Labs and Chrome (with a flag) right now
-            navigator.getUserMedia({video: true}, function (stream) {
+            getUserMedia({video: true}, function (stream) {
                 setStreamSrc(video, stream);
 
                 width  = source.width  = output.width  = video.width;
@@ -55,7 +55,7 @@
         }
 
         function stopInput() {
-            video.src = '';
+            removeStreamSrc(video);
             if (timer) {
                 clearTimeout(timer);
             }

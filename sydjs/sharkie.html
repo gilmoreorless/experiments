@@ -79,6 +79,7 @@
             document.getElementById('chuckles-mode').addEventListener('click', setMode, false);
             window.addEventListener('resize', setLaserCanvasSize, false);
             document.addEventListener('keydown', laserKeyListener, false);
+            document.addEventListener('mousemove', laserMouseMove, false);
 
             setLaserCanvasSize();
         }
@@ -99,7 +100,7 @@
         }
 
         function startInput() {
-            navigator.getUserMedia({audio: true}, function (stream) {
+            getUserMedia({audio: true}, function (stream) {
                 streamSrc = audioCtx.createMediaStreamSource(stream);
                 dummy.bindInput(streamSrc);
             }, function () {
@@ -138,19 +139,21 @@
         }
 
         function startLasers() {
-            document.addEventListener('mousemove', laserMouseMove, false);
+            // document.addEventListener('mousemove', laserMouseMove, false);
         }
 
         function stopLasers() {
-            document.removeEventListener('mousemove', laserMouseMove, false);
+            // document.removeEventListener('mousemove', laserMouseMove, false);
             laserCtx.clearRect(0, 0, laserCanvas.width, laserCanvas.height);
         }
 
         function laserMouseMove(e) {
-            drawLasers({
-                x: e.pageX,
-                y: e.pageY
-            });
+            if (isLasering) {
+                drawLasers({
+                    x: e.pageX,
+                    y: e.pageY
+                });
+            }
         }
 
         // Some of the laser-drawing code inspired by http://laserey.es/

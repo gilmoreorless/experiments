@@ -72,7 +72,7 @@
         }
 
         function startInput() {
-            navigator.getUserMedia({audio: true}, function (stream) {
+            getUserMedia({audio: true}, function (stream) {
                 streamSrc = audioCtx.createMediaStreamSource(stream);
                 dummy.bindInput(streamSrc);
             }, function () {

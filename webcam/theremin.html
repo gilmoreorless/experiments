@@ -107,7 +107,7 @@
             colLeft  = new HandTracker(processing, {x:0, y:0, w:colWidth, h:height}, 'left');
             colRight = new HandTracker(processing, {x:width - colWidth, y:0, w:colWidth, h:height}, 'right');
             if (sourceMethod === 1) {
-                navigator.getUserMedia({video: true}, function (stream) {
+                getUserMedia({video: true}, function (stream) {
                     hasStream = true;
                     setStreamSrc(video, stream);
                     procCtx.translate(width, 0);
@@ -147,7 +147,7 @@
 
         function stopInput() {
             hasStream = false;
-            video.src = '';
+            removeStreamSrc(video);
             oscillator.stop(0);
             oscillator.disconnect();
             tracker.setState('off');

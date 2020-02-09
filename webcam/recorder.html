@@ -202,7 +202,7 @@
         }
 
         function startInput() {
-            navigator.getUserMedia({video: true}, function (stream) {
+            getUserMedia({video: true}, function (stream) {
                 rawStream = stream;
                 setStreamSrc(inputVideo, stream);
 

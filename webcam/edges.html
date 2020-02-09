@@ -65,22 +65,21 @@
         }
 
         function startInput() {
-            // Only works in Opera Labs and Chrome (with a flag) right now
-            navigator.getUserMedia({video: true}, function (stream) {
+            getUserMedia({video: true}, function (stream) {
                 setStreamSrc(video, stream);
 
                 width  = source.width  = edgeConv.width  = edgeGradX.width  = edgeGradY.width  = edgeGradMag.width  = video.width;
                 height = source.height = edgeConv.height = edgeGradX.height = edgeGradY.height = edgeGradMag.height = video.height;
                 srcCtx.translate(width, 0);
                 srcCtx.scale(-1, 1);
-                drawVideo();
+                requestAnimationFrame(drawVideo);
             }, function () {
                 console.error('Oh noes!');
             });
         }
 
         function stopInput() {
-            video.src = '';
+            removeStreamSrc(video);
             if (timer) {
                 clearTimeout(timer);
             }
@@ -153,39 +152,39 @@
             var w = srcData.width;
             var h = srcData.height;
             var srcpx = srcData.data;
-            // var dataGX = gradXCtx.createImageData(w, h);
-            // var dataGY = gradYCtx.createImageData(w, h);
+            var dataGX = gradXCtx.createImageData(w, h);
+            var dataGY = gradYCtx.createImageData(w, h);
             var dataMag = magCtx.createImageData(w, h);
-            // var dx = dataGX.data;
-            // var dy = dataGY.data;
+            var dx = dataGX.data;
+            var dy = dataGY.data;
             var dm = dataMag.data;
 
             var intensities = processing.intensities(srcData)
-            // var gradients = processing._gradients(intensities);
+            var gradients = processing._gradients(intensities);
             var vectors = processing._gradientVectors(intensities);
-            // var gradsX = gradients.x;
-            // var gradsY = gradients.y;
-            // var y = gradsX.length;
-            // var xx = gradsX[0].length;
+            var gradsX = gradients.x;
+            var gradsY = gradients.y;
+            var y = gradsX.length;
+            var xx = gradsX[0].length;
             var y = h;
             var xx = w;
             while (y--) {
                 var x = xx;
                 while (x--) {
                     var i = (y * 4) * w + x * 4;
-                    // var gradX = Math.abs(gradsX[y][x]) * 255    ;
-                    // var gradY = Math.abs(gradsY[y][x]) * 255    ;
+                    var gradX = Math.abs(gradsX[y][x]) * 255    ;
+                    var gradY = Math.abs(gradsY[y][x]) * 255    ;
                     var mag = Math.abs(vectors[y][x].mag) * 255 ;
                     // var mag = gradX + gradY;
 
-                    // dx[i] = gradX;
-                    // dx[i + 1] = gradX;
-                    // dx[i + 2] = gradX;
-                    // dx[i + 3] = 255;
-                    // dy[i] = gradY;
-                    // dy[i + 1] = gradY;
-                    // dy[i + 2] = gradY;
-                    // dy[i + 3] = 255;
+                    dx[i] = gradX;
+                    dx[i + 1] = gradX;
+                    dx[i + 2] = gradX;
+                    dx[i + 3] = 255;
+                    dy[i] = gradY;
+                    dy[i + 1] = gradY;
+                    dy[i + 2] = gradY;
+                    dy[i + 3] = 255;
                     dm[i] = mag;
                     dm[i + 1] = mag;
                     dm[i + 2] = mag;
@@ -193,15 +192,15 @@
                 }
             }
 
-            // gradXCtx.putImageData(dataGX, 0, 0);
-            // gradYCtx.putImageData(dataGY, 0, 0);
+            gradXCtx.putImageData(dataGX, 0, 0);
+            gradYCtx.putImageData(dataGY, 0, 0);
             magCtx.putImageData(dataMag, 0, 0);
             // console.timeEnd('detectGradients');
         }
 
         function doStuff() {
             var srcData = srcCtx.getImageData(0, 0, width, height);
-            // detectConvolution(convCtx, srcData);
+            detectConvolution(convCtx, srcData);
             detectGradients(srcData);
         }
     </script>

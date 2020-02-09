@@ -60,7 +60,7 @@
         var video = document.getElementById('webcam');
         var output = document.getElementById('output');
         var outCtx = output.getContext('2d');
-        var audioCtx = new webkitAudioContext();
+        var audioCtx = new AudioContext();
         var oscillator = audioCtx.createOscillator();
         var gainNode = audioCtx.createGain();
         var prevDataCache = {};
@@ -78,8 +78,7 @@
             height = output.height = video.height;
             minMagnitude > 1 && (minMagnitude /= 100);
             if (sourceMethod === 1) {
-                // Only works in Opera, Chrome and Firefox Nightlies (with a flag) right now
-                navigator.getUserMedia({video: true}, function (stream) {
+                getUserMedia({video: true}, function (stream) {
                     setStreamSrc(video, stream);
                     outCtx.translate(width, 0);
                     outCtx.scale(-1, 1);
@@ -104,7 +103,7 @@
         setTimeout(startInput);
 
         function stopInput() {
-            video.src = '';
+            removeStreamSrc(video);
             oscillator.noteOff(0);
             if (timer) {
                 clearTimeout(timer);

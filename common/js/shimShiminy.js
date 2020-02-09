@@ -10,18 +10,26 @@
     // window.URL normalisation
     window.URL = window.URL || window.webkitURL || window.msURL || window.oURL;
 
-    // navigator.getUserMedia normalisation
-    navigator.getUserMedia = navigator.getUserMedia ||
-                             navigator.webkitGetUserMedia ||
-                             navigator.mozGetUserMedia ||
-                             navigator.msGetUserMedia ||
-                             function (opts, success, fail) {
-                                 fail();
-                             };
+    // getUserMedia normalisation and backwards compatibility
+    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        window.getUserMedia = function (opts, success, fail) {
+            return navigator.mediaDevices.getUserMedia(opts).then(success).catch(fail);
+        }
+    } else {
+        window.getUserMedia = navigator.getUserMedia ||
+                              navigator.webkitGetUserMedia ||
+                              navigator.mozGetUserMedia ||
+                              navigator.msGetUserMedia ||
+                              function (opts, success, fail) {
+                                  fail && fail();
+                              };
+    }
 
     // Convenience method for setting user media source on a <video>
     window.setStreamSrc = function (video, stream) {
-        if (navigator.mozGetUserMedia) {
+        if ('srcObject' in video) {
+            video.srcObject = stream;
+        } else if (navigator.mozGetUserMedia) {
             video.mozSrcObject = stream;
         } else {
             video.src = window.URL && window.URL.createObjectURL ? window.URL.createObjectURL(stream) : stream;
@@ -31,7 +39,10 @@
 
     window.removeStreamSrc = function (video) {
         video.pause();
-        if (video.mozSrcObject) {
+        if (video.srcObject) {
+            video.srcObject.getVideoTracks().forEach(t => t.stop());
+            video.srcObject = null;
+        } else if (video.mozSrcObject) {
             video.mozSrcObject = '';
         }
         video.src = '';
@@ -58,27 +69,6 @@
                                   function (id) {
                                       return clearTimeout(id);
                                   };
-
-    // Custom method to check support for certain features
-    // Possible options: {audio:true, video:true, webAudio:true}
-    window.hasFeatureSupport = function (features) {
-        features || (features = {});
-        var hasGUM = !!navigator.getUserMedia;
-        var canGetMic = hasGUM && (function () {
-            // Yeah, user agent sniffing is bad, but there's no other way
-            var supported = {Chrome: 24, Firefox: 18};
-            var matcher = /(Chrome|Firefox)\/(\d+)/;
-            var match = matcher.exec(navigator.userAgent);
-            if (!match) return false;
-            var minVersion = supported[match[1]];
-            return minVersion <= +match[2];
-        })();
-        return !(
-            (features.webAudio && !window.AudioContext) ||
-            (features.video && !hasGUM) ||
-            (features.audio && !canGetMic)
-        );
-    };
 })(this);
 
 /**

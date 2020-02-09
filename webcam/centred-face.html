@@ -139,11 +139,9 @@
                 var scale = SET_BOUNDS / faceMax;
                 transform += ' scale(' + scale + ')';
             }
-            container.style.webkitTransform =
-                  container.style.transform = transform;
+            container.style.transform = transform;
             if (dimsFace) {
-                container.style.webkitTransformOrigin =
-                      container.style.transformOrigin = dimsFace.cx + 'px ' + dimsFace.cy + 'px';
+                container.style.transformOrigin = dimsFace.cx + 'px ' + dimsFace.cy + 'px';
             }
         }
 

@@ -21,7 +21,7 @@
         var video = document.getElementById('webcam');
         var source = document.getElementById('source');
         var ctx = source.getContext('2d');
-        navigator.getUserMedia({video: true}, function (stream) {
+        getUserMedia({video: true}, function (stream) {
             setStreamSrc(video, stream);
             ctx.translate(640, 0);
             ctx.scale(-1, 1);

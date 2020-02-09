@@ -39,8 +39,7 @@
         }
 
         function startInput() {
-            // Only works in Opera Labs and Chrome (with a flag) right now
-            navigator.getUserMedia({video: true}, function (stream) {
+            getUserMedia({video: true}, function (stream) {
                 setStreamSrc(video, stream);
 
                 width  = source.width  = edgeGradMag.width  = convert.width  = video.width;
@@ -54,7 +53,7 @@
         }
 
         function stopInput() {
-            video.src = '';
+            removeStreamSrc(video);
             if (timer) {
                 clearTimeout(timer);
             }

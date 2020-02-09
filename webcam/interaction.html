@@ -86,8 +86,7 @@
             minMagnitude > 1 && (minMagnitude /= 100);
             minEdgePerc > 1 && (minEdgePerc /= 100);
             if (sourceMethod === 1) {
-                // Only works in Opera, Chrome (with a flag) and Firefox Nightlies (with a flag) right now
-                navigator.getUserMedia({video: true}, function (stream) {
+                getUserMedia({video: true}, function (stream) {
                     setStreamSrc(video, stream);
                     outCtx.translate(width, 0);
                     outCtx.scale(-1, 1);
@@ -109,7 +108,7 @@
         setTimeout(startInput);
 
         function stopInput() {
-            video.src = '';
+            removeStreamSrc(video);
             if (timer) {
                 clearTimeout(timer);
             }

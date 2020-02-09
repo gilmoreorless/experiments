@@ -256,7 +256,7 @@
         /*** INPUT MANAGEMENT ***/
 
         function startInput() {
-            navigator.getUserMedia({audio: true, video: true}, function (stream) {
+            getUserMedia({audio: true, video: true}, function (stream) {
                 state.hasInput = true;
                 rawStream = stream;
                 setStreamSrc(inputVideo, stream);

@@ -305,7 +305,7 @@
         getUserMedia: function () {
             var that = this;
             _gettingMedia = true;
-            navigator.getUserMedia({video: true, audio: true}, function (stream) {
+            getUserMedia({video: true, audio: true}, function (stream) {
                 _gettingMedia = false;
                 that.inputStream = stream;
                 that.audioSource = HAM.sfx.context.createMediaStreamSource(stream);
@@ -438,10 +438,7 @@
 
         stop: function () {
             this.dom.video.pause();
-            this.dom.video.src = this.dom.video.currentSrc = null;
-            if (navigator.mozGetUserMedia) {
-                this.dom.video.mozSrcObject = null;
-            }
+            removeStreamSource(this.dom.video);
             if (this.isTracking) {
                 this.stopTracking();
             }
