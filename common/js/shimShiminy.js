@@ -69,6 +69,10 @@
                                   function (id) {
                                       return clearTimeout(id);
                                   };
+
+    // SpeechRecognition normalisation
+    window.SpeechRecognition = window.SpeechRecognition ||
+                               window.webkitSpeechRecognition;
 })(this);
 
 /**
